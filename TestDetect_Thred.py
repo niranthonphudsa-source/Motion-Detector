@@ -8,7 +8,7 @@ from ultralytics import YOLO
 import numpy as np
 
 class VideoCaptureThread:
-    def __init__(self, src=1):
+    def __init__(self, src=0):
         self.cap = cv2.VideoCapture(src)
         self.ret, self.frame = False, None
         self.is_running = True
@@ -47,7 +47,7 @@ class PoseTkinterGUI:
 
         self.model = YOLO('yolo26n-pose.pt')
         
-        self.current_camera_index = 1
+        self.current_camera_index = 0
         self.cam_thread = VideoCaptureThread(self.current_camera_index)
         
         self.prev_time = 0
@@ -174,11 +174,11 @@ class PoseTkinterGUI:
         
         self.window.after(10, self.update_frame)
     def switch_camera(self):
-        if self.current_camera_index == 1:
-            self.current_camera_index = 0
-        else:
+        if self.current_camera_index == 0:
             self.current_camera_index = 1
-            
+        else:
+            self.current_camera_index = 0
+
         self.cam_thread.change_src(self.current_camera_index)
         print(f"สลับระบบ Thread ไปที่กล้องไอดี: {self.current_camera_index}")
 

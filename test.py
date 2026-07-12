@@ -37,7 +37,7 @@ class MultiPoseTkinterGUI:
         self.window.geometry("1100x700") 
 
         # โหลดโมเดล YOLO Pose
-        self.model = YOLO('yolov8n-pose.pt')
+        self.model = YOLO('yolo26n-pose.pt')
         self.cam_thread = VideoCaptureThread(0)
         self.prev_time = 0
 
@@ -90,41 +90,40 @@ class MultiPoseTkinterGUI:
         if len(keypoints) < 11:
             return None
 
-        ls = keypoints[5]   # ไหล่ซ้าย
-        rs = keypoints[6]   # ไหล่ขวา
-        rw = keypoints[10]  # ข้อมือขวา
+        left_sholder = keypoints[5]   # ไหล่ซ้าย
+        right_sholder = keypoints[6]   # ไหล่ขวา
+        right_wrist = keypoints[10]  # ข้อมือขวา
 
         conf_threshold = 0.5
         
-        if rw[2] > conf_threshold and rs[2] > conf_threshold and ls[2] > conf_threshold:
-            rw_x, rw_y = rw[0], rw[1]
-            rs_x, rs_y = rs[0], rs[1]
-            ls_x, ls_y = ls[0], ls[1]
+        if right_wrist[2] > conf_threshold and right_sholder[2] > conf_threshold and left_sholder[2] > conf_threshold:
+            right_wrist_x, right_wrist_y = right_wrist[0], right_wrist[1]
+            right_sholder_x, right_sholder_y = right_sholder[0], right_sholder[1]
+            left_sholder_x, left_sholder_y = left_sholder[0], left_sholder[1]
 
-            shoulder_width = abs(ls_x - rs_x)
-            
+            shoulder_width = abs(left_sholder_x - right_sholder_x)
             # 1. ชี้ไปทางขวา
             offset_side = shoulder_width * 0.4
-            if rw_x > rs_x + offset_side and abs(rw_y - rs_y) < shoulder_width:
+            if right_wrist_x > right_sholder_x + offset_side and abs(right_wrist_y - right_sholder_y) < shoulder_width:
                 return "Right"
 
             # 2. ชี้ไปทางซ้าย (ข้อมือขวายื่นตัดข้ามลำตัวไปทางซ้าย)
-            if rw_x < ls_x - offset_side and abs(rw_y - ls_y) < shoulder_width:
+            if right_wrist_x < left_sholder_x - offset_side and abs(right_wrist_y - left_sholder_y) < shoulder_width:
                 return "Left"
 
             # 🎯 3. ชี้มาข้างหน้า: เช็คว่าใกล้เคียงกึ่งกลางอก (Chest Center)
             # หาจุดกึ่งกลางระหว่างไหล่ซ้ายและไหล่ขวา (พิกัดหน้าอกโดยประมาณ)
-            chest_x = (ls_x + rs_x) / 2
-            chest_y = (ls_y + rs_y) / 2
+            chest_x = (left_sholder_x + right_sholder_x) / 2
+            chest_y = (left_sholder_y + right_sholder_y) / 2
 
             # กำหนดระยะบวกลบ (Tolerance) ตามความกว้างของไหล่
             # เช่น ยอมให้เบี่ยงซ้าย-ขวา ได้ 35% และ สูง-ต่ำ (บน-ล่าง) ได้ 40% ของความกว้างไหล่
             x_tolerance = shoulder_width * 0.35
             y_tolerance = shoulder_width * 0.40
 
-            # ตรวจสอบว่า ข้อมือขวา (rw) อยู่ในขอบเขตบวกลบของกึ่งกลางอกหรือไม่
-            if (chest_x - x_tolerance < rw_x < chest_x + x_tolerance) and \
-               (chest_y - y_tolerance < rw_y < chest_y + y_tolerance):
+            # ตรวจสอบว่า ข้อมือขวา (right_wrist) อยู่ในขอบเขตบวกลบของกึ่งกลางอกหรือไม่
+            if (chest_x - x_tolerance < right_wrist_x < chest_x + x_tolerance) and \
+               (chest_y - y_tolerance < right_wrist_y < chest_y + y_tolerance):
                 return "Front"
 
         return None
@@ -171,7 +170,7 @@ class MultiPoseTkinterGUI:
                         
                         cv2.rectangle(frame_resized, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), box_color, 2)
                         
-                        status_str = f"ID:{idx} {'[COMPLETE]' if is_complete else list(self.people_tracks[idx])}"
+                        status_str = f"ID:{idx} {'[COMPLETE]' if is_complete else 'Incomplete'}"
                         cv2.putText(frame_resized, status_str, (int(box[0]), int(box[1]) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
 
@@ -243,7 +242,7 @@ class MultiPoseTkinterGUI:
         all_completed = True
         for p_id, poses in self.people_tracks.items():
             if not self.required_poses.issubset(poses):
-                all_completed = False 
+                all_completed = False
                 break
 
         if all_completed:
