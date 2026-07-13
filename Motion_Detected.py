@@ -4,8 +4,8 @@ import threading
 import os
 
 class IntervalSnapshot:
-    def __init__(self, src=0):
-        self.cap = cv2.VideoCapture(src)
+    def __init__(self, src=1):
+        self.cap = cv2.VideoCapture(src, cv2.CAP_DSHOW)
         self.is_capturing = False
         self.output_dir = "captured_frames"
         self.timer_thread = None
@@ -15,7 +15,7 @@ class IntervalSnapshot:
             os.makedirs(self.output_dir)
 
     def start_capture_loop(self):
-        """ ฟังก์ชันลูปภายใน Thread สำหรับบันทึกภาพทุกๆ 1 วินาที """
+        # """ ฟังก์ชันลูปภายใน Thread สำหรับบันทึกภาพทุกๆ 1 วินาที """
         print("▶️ เริ่มระบบบันทึกภาพอัตโนมัติ...")
         while self.is_capturing:
             # ดึงเฟรมปัจจุบันจากกล้อง ณ วินาทีนั้น
@@ -92,5 +92,5 @@ class IntervalSnapshot:
 
 if __name__ == "__main__":
     # สามารถเปลี่ยนเลข 0 เป็น 1 ได้หากต่อกล้องเว็บแคมแยก
-    app = IntervalSnapshot(src=0)
+    app = IntervalSnapshot(src=1)
     app.run()

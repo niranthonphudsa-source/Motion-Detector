@@ -6,10 +6,13 @@ import threading
 from PIL import Image, ImageTk
 from ultralytics import YOLO
 import numpy as np
+import csv
+
+filename = "sample_data.csv"
 
 class VideoCaptureThread:
     def __init__(self, src=1):
-        self.cap = cv2.VideoCapture(src)
+        self.cap = cv2.VideoCapture(src, cv2.CAP_DSHOW)
         self.ret, self.frame = False, None
         self.is_running = True
         
@@ -31,7 +34,7 @@ class VideoCaptureThread:
 
     def change_src(self, src):
         self.release()
-        self.cap = cv2.VideoCapture(src)
+        self.cap = cv2.VideoCapture(src, cv2.CAP_DSHOW)
         self.is_running = True
         self.thread = threading.Thread(target=self.update, args=())
         self.thread.start()
@@ -101,7 +104,7 @@ class PoseTkinterGUI:
             fps = 1 / (current_time - self.prev_time) if (current_time - self.prev_time) > 0 else 0
             self.prev_time = current_time
 
-            results = self.model(frame, imgsz=480, verbose=False, stream=True)
+            results = self.model(frame, imgsz=480, conf=0.8, verbose=False, stream=True)
             for result in results:
                 if result.keypoints is not None:
                     keypoints_list = result.keypoints.xy.cpu().numpy()
@@ -150,6 +153,23 @@ class PoseTkinterGUI:
                             x2, y2 = int(keypoints[pt2_idx][0]), int(keypoints[pt2_idx][1])
                             if x1 > 0 and y1 > 0 and x2 > 0 and y2 > 0:
                                 cv2.line(frame, (x1, y1), (x2, y2), theme_color, 2, cv2.LINE_AA)
+                                cv2.putText(frame, f"point: {pt1_idx} x: {x1}, y: {y1},", (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255), 1)
+                                cv2.putText(frame, f"point: {pt2_idx} x: {x2}, y: {y2},", (x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255), 1)
+
+
+                                # เปิดไฟล์เตรียมไว้และเขียน Header (หัวตาราง) ก่อน
+                                with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
+                                    writer = csv.writer(file)
+                                    writer.writerow(["Frame", "X", "Y"])
+                                    
+                                    # ตัวอย่างการจำลองลูปอ่านพิกัดภาพ (แทนที่ด้วยลูป OpenCV หรือการคลิกเมาส์ของคุณ)
+                                    for frame_id in range(1, 6):
+                                        p = pt1_idx
+                                        x = x1 * 10  # สมมุติค่า X ที่ได้จากภาพ
+                                        y = y1 * 20  # สมมุติค่า Y ที่ได้จากภาพ
+                                        
+                                        # เขียนข้อมูลลงไฟล์ทีละบรรทัดในลูป
+                                        writer.writerow([frame_id,p, x, y])
 
                         # วาดจุดข้อต่อ
                         for kp in keypoints:
