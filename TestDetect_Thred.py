@@ -98,7 +98,7 @@ class PoseTkinterGUI:
         
         if ret and frame is not None:
             # frame = cv2.flip(frame, 1)
-            frame = cv2.resize(frame, (640, 640))
+            frame = cv2.resize(frame, (640, 600))
 
             current_time = time.time()
             fps = 1 / (current_time - self.prev_time) if (current_time - self.prev_time) > 0 else 0
@@ -157,19 +157,19 @@ class PoseTkinterGUI:
                                 cv2.putText(frame, f"point: {pt2_idx} x: {x2}, y: {y2},", (x2, y2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,255), 1)
 
 
-                                # เปิดไฟล์เตรียมไว้และเขียน Header (หัวตาราง) ก่อน
-                                with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
-                                    writer = csv.writer(file)
-                                    writer.writerow(["Frame", "X", "Y"])
+                            # # เปิดไฟล์เตรียมไว้และเขียน Header (หัวตาราง) ก่อน
+                            # with open(filename, mode='w', newline='', encoding='utf-8-sig') as file:
+                            #     writer = csv.writer(file)
+                            #     writer.writerow(["Frame", "X", "Y"])
+                                
+                            #     # ตัวอย่างการจำลองลูปอ่านพิกัดภาพ (แทนที่ด้วยลูป OpenCV หรือการคลิกเมาส์ของคุณ)
+                            #     for frame_id in range(1, 6):
+                            #         p = pt1_idx
+                            #         x = x1 * 10  # สมมุติค่า X ที่ได้จากภาพ
+                            #         y = y1 * 20  # สมมุติค่า Y ที่ได้จากภาพ
                                     
-                                    # ตัวอย่างการจำลองลูปอ่านพิกัดภาพ (แทนที่ด้วยลูป OpenCV หรือการคลิกเมาส์ของคุณ)
-                                    for frame_id in range(1, 6):
-                                        p = pt1_idx
-                                        x = x1 * 10  # สมมุติค่า X ที่ได้จากภาพ
-                                        y = y1 * 20  # สมมุติค่า Y ที่ได้จากภาพ
-                                        
-                                        # เขียนข้อมูลลงไฟล์ทีละบรรทัดในลูป
-                                        writer.writerow([frame_id,p, x, y])
+                            #         # เขียนข้อมูลลงไฟล์ทีละบรรทัดในลูป
+                            #         writer.writerow([frame_id,p, x, y])
 
                         # วาดจุดข้อต่อ
                         for kp in keypoints:
