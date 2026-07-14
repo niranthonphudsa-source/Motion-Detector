@@ -23,7 +23,6 @@ class PoseTkinterGUI:
             header = []
             for i in range(17):  # 17 keypoints
                 header.extend([f"X{i}", f"Y{i}"])
-            header.append("Right")
             writer.writerow(header)
 
         self.current_camera_index = 1
@@ -33,7 +32,7 @@ class PoseTkinterGUI:
         self.frame_count = 0
 
         # ค่า label ปัจจุบัน (default = Normal)
-        self.current_label = tk.StringVar(value="Normal")
+        self.current_label = tk.StringVar()
 
         self.SKELETON_CONNECTIONS = [
             (0, 1), (0, 2), (1, 3), (2, 4), (5, 6), (5, 7), (7, 9), 
@@ -65,13 +64,13 @@ class PoseTkinterGUI:
         )
         self.btn_switch.pack(pady=10, fill='x')
 
-        # ✅ ปุ่มเลือก Label
-        ttk.Button(self.right_frame, text="Set Label: Right", 
-                   command=lambda: self.current_label.set("Right")).pack(pady=5, fill='x')
-        ttk.Button(self.right_frame, text="Set Label: Left", 
-                   command=lambda: self.current_label.set("Left")).pack(pady=5, fill='x')
-        ttk.Button(self.right_frame, text="Set Label: Normal", 
-                   command=lambda: self.current_label.set("Normal")).pack(pady=5, fill='x')
+        # # ✅ ปุ่มเลือก Label
+        # ttk.Button(self.right_frame, text="Set Label: Right", 
+        #            command=lambda: self.current_label.set("Right")).pack(pady=5, fill='x')
+        # ttk.Button(self.right_frame, text="Set Label: Left", 
+        #            command=lambda: self.current_label.set("Left")).pack(pady=5, fill='x')
+        # ttk.Button(self.right_frame, text="Set Label: Normal", 
+        #            command=lambda: self.current_label.set("Normal")).pack(pady=5, fill='x')
 
         self.update_frame()
 
