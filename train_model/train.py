@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
 # 1. โหลดข้อมูลจาก CSV
-df = pd.read_csv('dataset\pose_dataset.csv')
+df = pd.read_csv('pose_dataset.csv')
 
 # 2. แยก X (พิกัด 34 ค่า) และ y (Label ชื่อท่าทาง)
 X = df.drop(columns=['label'])
