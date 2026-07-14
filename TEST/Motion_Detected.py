@@ -4,6 +4,7 @@ import joblib  # ใช้สำหรับโหลดไฟล์ .pkl
 from ultralytics import YOLO
 
 
+
 # 1. โหลดโมเดลทั้งสองตัว
 model = YOLO('yolo26n-pose.pt')          # โมเดล YOLO Pose สำหรับหาจุด
 pose_classifier = joblib.load('pose_classifier.pkl')  # โมเดล Sklearn สำหรับจำแนกท่าทาง
@@ -26,7 +27,9 @@ while True:
         break
 
     h, w = frame.shape[:2]
-    results = model.predict(source=frame, conf=0.8, verbose=False)
+    frame = cv2.resize(frame, (640, 540))
+    # results = model.predict(source=frame, conf=0.8, verbose=False)
+    results = model.predict(source=frame, conf=0.8, verbose=False, show=True)
 
     for result in results:
         if result.keypoints is not None:
@@ -79,7 +82,7 @@ while True:
                             (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 
                             0.8, (0, 255, 0), 2)
 
-        cv2.imshow("Real-time Pose Classifier", frame)
+    cv2.imshow("Real-time Pose Classifier", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
