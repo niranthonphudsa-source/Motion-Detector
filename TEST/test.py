@@ -1,103 +1,68 @@
 import cv2
 import numpy as np
+from ultralytics import YOLO
 
-# ตัวแปร Global สำหรับพิกัดและสถานะเมาส์
-drawing = False      
-ix, iy = -1, -1      
-cx, cy = -1, -1      
+# 1. โหลดโมเดล YOLO Pose และตั้งกล้อง
+model = YOLO('yolo26n-pose.pt')
+cap = cv2.VideoCapture(0)
 
-# ตัวแปรเก็บพิกัดล่าสุด (x1, y1, x2, y2)
-current_rect = None
-
-# สถานะของโปรแกรม: 0 = โหมดปกติ, 1 = โหมดพร้อมลาก (เมื่อกด 1)
-current_mode = 0
-
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
-def draw_rectangle(event, x, y, flags, param):
-    global ix, iy, cx, cy, drawing, current_rect, current_mode
-
-    # ทำงานเฉพาะเมื่ออยู่ในโหมด 1 (กดปุ่ม 1 แล้ว) เท่านั้น
-    if current_mode == 1:
-        if event == cv2.EVENT_LBUTTONDOWN:
-            drawing = True
-            ix, iy = x, y
-            cx, cy = x, y
-
-        elif event == cv2.EVENT_MOUSEMOVE:
-            if drawing:
-                cx, cy = x, y
-
-        elif event == cv2.EVENT_LBUTTONUP:
-            drawing = False
-            current_rect = (ix, iy, x, y)
-            print(f"ลากพื้นที่เสร็จสิ้น: {current_rect} (กด '2' เพื่อบันทึกค่า)")
-
-window_name = "Mode Control ROI"
-cv2.namedWindow(window_name)
-cv2.setMouseCallback(window_name, draw_rectangle)
-
-print("=== คู่มือการใช้งาน ===")
-print("กด '1' : เปิดโหมดลากกล่อง (ลากเมาส์ซ้ายค้าง)")
-print("กด '2' : บันทึกค่าพิกัดล่าสุดที่ลากไว้")
-print("กด 'c' : ล้างพิกัดที่เลือกไว้")
-print("กด 'q' : ออกจากโปรแกรม")
-print("====================")
+# กำหนดกรอบพิกัด ROI แบบ Hard-coded ตรงๆ ในโค้ด (x1, y1, x2, y2)
+# สมมุติเป็นกล่องขนาด 200x200 บริเวณกลางจอ (ปรับเปลี่ยนตัวเลขได้ตามต้องการ)
+roi_rect = (200, 150, 400, 350) 
 
 while True:
     ret, frame = cap.read()
-    if not ret:
+    if not ret: 
         break
 
-    # 1. วาดกล่องที่เลือกค้างไว้บนหน้าจอ (ถ้ามี)
-    if current_rect is not None:
-        cv2.rectangle(frame, (current_rect[0], current_rect[1]), 
-                      (current_rect[2], current_rect[3]), (0, 255, 0), 2)
-        cv2.putText(frame, "Selected ROI", (current_rect[0], current_rect[1] - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    # สั่ง YOLO ประมวลผลหาจุดพิกัดร่างกาย
+    results = model.predict(source=frame, conf=0.7, verbose=False)
 
-    # 2. แสดงกล่องสีแดงแบบ Real-time ขณะที่ผู้ใช้กำลังลากเมาส์
-    if current_mode == 1 and drawing:
-        cv2.rectangle(frame, (ix, iy), (cx, cy), (0, 0, 255), 2)
+    head_inside_roi = False  # สถานะเช็คว่าหูอยู่ในกรอบไหม
 
-    # 3. แสดงสถานะโหมดปัจจุบันบนหน้าจอให้เห็นชัดเจน
-    mode_text = "Mode: DRAWING (Press Mouse & Drag)" if current_mode == 1 else "Mode: NORMAL (Press '1' to Edit)"
-    mode_color = (0, 0, 255) if current_mode == 1 else (255, 0, 0)
-    cv2.putText(frame, mode_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mode_color, 2)
-
-    cv2.imshow(window_name, frame)
-    
-    # รับปุ่มกดจากคีย์บอร์ด
-    key = cv2.waitKey(1) & 0xFF
-
-    # กด '1' เพื่อเปิดโหมดลากวาง
-    if key == ord('1'):
-        current_mode = 1
-        print(">> เข้าสู่โหมด: ลากวาง (กดเมาส์ซ้ายค้างเพื่อวาดขอบเขต)")
-
-    # กด '2' เพื่อบันทึกค่า
-    elif key == ord('2'):
-        if current_rect is not None:
-            # ดึงพิกัดออกมา
-            x1, y1, x2, y2 = current_rect
+    for result in results:
+        if result.keypoints is not None:
+            # ดึงอาเรย์พิกัดออกมา
+            keypoints_list = result.keypoints.xy.cpu().numpy()
             
-            # ตัวอย่างการบันทึกค่าลงไฟล์ txt
-            with open("saved_roi.txt", "w") as f:
-                f.write(f"{x1},{y1},{x2},{y2}")
+            for keypoints in keypoints_list:
+                if len(keypoints) < 17: 
+                    continue 
                 
-            print(f"Successfully Saved! บันทึกพิกัด {current_rect} ลงไฟล์ saved_roi.txt เรียบร้อย")
-            current_mode = 0  # บันทึกเสร็จแล้วดีดกลับไปโหมดปกติ
-        else:
-            print("❌ ยังไม่ได้ลากกล่องพิกัด กรุณากด 1 แล้วลากกล่องก่อนกดบันทึก")
+                # วนลูปเช็คทุกจุดเพื่อวาดตำแหน่งและเลข Index
+                for idx, kp in enumerate(keypoints):
+                    kpx, kpy = int(kp[0]), int(kp[1])
+                    
+                    # ข้ามจุดที่มองไม่เห็น (พิกัดเป็น 0, 0)
+                    if kpx == 0 and kpy == 0: 
+                        continue
+                        
+                    # วาดจุดข้อต่อและเลข Index กำกับ (0-16)
+                    cv2.circle(frame, (kpx, kpy), 4, (255, 255, 0), cv2.FILLED)
+                    cv2.putText(frame, str(idx), (kpx, kpy - 8), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                    
+                    # 🎯 เช็คตรงๆ: ถ้าเป็นหูซ้าย (3) หรือหูขวา (4)
+                    if idx in [3, 4]:
+                        x1, y1, x2, y2 = roi_rect
+                        xmin, xmax = min(x1, x2), max(x1, x2)
+                        ymin, ymax = min(y1, y2), max(y1, y2)
+                        
+                        # ตรรกะเช็ค Point-in-Box ตรงๆ ไม่ใช้ฟังก์ชันอื่น
+                        if (xmin <= kpx <= xmax) and (ymin <= kpy <= ymax):
+                            head_inside_roi = True
 
-    # กด 'c' เพื่อเคลียร์ค่า
-    elif key == ord('c'):
-        current_rect = None
-        current_mode = 0
-        print("ล้างค่าพิกัดและกลับสู่โหมดปกติ")
+    # 3. วาดขอบเขตพื้นที่และแสดงผล
+    x1, y1, x2, y2 = roi_rect
+    box_color = (0, 0, 255) if head_inside_roi else (0, 255, 0)
+    status_text = "DANGER: Ears in Zone!" if head_inside_roi else "Safe Zone"
+    
+    cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
+    cv2.putText(frame, status_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
 
-    # กด 'q' เพื่อออก
-    elif key == ord('q'):
+    cv2.imshow("Direct Check Frame", frame)
+    
+    if cv2.waitKey(1) & 0xFF == ord('q'): 
         break
 
 cap.release()

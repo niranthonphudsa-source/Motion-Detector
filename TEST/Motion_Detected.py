@@ -9,8 +9,8 @@ import torch
 model = YOLO('yolo26n-pose.pt')          # โมเดล YOLO Pose สำหรับหาจุด
 pose_classifier = joblib.load('pose_classifier_1.pkl')  # โมเดล Sklearn สำหรับจำแนกท่าทาง
 
-# cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
 # cap = cv2.VideoCapture("videoTrain1.mp4")
 
 SKELETON_CONNECTIONS = [
@@ -30,7 +30,7 @@ while True:
     h, w = frame.shape[:2]
     # frame = cv2.resize(frame, (320, 320))
     results = model.predict(source=frame, conf=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', verbose=False)
-
+    
     for result in results:
         if result.keypoints is not None:
             keypoints_list = result.keypoints.xy.cpu().numpy()
