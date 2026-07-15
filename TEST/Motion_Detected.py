@@ -28,7 +28,7 @@ while True:
         break
 
     h, w = frame.shape[:2]
-    # frame = cv2.resize(frame, (320, 320))
+    frame = cv2.resize(frame, (640, 540))
     results = model.predict(source=frame, conf=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', verbose=False)
     
     for result in results:

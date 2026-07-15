@@ -24,5 +24,5 @@ print(f"Accuracy: {accuracy_score(y_test, y_pred) * 100:.2f}%")
 print(classification_report(y_test, y_pred))
 
 # 6. เซฟโมเดลที่เทรนเสร็จแล้วเก็บไว้ใช้ในกล้อง Real-time ต่อไป
-joblib.dump(clf, 'pose_classifier.pkl')
-print("เซฟโมเดล 'pose_classifier.pkl' เรียบร้อย!")
+joblib.dump(clf, 'pose_classifier_1.pkl')
+print("เซฟโมเดล 'pose_classifier.pkl_1' เรียบร้อย!")
