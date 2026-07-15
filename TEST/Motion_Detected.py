@@ -9,8 +9,8 @@ import torch
 model = YOLO('yolo26n-pose.pt')          # โมเดล YOLO Pose สำหรับหาจุด
 pose_classifier = joblib.load('pose_classifier_1.pkl')  # โมเดล Sklearn สำหรับจำแนกท่าทาง
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-# cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
+# cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
 # cap = cv2.VideoCapture("videoTrain1.mp4")
 
 SKELETON_CONNECTIONS = [
