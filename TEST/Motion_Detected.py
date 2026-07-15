@@ -7,7 +7,7 @@ import torch
 
 # 1. โหลดโมเดลทั้งสองตัว
 model = YOLO('yolo26n-pose.pt')          # โมเดล YOLO Pose สำหรับหาจุด
-pose_classifier = joblib.load('pose_classifier_1.pkl')  # โมเดล Sklearn สำหรับจำแนกท่าทาง
+pose_classifier = joblib.load('pose_classifier.pkl')  # โมเดล Sklearn สำหรับจำแนกท่าทาง
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 # cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
@@ -28,7 +28,7 @@ while True:
         break
 
     h, w = frame.shape[:2]
-    frame = cv2.resize(frame, (640, 540))
+    # frame = cv2.resize(frame, (640, 540))
     results = model.predict(source=frame, conf=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', verbose=False)
     
     for result in results:

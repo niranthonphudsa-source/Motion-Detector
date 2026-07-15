@@ -23,7 +23,8 @@ if not os.path.exists(csv_filename):
 
 # 2. โหลดโมเดล YOLO Pose
 model = YOLO('yolo26n-pose.pt') 
-cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
+# cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
+cap = cv2.VideoCapture("videoTrain1.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
