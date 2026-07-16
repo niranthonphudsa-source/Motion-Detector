@@ -41,6 +41,7 @@ print("- ทำท่าทางหน้ากล้อง")
 print("- กดเลข '1' ค้างไว้เพื่อบันทึกท่าที่ 1 (เช่น 'Righht')")
 print("- กดเลข '2' ค้างไว้เพื่อบันทึกท่าที่ 2 (เช่น 'Left')")
 print("- กดเลข '3' ค้างไว้เพื่อบันทึกท่าที่ 3 (เช่น 'Front')")
+print("- กดเลข '4' ค้างไว้เพื่อบันทึกท่าที่ 3 (เช่น 'Nomal')")
 print("- กด 'q' เพื่อออกจากโปรแกรม")
 
 while True:
@@ -109,6 +110,8 @@ while True:
         elif key == ord('3'):
             # key = '3'
             label = "Front"
+        elif key == ord('4'):
+            label = "Nomal"
 
         # แปลง features เป็น list และต่อท้ายด้วยชื่อท่าทาง
         row_data = list(features_to_save)
