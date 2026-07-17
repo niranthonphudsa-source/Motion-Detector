@@ -24,7 +24,7 @@ pose_classifier = joblib.load('pose_classifier_1.pkl')  # โมเดล Sklear
 
 # cap = cv2.VideoCapture(0)
 # cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-cap = cv2.VideoCapture('videoTrain2.mp4')
+# cap = cv2.VideoCapture('videoTrain4.mp4')
 # cap = cv2.VideoCapture('Screen Recording 2026-07-14 111101.mp4')
 
 check_people = "None People"
@@ -37,7 +37,7 @@ print("กด 'q' : ออกจากโปรแกรม")
 print("====================")
 
 check_pose = ["Right", "Left", "Front"]
-ok_display_time = 2.0  # ต้องการให้แสดงคำว่า "OK" ค้างไว้บนจอกี่วินาที
+ok_display_time = 5.0  # ต้องการให้แสดงคำว่า "OK" ค้างไว้บนจอกี่วินาที
 
 frame_count = 0
 SKIP_FRAMES = 3
