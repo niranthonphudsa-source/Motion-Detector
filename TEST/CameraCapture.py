@@ -24,7 +24,8 @@ if not os.path.exists(csv_filename):
 # 2. โหลดโมเดล YOLO Pose
 model = YOLO('yolo26n-pose.pt') 
 # cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
-cap = cv2.VideoCapture("videoTrain1.mp4")
+# cap = cv2.VideoCapture("videoTrain1.mp4")
+cap = cv2.VideoCapture("videoTrain2.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
@@ -41,7 +42,7 @@ print("- ทำท่าทางหน้ากล้อง")
 print("- กดเลข '1' ค้างไว้เพื่อบันทึกท่าที่ 1 (เช่น 'Righht')")
 print("- กดเลข '2' ค้างไว้เพื่อบันทึกท่าที่ 2 (เช่น 'Left')")
 print("- กดเลข '3' ค้างไว้เพื่อบันทึกท่าที่ 3 (เช่น 'Front')")
-print("- กดเลข '4' ค้างไว้เพื่อบันทึกท่าที่ 3 (เช่น 'Nomal')")
+print("- กดเลข '4' ค้างไว้เพื่อบันทึกท่าที่ 4 (เช่น 'Nomal')")
 print("- กด 'q' เพื่อออกจากโปรแกรม")
 
 while True:
@@ -99,7 +100,7 @@ while True:
         break
     
     # ตรวจสอบการกดเลข 1, 2, 3 เพื่อเลือกป้ายกำกับ (Label)
-    elif key in [ord('1'), ord('2'), ord('3')] and features_to_save is not None:
+    elif key in [ord('1'), ord('2'), ord('3'), ord('4')] and features_to_save is not None:
         label = ""
         if key == ord('1'):
             # key = '1'
