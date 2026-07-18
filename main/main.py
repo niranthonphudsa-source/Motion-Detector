@@ -1,6 +1,6 @@
 import cv2
-from roi_handler import ROIHandler
-from main.LIB.predict_frame_pose import ShowPredict
+from LIB.roi_handler import ROIHandler
+from LIB.predict_frame_pose import ShowPredict
 from file_manager import save_roi_to_txt, load_roi_from_txt
 from ultralytics import YOLO
 import sklearn
