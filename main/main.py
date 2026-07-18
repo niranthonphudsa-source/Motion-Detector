@@ -42,9 +42,13 @@ print("====================")
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 5.0  # ต้องการให้แสดงคำว่า "OK" ค้างไว้บนจอกี่วินาที
 
-frame_count = 0
-SKIP_FRAMES = 3
+
+SKIP_FRAMES = 1
 pose_history = {}      # โครงสร้าง: { id_ตัวเลข: [[frame_idx, keypoints], ...] }
+
+# ค่าเริ่มต้นสำหรับกรณีไม่ได้ทำนายท่าทาง
+predicted_label = "None"
+confidence = 0.3
 
 # Dictionary สำหรับเก็บสถานะนับท่าทางแยกตาม ID คน
 user_states = {} 
@@ -65,54 +69,30 @@ while True:
         break
     h, w = frame.shape[:2]
     
-    current_frame_poses = s.current_frame_poses 
-    current_frame_ids =  s.current_frame_ids 
+    s.current_frame_poses = [] 
+    s.current_frame_ids = [] 
 
     # --- ส่วนที่ 1: การหาพิกัด Keypoints (YOLO หรือ Linear Regression พยากรณ์เฟรมข้าม) ---
-    if frame_count % SKIP_FRAMES == 0:
+    if s.frame_count % SKIP_FRAMES == 0:
         predict_frame = model.track(source=frame, conf=0.5, persist=True, verbose=False)
         s.update_pose_history(predict_frame)    
         # s.current_frame_poses, s.current_frame_ids
         
     else:
         active_ids = list(s.pose_history.keys())
-        predicted_people_kp = []
-        predicted_people_ids = []
+        s.predicted_people_kp = []
+        s.predicted_people_ids = []
         
-        for s.p_id in active_ids:
-            history = s.pose_history[s.p_id]
-            if len(history) >= 2 and (frame_count - history[-1][0]) < (SKIP_FRAMES * 2):
-                X_train = np.array([item[0] for item in history]).reshape(-1, 1)
-                predicted_kp = np.zeros((17, 2))
-                
-                for kp_idx in range(17):
-                    y_train_x = np.array([item[1][kp_idx][0] for item in history])
-                    y_train_y = np.array([item[1][kp_idx][1] for item in history])
-                    
-                    if np.any(y_train_x > 0):
-                        reg_x = LinearRegression().fit(X_train, y_train_x)
-                        pred_x = reg_x.predict(np.array([[frame_count]]))[0]
-                        
-                        reg_y = LinearRegression().fit(X_train, y_train_y)
-                        pred_y = reg_y.predict(np.array([[frame_count]]))[0]
-                        
-                        predicted_kp[kp_idx] = [pred_x, pred_y]
-                
-                predicted_people_kp.append(predicted_kp)
-                predicted_people_ids.append(s.p_id)
-            else:
-                if len(history) > 0 and (frame_count - history[-1][0]) < (SKIP_FRAMES * 2):
-                    predicted_people_kp.append(history[-1][1])
-                    predicted_people_ids.append(s.p_id)
+        s.predict_keypoints_from_history(s.pose_history, s.frame_count, SKIP_FRAMES)
         
-        if len(predicted_people_kp) > 0:
-            current_frame_poses = np.array(predicted_people_kp)
-            current_frame_ids = np.array(predicted_people_ids)
+        if len(s.predicted_people_kp) > 0:
+            s.current_frame_poses = np.array(s.predicted_people_kp)
+            s.current_frame_ids = np.array(s.predicted_people_ids)
 
     # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล (ยุบรวมเหลือลูปเดียว) ---
-    any_head_inside = False
+    any_people_inside = False
     
-    for point_pose, s.p_id in zip(current_frame_poses, current_frame_ids):
+    for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
         if len(point_pose) < 17: 
             continue
         
@@ -128,26 +108,25 @@ while True:
         # ดึงสถานะปัจจุบันของ ID นี้ขึ้นมาใช้
         state = user_states[s.p_id]
         
-        # ตรวจสอบว่าจุดใบหน้า (index 15, 16) อยู่ในกล่อง ROI หรือไม่
-        head_inside_roi = False
+        people_in_rectangle = False
         if roi.current_rect is not None:
             x1, y1, x2, y2 = roi.current_rect
             xmin, xmax = min(x1, x2), max(x1, x2)
             ymin, ymax = min(y1, y2), max(y1, y2)
             
-            face_inside_count = 0
-            for idx in (15, 16):
-                hpx, hpy = int(point_pose[idx][0]), int(point_pose[idx][1])
+            foot_inside_count = 0
+            for s.idx in (15, 16):
+                hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
                 if (xmin <= hpx <= xmax) and (ymin <= hpy <= ymax):
-                    face_inside_count += 1
+                    foot_inside_count += 1
             
-            if face_inside_count > 0:
-                head_inside_roi = True
-                any_head_inside = True  # ใช้สำหรับเปลี่ยนสีกล่อง ROI รวม
+            if foot_inside_count > 0:
+                people_in_rectangle = True
+                any_people_inside = True  # ใช้สำหรับเปลี่ยนสีกล่อง ROI รวม
 
         # วาดจุดใบหน้าสีเหลือง
-        for idx in range(5):
-            hpx, hpy = int(point_pose[idx][0]), int(point_pose[idx][1])
+        for s.idx in range(5):
+            hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
             if hpx > 0 and hpy > 0:
                 cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
 
@@ -159,12 +138,10 @@ while True:
                 continue
             cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
 
-        # ค่าเริ่มต้นสำหรับกรณีไม่ได้ทำนายท่าทาง
-        predicted_label = "None"
-        confidence = 0.0
+
 
         # ทำงานเมื่อหัวอยู่ใน ROI
-        if head_inside_roi:
+        if people_in_rectangle:
             normalized_points = []
             for kp in point_pose:
                 kpx, kpy = int(kp[0]), int(kp[1])
@@ -229,8 +206,8 @@ while True:
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
     # --- ส่วนที่ 4: วาดอินเตอร์เฟซระบบ ROI รวม ---
-    check_people = "People in Rectangle" if any_head_inside else "None People"
-    box_color = (0, 0, 255) if any_head_inside else (0, 255, 0)
+    check_people = "People in Rectangle" if any_people_inside else "None People"
+    box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
     
     if roi.current_rect is not None:
         cv2.rectangle(frame, (roi.current_rect[0], roi.current_rect[1]), 
@@ -246,7 +223,7 @@ while True:
     cv2.putText(frame, mode_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mode_color, 2)
 
     cv2.imshow(window_name, frame)
-    frame_count += 1 
+    s.frame_count += 1 
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord('1'):
