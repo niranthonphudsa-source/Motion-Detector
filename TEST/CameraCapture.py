@@ -25,7 +25,7 @@ if not os.path.exists(csv_filename):
 model = YOLO('yolo26n-pose.pt') 
 # cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
 # cap = cv2.VideoCapture("videoTrain1.mp4")
-cap = cv2.VideoCapture("videoTrain2.mp4")
+cap = cv2.VideoCapture("videoTrain3.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
@@ -50,7 +50,7 @@ while True:
     if not ret:
         break
     
-    frame = cv2.resize(frame, (640, 540))
+    # frame = cv2.resize(frame, (640, 540))
     h, w = frame.shape[:2]
     results = model.predict(source=frame, conf=0.8, verbose=False)
 
