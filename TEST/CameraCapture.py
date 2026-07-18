@@ -50,7 +50,7 @@ while True:
     if not ret:
         break
     
-    # frame = cv2.resize(frame, (640, 540))
+    frame = cv2.resize(frame, (920, 640))
     h, w = frame.shape[:2]
     results = model.predict(source=frame, conf=0.8, verbose=False)
 

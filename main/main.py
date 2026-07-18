@@ -1,5 +1,6 @@
 import cv2
 from roi_handler import ROIHandler
+from LIB.config_point_start import ShowPredict
 from file_manager import save_roi_to_txt, load_roi_from_txt
 from ultralytics import YOLO
 import sklearn
@@ -12,6 +13,7 @@ import time
 roi = ROIHandler()
 window_name = "Mode Control ROI"
 
+s = ShowPredict()
 # เปลี่ยนเป็น WINDOW_NORMAL เพื่อให้สามารถย่อ-ขยายหน้าต่างได้ ขอบภาพจะไม่ล้นจอ
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
 cv2.setMouseCallback(window_name, roi.draw_rectangle_callback)
@@ -63,36 +65,22 @@ while True:
         break
     h, w = frame.shape[:2]
     
-    current_frame_poses = [] 
-    current_frame_ids = [] 
+    current_frame_poses = s.current_frame_poses 
+    current_frame_ids =  s.current_frame_ids 
 
     # --- ส่วนที่ 1: การหาพิกัด Keypoints (YOLO หรือ Linear Regression พยากรณ์เฟรมข้าม) ---
     if frame_count % SKIP_FRAMES == 0:
-        predict_fram = model.track(source=frame, conf=0.8, persist=True, verbose=False)    
+        predict_frame = model.track(source=frame, conf=0.5, persist=True, verbose=False)
+        s.update_pose_history(predict_frame)    
+        # s.current_frame_poses, s.current_frame_ids
         
-        for results in predict_fram:
-            if results.keypoints is not None and results.boxes.id is not None:
-                point_list = results.keypoints.xy.cpu().numpy()  # (N, 17, 2)
-                track_ids = results.boxes.id.cpu().numpy().astype(int)  # [1, 2]
-                
-                for idx, p_id in enumerate(track_ids):
-                    person_kp = point_list[idx]
-                    if p_id not in pose_history:
-                        pose_history[p_id] = []
-                    pose_history[p_id].append([frame_count, person_kp])
-                    
-                    if len(pose_history[p_id]) > 4:
-                        pose_history[p_id].pop(0)
-                
-                current_frame_poses = point_list
-                current_frame_ids = track_ids
     else:
-        active_ids = list(pose_history.keys())
+        active_ids = list(s.pose_history.keys())
         predicted_people_kp = []
         predicted_people_ids = []
         
-        for p_id in active_ids:
-            history = pose_history[p_id]
+        for s.p_id in active_ids:
+            history = s.pose_history[s.p_id]
             if len(history) >= 2 and (frame_count - history[-1][0]) < (SKIP_FRAMES * 2):
                 X_train = np.array([item[0] for item in history]).reshape(-1, 1)
                 predicted_kp = np.zeros((17, 2))
@@ -111,11 +99,11 @@ while True:
                         predicted_kp[kp_idx] = [pred_x, pred_y]
                 
                 predicted_people_kp.append(predicted_kp)
-                predicted_people_ids.append(p_id)
+                predicted_people_ids.append(s.p_id)
             else:
                 if len(history) > 0 and (frame_count - history[-1][0]) < (SKIP_FRAMES * 2):
                     predicted_people_kp.append(history[-1][1])
-                    predicted_people_ids.append(p_id)
+                    predicted_people_ids.append(s.p_id)
         
         if len(predicted_people_kp) > 0:
             current_frame_poses = np.array(predicted_people_kp)
@@ -124,13 +112,13 @@ while True:
     # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล (ยุบรวมเหลือลูปเดียว) ---
     any_head_inside = False
     
-    for point_pose, p_id in zip(current_frame_poses, current_frame_ids):
+    for point_pose, s.p_id in zip(current_frame_poses, current_frame_ids):
         if len(point_pose) < 17: 
             continue
         
         # สร้างสถานะเริ่มต้นให้ ID ใหม่ (ถ้ายังไม่มีในระบบ)
-        if p_id not in user_states:
-            user_states[p_id] = {
+        if s.p_id not in user_states:
+            user_states[s.p_id] = {
                 "valaus_last": [],
                 "confirm": "NG",
                 "is_ok_holding": False,
@@ -138,7 +126,7 @@ while True:
             }
             
         # ดึงสถานะปัจจุบันของ ID นี้ขึ้นมาใช้
-        state = user_states[p_id]
+        state = user_states[s.p_id]
         
         # ตรวจสอบว่าจุดใบหน้า (index 15, 16) อยู่ในกล่อง ROI หรือไม่
         head_inside_roi = False
@@ -225,7 +213,7 @@ while True:
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
         
         display_lines = [
-            f"ID: {p_id}",
+            f"ID: {s.p_id}",
             f"Pose: {predicted_label} ({confidence:.1f}%)",
             f"Progress: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
             f"STATUS: {state['confirm']}"
