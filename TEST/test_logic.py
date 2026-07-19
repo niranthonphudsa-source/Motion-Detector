@@ -1,4 +1,6 @@
 import cv2
+import numpy as np
+import yaml
 
 # ลิสต์สำหรับเก็บพิกัดพอยต์ [(x1, y1), (x2, y2), ...]
 mouse_points = []
@@ -15,14 +17,14 @@ def click_event(event, x, y, flags, param):
             print(f"บันทึกจุดที่ {len(mouse_points)}: {x}, {y}")
 
 # 2. อ่านภาพต้นฉบับ (หรือสร้างเฟรมดำขึ้นมาทดสอบ)
-cap = cv2.VideoCapture("videoTrain4.mp4") 
+cap = cv2.VideoCapture("video\\videoTrain4.mp4") 
 
 # กรณีต้องการใช้หน้าต่างจำลองสำหรับทดสอบ (เปิดใช้งานบรรทัดล่างนี้ได้ครับ)
 # import numpy as np; img = np.zeros((600, 800, 3), np.uint8)
 
 window_name = "Point Tracker & Connector"
 cv2.namedWindow(window_name)
-cv2.setMouseCallback(window_name, click_event)
+
 
 print("--- วิธีใช้งาน ---")
 print("1. คลิกเมาส์ซ้ายบนภาพเพื่อเพิ่มจุด")
@@ -62,7 +64,10 @@ while True:
     key = cv2.waitKey(1) & 0xFF
     
     # หากกดปุ่ม '2' -> ยืนยันการตีกรอบ (ตราบใดที่มีมากกว่า 2 จุดขึ้นไป)
-    if key == ord('2'):
+    
+    if key == ord('1'):
+        cv2.setMouseCallback(window_name, click_event)
+    elif key == ord('2'):
         if len(mouse_points) > 2:
             is_confirmed = True
             print("\n[ยืนยันพิกัดเรียบร้อย!]")

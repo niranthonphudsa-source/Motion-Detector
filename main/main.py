@@ -20,8 +20,6 @@ model_sklearn = config["global"]["model_path"]
 print(f"Loaded model from: {model_sklearn}")
 
 
-
-
 # ตัวอย่างการเข้าถึงค่า
 enabled = camera["enabled"]
 source = camera["source"]
@@ -36,10 +34,9 @@ window_name = "Mode Control ROI"
 s = ShowPredict()
 # เปลี่ยนเป็น WINDOW_NORMAL เพื่อให้สามารถย่อ-ขยายหน้าต่างได้ ขอบภาพจะไม่ล้นจอ
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
-cv2.setMouseCallback(window_name, roi.draw_rectangle_callback)
 
 # โหลดพิกัดเก่าที่เคยบันทึกไว้ (ถ้ามี)
-roi.current_rect = load_roi_from_txt()
+roi.mark_points = load_roi_from_txt()
 
 model = YOLO('yolo26n-pose.pt')
 pose_classifier = joblib.load(model_sklearn)  # โมเดล Sklearn สำหรับจำแนกท่าทาง
@@ -105,6 +102,22 @@ while True:
             s.current_frame_poses = np.array(s.predicted_people_kp)
             s.current_frame_ids = np.array(s.predicted_people_ids)
 
+    num_pts = len(roi.mark_points)
+            
+    # 3. วาดเส้นและจุดบนจอ
+    if num_pts > 0:
+        # วาดวงกลมเล็ก ๆ ในทุกจุดที่คลิก
+        for pt in roi.mark_points:
+            x, y = int(pt[0]), int(pt[1])
+            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+            
+        # ลากเส้นเชื่อมจาก จุด 1 -> 2 -> 3 ไปเรื่อย ๆ
+        for i in range(num_pts - 1):
+            cv2.line(frame, roi.mark_points[i], roi.mark_points[i+1], (0, 255, 255), 2)
+            
+        # ถ้ากดยืนยันแล้ว (is_confirmed == True) ให้ลากเส้นจาก จุดสุดท้าย กลับมา จุดแรก
+        if roi.is_confirmed and num_pts > 2:
+            cv2.line(frame, roi.mark_points[-1], roi.mark_points[0], (0, 255, 255), 2)
     # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล (ยุบรวมเหลือลูปเดียว) ---
     any_people_inside = False
     
@@ -125,26 +138,26 @@ while True:
         state = user_states[s.p_id]
         
         people_in_rectangle = False
-        if roi.current_rect is not None:
-            x1, y1, x2, y2 = roi.current_rect
-            xmin, xmax = min(x1, x2), max(x1, x2)
-            ymin, ymax = min(y1, y2), max(y1, y2)
-            
+        if roi.mark_points is not None and len(roi.mark_points) >= 2:
+        
+        
+            contour = np.array(roi.mark_points, dtype=np.int32)
             foot_inside_count = 0
             for s.idx in (15, 16):
                 hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
-                if (xmin <= hpx <= xmax) and (ymin <= hpy <= ymax):
+                inside = cv2.pointPolygonTest(contour, (hpx, hpy), False)
+                if inside >= 0:  # อยู่ใน polygon
                     foot_inside_count += 1
             
             if foot_inside_count > 0:
                 people_in_rectangle = True
                 any_people_inside = True  # ใช้สำหรับเปลี่ยนสีกล่อง ROI รวม
 
-        # วาดจุดใบหน้าสีเหลือง
-        for s.idx in range(5):
-            hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
-            if hpx > 0 and hpy > 0:
-                cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
+            # วาดจุดใบหน้าสีเหลือง
+            for s.idx in range(17):
+                hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
+                if hpx > 0 and hpy > 0:
+                    cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
 
         # วาดเส้นกระดูก
         point_skel = point_pose.astype(int)
@@ -208,7 +221,7 @@ while True:
         # --- ส่วนที่ 3: จัดการแสดงผลเว้นบรรทัดแบบสวยงามใต้หัวไหล่ของแต่ละบุคคล ---
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
-        line_height = 18 
+        line_height = 20
         
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
         
@@ -232,14 +245,12 @@ while True:
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
     
-    if roi.current_rect is not None:
-        cv2.rectangle(frame, (roi.current_rect[0], roi.current_rect[1]), 
-                      (roi.current_rect[2], roi.current_rect[3]), box_color, 2)
-        cv2.putText(frame, check_people, (roi.current_rect[0], roi.current_rect[1] - 10),
+    if roi.mark_points is not None and len(roi.mark_points) >= 3:
+        pts = np.array(roi.mark_points, np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        cv2.polylines(frame, [pts], isClosed=True, color=box_color, thickness=2)
+        cv2.putText(frame, check_people, (roi.mark_points[0][0], roi.mark_points[0][1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
-
-    if roi.current_mode == 1 and roi.drawing:
-        cv2.rectangle(frame, (roi.ix, roi.iy), (roi.cx, roi.cy), (0, 0, 255), 2)
 
     mode_text = "Mode: DRAWING (Press Mouse & Drag)" if roi.current_mode == 1 else "Mode: NORMAL (Press '1' to Edit)"
     mode_color = (0, 0, 255) if roi.current_mode == 1 else (255, 0, 0)
@@ -251,16 +262,16 @@ while True:
     key = cv2.waitKey(1) & 0xFF
     if key == ord('1'):
         roi.current_mode = 1
-        print(">> เข้าสู่โหมด: ลากวาง (กดเมาส์ซ้ายค้างเพื่อวาดขอบเขต)")
+        cv2.setMouseCallback(window_name, roi.click_event)
+        # print(">> เข้าสู่โหมด: มาร์คจุด (กดเมาส์ซ้ายเพื่อมาร์คขอบเขต)")
     elif key == ord('2'):
-        if save_roi_to_txt(roi.current_rect):
-            print(f"Successfully Saved! บันทึกพิกัด {roi.current_rect} เรียบร้อย")
-            roi.current_mode = 0
-        else:
-            print("❌ ยังไม่ได้ลากกล่องพิกัด กรุณากด 1 แล้วลากกล่องก่อน")
+        roi.is_confirmed = True
+        save_roi_to_txt(roi.mark_points)
+        # print(f"Successfully Saved! บันทึกพิกัด {roi.mark_points} เรียบร้อย")
+        roi.current_mode = 0
     elif key == ord('c'):
         roi.clear()
-        print("ล้างค่าพิกัดและกลับสู่โหมดปกติ")
+        # print("ล้างค่าพิกัดและกลับสู่โหมดปกติ")
     elif key == ord('q'):
         break
 
