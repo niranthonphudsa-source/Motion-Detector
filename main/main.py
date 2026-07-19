@@ -3,7 +3,6 @@ from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from ultralytics import YOLO
-import sklearn
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import joblib
@@ -16,7 +15,7 @@ with open("setting\config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 
 # ดึงข้อมูลกล้อง
-camera_3 = config["cameras"]["Camera_3"]
+camera = config["cameras"]["Camera_3"]
 model_sklearn = config["global"]["model_path"]
 print(f"Loaded model from: {model_sklearn}")
 
@@ -24,10 +23,10 @@ print(f"Loaded model from: {model_sklearn}")
 
 
 # ตัวอย่างการเข้าถึงค่า
-enabled = camera_3["enabled"]
-source = camera_3["source"]
-person_limit = camera_3["person_limit"]
-display = camera_3["Display"]
+enabled = camera["enabled"]
+source = camera["source"]
+person_limit = camera["person_limit"]
+display = camera["Display"]
 
 
 # 1. ตั้งค่าเริ่มต้นและโหลดโมดูล
@@ -77,13 +76,8 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16) # ขา
 ]
 
-
-
-# cap = cv2.VideoCapture(0)
-# cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-# cap = cv2.VideoCapture('videoTrain4.mp4')
 cap = cv2.VideoCapture(source)
-# cap = cv2.VideoCapture('Screen Recording 2026-07-14 111101.mp4')
+
 
 while True:
     ret, frame = cap.read()
