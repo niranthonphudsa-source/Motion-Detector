@@ -1,7 +1,10 @@
+import os
+
 import cv2
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
+from LIB.pose_gui import CameraSelectorGUI
 from ultralytics import YOLO
 from sklearn.linear_model import LinearRegression
 import numpy as np
@@ -9,18 +12,20 @@ import joblib
 import time
 import yaml
 import pandas as pd
+import tkinter as tk
+
 
 # โหลด config.yml
 with open("setting\config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 
-# ดึงข้อมูลกล้อง
+# # ดึงข้อมูลกล้อง
 camera = config["cameras"]["Camera_3"]
 model_sklearn = config["global"]["model_path"]
 print(f"Loaded model from: {model_sklearn}")
 
 
-# ตัวอย่างการเข้าถึงค่า
+# # ตัวอย่างการเข้าถึงค่า
 enabled = camera["enabled"]
 source = camera["source"]
 person_limit = camera["person_limit"]
@@ -74,7 +79,10 @@ SKELETON_CONNECTIONS = [
 ]
 
 cap = cv2.VideoCapture(source)
+os.makedirs("video_ng", exist_ok=True)
 
+video_writer = None
+fourcc = cv2.VideoWriter_fourcc(*'XVID')  # หรือใช้ 'mp4v'
 
 while True:
     ret, frame = cap.read()
@@ -159,6 +167,7 @@ while True:
                 if hpx > 0 and hpy > 0:
                     cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
 
+
         # วาดเส้นกระดูก
         point_skel = point_pose.astype(int)
         for start_idx, end_idx in SKELETON_CONNECTIONS:
@@ -218,6 +227,25 @@ while True:
                         state["is_ok_holding"] = True
                         state["ok_start_time"] = time.time()
 
+             # ตรวจสอบเงื่อนไขการบันทึกวิดีโอ
+        if state["confirm"] != "OK":
+            if video_writer is None:
+                # ตั้งชื่อไฟล์ตาม ID และเวลา
+                filename = f"video_ng/violation_{s.p_id}_{int(time.time())}.avi"
+                video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (w, h))
+                print(f"เริ่มบันทึกวิดีโอ: {filename}")
+
+            # เขียนเฟรมลงไฟล์
+            video_writer.write(frame)
+
+        else:
+            # ถ้าทำครบแล้ว ปิดการบันทึก
+            if video_writer is not None:
+                video_writer.release()
+                video_writer = None
+                print("หยุดบันทึกวิดีโอ (ทำครบเงื่อนไข)")
+
+                
         # --- ส่วนที่ 3: จัดการแสดงผลเว้นบรรทัดแบบสวยงามใต้หัวไหล่ของแต่ละบุคคล ---
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
@@ -275,5 +303,7 @@ while True:
     elif key == ord('q'):
         break
 
+
 cap.release()
 cv2.destroyAllWindows()
+
