@@ -93,6 +93,24 @@ while True:
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
 
+    num_pts = len(roi.mark_points)
+            
+    # 3. วาดเส้นและจุดบนจอ
+    if num_pts > 0:
+        # วาดวงกลมเล็ก ๆ ในทุกจุดที่คลิก
+        for pt in roi.mark_points:
+            x, y = int(pt[0]), int(pt[1])
+            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+            
+        # ลากเส้นเชื่อมจาก จุด 1 -> 2 -> 3 ไปเรื่อย ๆ
+        for i in range(num_pts - 1):
+            cv2.line(frame, roi.mark_points[i], roi.mark_points[i+1], (0, 255, 255), 2)
+            
+        # ถ้ากดยืนยันแล้ว (is_confirmed == True) ให้ลากเส้นจาก จุดสุดท้าย กลับมา จุดแรก
+        if roi.is_confirmed and num_pts > 2:
+            cv2.line(frame, roi.mark_points[-1], roi.mark_points[0], (0, 255, 255), 2)
+
+
     # --- ส่วนที่ 1: การหาพิกัด Keypoints (YOLO หรือ Linear Regression พยากรณ์เฟรมข้าม) ---
     if s.frame_count % SKIP_FRAMES == 0:
         predict_frame = model.track(source=frame, conf=0.5, persist=True, verbose=False)
@@ -110,22 +128,8 @@ while True:
             s.current_frame_poses = np.array(s.predicted_people_kp)
             s.current_frame_ids = np.array(s.predicted_people_ids)
 
-    num_pts = len(roi.mark_points)
-            
-    # 3. วาดเส้นและจุดบนจอ
-    if num_pts > 0:
-        # วาดวงกลมเล็ก ๆ ในทุกจุดที่คลิก
-        for pt in roi.mark_points:
-            x, y = int(pt[0]), int(pt[1])
-            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
-            
-        # ลากเส้นเชื่อมจาก จุด 1 -> 2 -> 3 ไปเรื่อย ๆ
-        for i in range(num_pts - 1):
-            cv2.line(frame, roi.mark_points[i], roi.mark_points[i+1], (0, 255, 255), 2)
-            
-        # ถ้ากดยืนยันแล้ว (is_confirmed == True) ให้ลากเส้นจาก จุดสุดท้าย กลับมา จุดแรก
-        if roi.is_confirmed and num_pts > 2:
-            cv2.line(frame, roi.mark_points[-1], roi.mark_points[0], (0, 255, 255), 2)
+
+
     # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล (ยุบรวมเหลือลูปเดียว) ---
     any_people_inside = False
     
@@ -147,7 +151,6 @@ while True:
         
         people_in_rectangle = False
         if roi.mark_points is not None and len(roi.mark_points) >= 2:
-        
         
             contour = np.array(roi.mark_points, dtype=np.int32)
             foot_inside_count = 0
@@ -192,7 +195,6 @@ while True:
                 normalized_points.append((x_norm, y_norm))
                 cv2.circle(frame, (kpx, kpy), 5, (0, 0, 255), cv2.FILLED)
 
-
             # ใช้ชื่อคอลัมน์ตรงกับตอน train
             feature_names = []
             for i in range(17):
@@ -214,6 +216,7 @@ while True:
                         state["is_ok_holding"] = False
                         state["confirm"] = "NG"
                         state["valaus_last"] = []  # เริ่มนับศูนย์ใหม่จาก Right เท่านั้น
+
                 else:
                     expected_pose_idx = len(state["valaus_last"])
                     if expected_pose_idx < len(check_pose):
@@ -221,31 +224,15 @@ while True:
                         if predicted_label == expected_pose:
                             if not state["valaus_last"] or predicted_label != state["valaus_last"][-1]:
                                 state["valaus_last"].append(predicted_label)
+                
 
                     if state["valaus_last"] == check_pose:
                         state["confirm"] = "OK"
                         state["is_ok_holding"] = True
                         state["ok_start_time"] = time.time()
 
-             # ตรวจสอบเงื่อนไขการบันทึกวิดีโอ
-        if state["confirm"] != "OK":
-            if video_writer is None:
-                # ตั้งชื่อไฟล์ตาม ID และเวลา
-                filename = f"video_ng/violation_{s.p_id}_{int(time.time())}.avi"
-                video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (w, h))
-                print(f"เริ่มบันทึกวิดีโอ: {filename}")
 
-            # เขียนเฟรมลงไฟล์
-            video_writer.write(frame)
 
-        else:
-            # ถ้าทำครบแล้ว ปิดการบันทึก
-            if video_writer is not None:
-                video_writer.release()
-                video_writer = None
-                print("หยุดบันทึกวิดีโอ (ทำครบเงื่อนไข)")
-
-                
         # --- ส่วนที่ 3: จัดการแสดงผลเว้นบรรทัดแบบสวยงามใต้หัวไหล่ของแต่ละบุคคล ---
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
@@ -268,7 +255,23 @@ while True:
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
+                
+            # ตรวจสอบเงื่อนไขการบันทึกวิดีโอ
+        if state["confirm"] != "OK":
+            if video_writer is None:
+                filename = f"video_ng/violation_{s.p_id}_{int(time.time())}.avi"
+                video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (w, h))
+                print(f"เริ่มบันทึกวิดีโอ: {filename}")
 
+            # เขียนเฟรมหลังจากวาดเส้นครบแล้ว
+            video_writer.write(frame)
+
+        else:
+            if video_writer is not None:
+                video_writer.release()
+                video_writer = None
+                print("หยุดบันทึกวิดีโอ (ทำครบเงื่อนไข)")
+                
     # --- ส่วนที่ 4: วาดอินเตอร์เฟซระบบ ROI รวม ---
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
