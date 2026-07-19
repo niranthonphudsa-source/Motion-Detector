@@ -79,3 +79,27 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
+
+  Camera_3:
+    enabled: true
+    Type: LIVE_STREAM
+    source: rtsp://admin:Aoyama456@xx.xx.xx.xx:xx/cam/realmonitor?channel=1&subtype=0
+    person_limit: 5
+    record_video: false
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+
+  Camera_4:
+    enabled: false
+    Type: LIVE_STREAM
+    source: rtsp://admin:aoyama123456@xx.xx.x.xx:xx/Streaming/Channels/101/
+    person_limit: 5
+    record_video: false
+    Display:
+      Position_x: 946
+      Position_y: 486
+      Size_x: 945
+      Size_y: 485
