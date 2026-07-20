@@ -1,5 +1,5 @@
 import os
-
+import shutil
 import cv2
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
@@ -94,83 +94,72 @@ while True:
 
     num_pts = len(roi.mark_points)
             
-    # 3. วาดเส้นและจุดบนจอ
+    # 3. วาดเส้นและจุดบนจอ (เก็บไว้เหมือนเดิม)
     if num_pts > 0:
-        # วาดวงกลมเล็ก ๆ ในทุกจุดที่คลิก
         for pt in roi.mark_points:
             x, y = int(pt[0]), int(pt[1])
             cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
-            
-        # ลากเส้นเชื่อมจาก จุด 1 -> 2 -> 3 ไปเรื่อย ๆ
         for i in range(num_pts - 1):
             cv2.line(frame, roi.mark_points[i], roi.mark_points[i+1], (0, 255, 255), 2)
-            
-        # ถ้ากดยืนยันแล้ว (is_confirmed == True) ให้ลากเส้นจาก จุดสุดท้าย กลับมา จุดแรก
         if roi.is_confirmed and num_pts > 2:
             cv2.line(frame, roi.mark_points[-1], roi.mark_points[0], (0, 255, 255), 2)
 
-
-    # --- ส่วนที่ 1: การหาพิกัด Keypoints (YOLO หรือ Linear Regression พยากรณ์เฟรมข้าม) ---
+    # --- ส่วนที่ 1: การหาพิกัด Keypoints ---
     if s.frame_count % SKIP_FRAMES == 0:
         predict_frame = model.track(source=frame, conf=0.5, persist=True, verbose=False)
         s.update_pose_history(predict_frame)    
-        # s.current_frame_poses, s.current_frame_ids
-        
     else:
-        active_ids = list(s.pose_history.keys())
         s.predicted_people_kp = []
         s.predicted_people_ids = []
-        
         s.predict_keypoints_from_history(s.pose_history, s.frame_count, SKIP_FRAMES)
-        
         if len(s.predicted_people_kp) > 0:
             s.current_frame_poses = np.array(s.predicted_people_kp)
             s.current_frame_ids = np.array(s.predicted_people_ids)
 
-
-
-    # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล (ยุบรวมเหลือลูปเดียว) ---
+    # --- ส่วนที่ 2: วาดผลลัพธ์ จำแนกท่าทาง และคำนวณตรรกะแยกรายบุคคล ---
     any_people_inside = False
     
+    # ดึงรายชื่อ ID ที่เจอในเฟรมปัจจุบันมาสร้างเซ็ตไว้ตรวจสอบคนหาย
+    current_frame_active_ids = set(s.current_frame_ids)
+
     for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
         if len(point_pose) < 17: 
             continue
         
-        # สร้างสถานะเริ่มต้นให้ ID ใหม่ (ถ้ายังไม่มีในระบบ)
+        # เพิ่มคุณสมบัติเรื่องวิดีโอไรเตอร์และสถานะเฟรมก่อนหน้าเข้าไปใน state รายบุคคล
         if s.p_id not in user_states:
             user_states[s.p_id] = {
                 "valaus_last": [],
                 "confirm": "NG",
                 "is_ok_holding": False,
                 "ok_start_time": 0,
-                "video_filename": None
+                "video_filename": None,
+                "writer": None,              # ตัวบันทึกวิดีโอแยกส่วนตัวของ ID นี้
+                "was_inside_last_frame": False # ตัวเช็คว่าเฟรมที่แล้วอยู่ในจุดเช็คหรือไม่
             }
             
-        # ดึงสถานะปัจจุบันของ ID นี้ขึ้นมาใช้
         state = user_states[s.p_id]
-        
         people_in_rectangle = False
+
         if roi.mark_points and len(roi.mark_points) >= 2:
             roi.is_confirmed = True
-
             contour = np.array(roi.mark_points, dtype=np.int32)
             foot_inside_count = 0
             for s.idx in (15, 16):
                 hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
                 inside = cv2.pointPolygonTest(contour, (hpx, hpy), False)
-                if inside >= 0:  # อยู่ใน polygon
+                if inside >= 0:
                     foot_inside_count += 1
             
             if foot_inside_count > 0:
                 people_in_rectangle = True
-                any_people_inside = True  # ใช้สำหรับเปลี่ยนสีกล่อง ROI รวม
+                any_people_inside = True 
 
             # วาดจุดใบหน้าสีเหลือง
             for s.idx in range(17):
                 hpx, hpy = int(point_pose[s.idx][0]), int(point_pose[s.idx][1])
                 if hpx > 0 and hpy > 0:
                     cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
-
 
         # วาดเส้นกระดูก
         point_skel = point_pose.astype(int)
@@ -180,9 +169,7 @@ while True:
                 continue
             cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
 
-
-
-        # ทำงานเมื่อหัวอยู่ใน ROI
+        # ─── ตรรกะตรวจจับท่าทางเมื่ออยู่ใน ROI ───
         if people_in_rectangle:
             normalized_points = []
             for kp in point_pose:
@@ -190,18 +177,10 @@ while True:
                 if kpx == 0 and kpy == 0:
                     normalized_points.append((0.0, 0.0))
                     continue
-                
-                x_norm = kpx / w
-                y_norm = kpy / h
-                normalized_points.append((x_norm, y_norm))
+                normalized_points.append((kpx / w, kpy / h))
                 cv2.circle(frame, (kpx, kpy), 5, (0, 0, 255), cv2.FILLED)
 
-            # ใช้ชื่อคอลัมน์ตรงกับตอน train
-            feature_names = []
-            for i in range(17):
-                feature_names.append(f"x_{i}")
-                feature_names.append(f"y_{i}")
-                       
+            feature_names = [f"{axis}_{i}" for i in range(17) for axis in ("x", "y")]
             features = np.array(normalized_points).flatten()
 
             if len(features) == 34:
@@ -209,15 +188,15 @@ while True:
                 predicted_label = pose_classifier.predict(features_df)[0]
                 probabilities = pose_classifier.predict_proba(features_df)[0]
                 confidence = np.max(probabilities) * 100
-                # --- ตรรกะล็อกสถานะ OK ค้างไว้ และตรวจจับแบบ Strict ลำดับขวา -> ซ้าย -> หน้า ---
+
+                # ตรรกะล็อกสถานะ OK ค้างไว้
                 if state["is_ok_holding"]:
                     if time.time() - state["ok_start_time"] < ok_display_time:
                         state["confirm"] = "OK"
                     else:
                         state["is_ok_holding"] = False
                         state["confirm"] = "NG"
-                        state["valaus_last"] = []  # เริ่มนับศูนย์ใหม่จาก Right เท่านั้น
-
+                        state["valaus_last"] = [] 
                 else:
                     expected_pose_idx = len(state["valaus_last"])
                     if expected_pose_idx < len(check_pose):
@@ -226,23 +205,62 @@ while True:
                             if not state["valaus_last"] or predicted_label != state["valaus_last"][-1]:
                                 state["valaus_last"].append(predicted_label)
                 
-
                     if state["valaus_last"] == check_pose:
                         state["confirm"] = "OK"
                         state["is_ok_holding"] = True
                         state["ok_start_time"] = time.time()
 
+            # 🎬 เริ่มบันทึกวิดีโอเมื่อ "ก้าวเท้าเข้าจุดเช็คครั้งแรก"
+            if state["writer"] is None:
+                current_time = int(time.time())
+                state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time}.avi"
+                state["writer"] = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
+                print(f"[Record] ID {s.p_id} เข้าจุดเช็ค -> เริ่มบันทึกไฟล์ชั่วคราว: {state['video_filename']}")
+
+        # 🏃‍♂️ ตรรกะสำคัญ: จังหวะที่ "เคยอยู่ข้างในจุดเช็ค แล้วก้าวเท้าเดินออกจากจุดเช็ค"
+        if not people_in_rectangle and state["was_inside_last_frame"]:
+            if state["writer"] is not None:
+                state["writer"].release()
+                state["writer"] = None
+                print(f"[Record] ID {s.p_id} เดินออกจากจุดเช็ค -> ปิดไฟล์ชั่วคราว")
+
+                # คัดแยกปลายทางตามผลการประเมินล่าสุดก่อนออกจากจุด
+                if state["video_filename"] and os.path.exists(state["video_filename"]):
+                    base_filename = os.path.basename(state["video_filename"])
+                    if state["confirm"] == "OK":
+                        dest_path = f"video_ok/{base_filename}"
+                        tag = "✅ [SUCCESS]"
+                    else:
+                        dest_path = f"video_ng/{base_filename}"
+                        tag = "⚠️ [NG/VIOLATION]"
+                    
+                    try:
+                        shutil.copy(state["video_filename"], dest_path)
+                        print(f"{tag} คัดลอกวิดีโอของ ID {s.p_id} ไปยังโฟลเดอร์ -> {dest_path}")
+                    except Exception as e:
+                        print(f"❌ ไม่สามารถคัดลอกไฟล์ได้: {e}")
+
+                # เคลียร์ค่าเพื่อเตรียมพร้อมหาก ID เดิมวนกลับเข้ามาใหม่
+                state["video_filename"] = None
+                if state["confirm"] != "OK": # ถ้าหลุดแบบ NG ให้ล้างกระบวนการทำท่าด้วย
+                    state["valaus_last"] = []
+
+        # อัปเดตสถานะการอยู่ในพื้นที่สำหรับเช็คในเฟรมถัดไป
+        state["was_inside_last_frame"] = people_in_rectangle
+
+        # เขียนเฟรมลงวิดีโอเฉพาะตอนที่อยู่ในพื้นที่เช็ค (และเปิดตัวบันทึกไว้แล้ว)
+        if state["writer"] is not None:
+            state["writer"].write(frame)
 
         # --- ส่วนที่ 3: จัดการแสดงผลเว้นบรรทัดแบบสวยงามใต้หัวไหล่ของแต่ละบุคคล ---
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
         line_height = 20
-        
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
         
         display_lines = [
             f"ID: {s.p_id}",
-            f"Pose: {predicted_label} ({confidence:.1f}%)",
+            f"Pose: {predicted_label} ({confidence:.1f}%)" if people_in_rectangle else "Pose: Outside ROI",
             f"Progress: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
             f"STATUS: {state['confirm']}"
         ]
@@ -255,50 +273,32 @@ while True:
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
-                
 
-    # 🎬 ตรรกะจัดการวิดีโอ:
-    if state["confirm"] != "OK":
-        # ถ้ายัง NGอยู่ และยังไม่มีการสร้าง Writer สำหรับ ID นี้
-        if video_writer is None:
-            current_time = int(time.time())
-            # เก็บชื่อไฟล์ไว้ใน state ของ ID นั้น ๆ
-            state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time}.avi"
-            video_writer = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
-            print(f"[NG] เริ่มบันทึกวิดีโอสำหรับ ID {s.p_id}: {state['video_filename']}")
-        
-        # ทำเครื่องหมายไว้ว่าเฟรมนี้มีคน NG (ใช้เช็กก่อนสั่ง write ท้ายลูปใหญ่)
-        should_record_video = True 
-        
-    else:
-        # 🎉 ถ้าเปลี่ยนเป็นสถานะ "OK" แล้ว!
-        if video_writer is not None:
-            video_writer.release()
-            video_writer = None
-            print(f"[OK] หยุดบันทึกวิดีโอสำหรับ ID {s.p_id}")
-            
-            # 💥 ลบไฟล์วิดีโอที่เพิ่งอัดทิ้งทันที เพราะเขาทำผ่านเงื่อนไขแล้ว
-            if state["video_filename"] and os.path.exists(state["video_filename"]):
-                try:
-                    os.remove(state["video_filename"])
-                    print(f"🗑️ ลบวิดีโอของ ID {s.p_id} ออกแล้ว เนื่องจากสถานะเป็น OK")
-                except Exception as e:
-                    print(f"❌ ไม่สามารถลบไฟล์ได้: {e}")
-            
-            state["video_filename"] = f"video_ok/violation_{s.p_id}_{current_time}.avi"
-            video_writer = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
-            print(f"[NG] เริ่มบันทึกวิดีโอสำหรับ ID {s.p_id}: {state['video_filename']}")
-            # ล้างค่าชื่อไฟล์ในระบบ
-            state["video_filename"] = None
-
+    # 🕵️‍♂️ ดักจับเคสพิเศษ: คนหายไปจากหน้ากล้องทันทีขณะที่ยังไม่เดินออกจากจุดตรวจ (เช่น Tracking หลุด หรือเดินทะลุหายไป)
+    for active_id, active_state in list(user_states.items()):
+        if active_id not in current_frame_active_ids and active_state["was_inside_last_frame"]:
+            if active_state["writer"] is not None:
+                active_state["writer"].release()
+                active_state["writer"] = None
                 
+                if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
+                    base_filename = os.path.basename(active_state["video_filename"])
+                    dest_path = f"video_ok/{base_filename}" if active_state["confirm"] == "OK" else f"video_ng/{base_filename}"
+                    try:
+                        shutil.copy(active_state["video_filename"], dest_path)
+                        print(f"⚠️ [LOST TRACKING] ID {active_id} หายไปดื้อๆ คัดลอกวิดีโอไปที่ -> {dest_path}")
+                    except Exception as e:
+                        print(f"❌ ไม่สามารถคัดลอกไฟล์เคส Lost Tracking ได้: {e}")
+                
+                active_state["video_filename"] = None
+                active_state["was_inside_last_frame"] = False
+
     # --- ส่วนที่ 4: วาดอินเตอร์เฟซระบบ ROI รวม ---
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
     
     if roi.mark_points and len(roi.mark_points) >= 3:
-        pts = np.array(roi.mark_points, np.int32)
-        pts = pts.reshape((-1, 1, 2))
+        pts = np.array(roi.mark_points, np.int32).reshape((-1, 1, 2))
         cv2.polylines(frame, [pts], isClosed=True, color=box_color, thickness=2)
         cv2.putText(frame, check_people, (roi.mark_points[0][0], roi.mark_points[0][1] - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
@@ -306,11 +306,7 @@ while True:
     mode_text = "Mode: DRAWING (Press Mouse & Drag)" if roi.current_mode == 1 else "Mode: NORMAL (Press '1' to Edit)"
     mode_color = (0, 0, 255) if roi.current_mode == 1 else (255, 0, 0)
     cv2.putText(frame, mode_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mode_color, 2)
-
-    # 🔥 บันทึกวิดีโอหลังจากวาดทุกอย่างลงบนภาพเฟรมเสร็จสิ้นแล้ว
-    if should_record_video and video_writer is not None:
-        video_writer.write(frame)
-
+            
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
 
@@ -318,19 +314,19 @@ while True:
     if key == ord('1'):
         roi.current_mode = 1
         cv2.setMouseCallback(window_name, roi.click_event)
-        # print(">> เข้าสู่โหมด: มาร์คจุด (กดเมาส์ซ้ายเพื่อมาร์คขอบเขต)")
     elif key == ord('2'):
         roi.is_confirmed = True
         save_roi_to_txt(roi.mark_points)
-        # print(f"Successfully Saved! บันทึกพิกัด {roi.mark_points} เรียบร้อย")
         roi.current_mode = 0
     elif key == ord('c'):
         roi.clear()
-        # print("ล้างค่าพิกัดและกลับสู่โหมดปกติ")
     elif key == ord('q'):
         break
 
+# ก่อนปิดโปรแกรม ทำการเคลียร์และปิด writer ของทุกคนที่อาจจะค้างอยู่
+for active_id, active_state in user_states.items():
+    if active_state["writer"] is not None:
+        active_state["writer"].release()
 
 cap.release()
 cv2.destroyAllWindows()
-
