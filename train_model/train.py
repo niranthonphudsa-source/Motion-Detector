@@ -3,9 +3,16 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+import yaml
+
+with open(r"setting\config.yaml", "r", encoding="utf-8") as f:
+    config = yaml.safe_load(f)   
+
+dataset = config["global"]["dataset_path"]
+print(dataset)
 
 # 1. โหลดข้อมูลจาก CSV
-df = pd.read_csv('pose_dataset.csv')
+df = pd.read_csv(dataset)
 
 # 2. แยก X (พิกัด 34 ค่า) และ y (Label ชื่อท่าทาง)
 X = df.drop(columns=['label'])
