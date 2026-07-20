@@ -92,24 +92,33 @@ class UserStateManager:
             
             # ─── กรณีที่ 1: อยู่ในช่วงหน่วงเวลาอัดต่อหลังจากเดินออก (Buffer Time) ───
             if active_state["is_terminating"] and active_state["termination_start_time"] is not None:
-                # ⏳ คำนวณเวลาที่ผ่านไป
                 elapsed_time = current_time - active_state["termination_start_time"]
                 
-                # ตรวจสอบว่าครบเวลา buffer (เช่น 10 วินาที) หรือยัง
+                # 📝 เพิ่มจุดนี้: พิมพ์ดูวิวัฒนาการการนับถอยหลังใน Console
+                # (พิมพ์ทุกๆ 1 วินาที เพื่อไม่ให้ Log รันไวเกินไป)
+                if int(elapsed_time) % 2 == 0: 
+                    remaining = max(0, self.buffer_output_time - elapsed_time)
+                    print(f"⏳ ID {active_id} กำลังนับถอยหลังอัดแถมท้าย.. เหลืออีก {remaining:.1f} วินาที")
+
                 if elapsed_time >= self.buffer_output_time:
                     if active_state["writer"] is not None:
+                        print(f"🎬 ปิดการบันทึกวิดีโอสำหรับ ID {active_id}...")
                         active_state["writer"].release()
                         active_state["writer"] = None
+                        
+                        # ⏳ [แก้ไข] หน่วงเวลา 0.5 วินาที เพื่อรอให้ระบบปฏิบัติการเขียนไฟล์วิดีโอลงดิสก์ให้เสร็จสมบูรณ์
+                        time.sleep(0.5) 
                         
                         if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
                             base_filename = os.path.basename(active_state["video_filename"])
                             dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
                             dest_path = f"{dest_folder}/{base_filename}"
                             try:
-                                shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"⏱️ [BUFFER FINISHED] ID {active_id} บันทึกแถมท้ายครบ {self.buffer_output_time} วิ -> ย้ายไฟล์เรียบร้อย")
+                                # 🔄 [แก้ไข] เปลี่ยนจาก copy เป็น move เพื่อป้องกันไฟล์ค้าง และย้ายไฟล์ที่สมบูรณ์ไปเลย
+                                shutil.move(active_state["video_filename"], dest_path)
+                                print(f"🎉 [BUFFER FINISHED] ย้ายไฟล์ที่สมบูรณ์ของ ID {active_id} เรียบร้อยแล้ว")
                             except Exception as e:
-                                print(f"❌ คัดลอกไฟล์หน่วงเวลาผิดพลาด: {e}")
+                                print(f"❌ ย้ายไฟล์หน่วงเวลาผิดพลาด: {e}")
                         
                         # ล้างค่าหลังทำงานเสร็จ
                         active_state["video_filename"] = None
@@ -118,16 +127,14 @@ class UserStateManager:
                         if active_state["confirm"] != "OK":
                             active_state["valaus_last"] = []
                 
-                # 🌟 สำคัญมาก: ถ้ายังไม่ครบเวลาหน่วง และคนหลุดจากกล้องไปแล้วในเฟรมนี้ 
-                # ให้ข้ามการเช็ค Lost Timeout ด้านล่างไปก่อน เพื่อให้อัดต่อจนครบกำหนด
+                # บังคับข้ามการเช็ค Lost Timeout ด้านล่างไปก่อนเพื่อให้อัดต่อจนครบกำหนด
                 continue 
             
-            # ─── กรณีที่ 2: คนหายตัวไปจากกล้องดื้อๆ โดยไม่ได้เดินออกตามปกติ (Lost Tracking Timeout) ───
+            # ─── กรณีที่ 2: คนหายตัวไปจากกล้องดื้อๆ (Lost Tracking Timeout) ───
             if active_id not in current_frame_active_ids:
                 if active_state["last_seen_time"] is not None:
                     time_lost_duration = current_time - active_state["last_seen_time"]
                     
-                    # หายไปถาวรเกิน max_lost_time และไม่ได้อยู่ในสถานะนับถอยหลังปิดไฟล์
                     if time_lost_duration > self.max_lost_time and active_state["writer"] is not None:
                         active_state["writer"].release()
                         active_state["writer"] = None

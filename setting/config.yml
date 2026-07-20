@@ -47,8 +47,8 @@ cameras:
       - 724
     person_limit: 5
     record_video: false
-    save_ng: false
-    save_ok: false
+    save_ng: true
+    save_ok: true
     source: video_model\videoTrain3.mp4
   Camera_4:
     Display:
