@@ -5,7 +5,7 @@ import time
 from PIL import Image, ImageTk
 from ultralytics import YOLO
 import numpy as np
-from main.LIB.video_thread import VideoCaptureThread
+from LIB.video_thread import VideoCaptureThread
 import csv
 
 class PoseTkinterGUI:

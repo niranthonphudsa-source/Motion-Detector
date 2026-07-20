@@ -1,3 +1,4 @@
+# LIB/config_gui.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 import yaml
@@ -27,10 +28,13 @@ class ConfigGUI:
 
     def open_settings(self, on_close_callback=None):
         """เปิดหน้าต่าง GUI สำหรับการ Setting เบื้องหลัง"""
-        # ป้องกันการเปิดซ้ำ
-        if self.root is not None and tk.Toplevel.winfo_exists(self.root):
-            self.root.lift()
-            return
+        if self.root is not None:
+            try:
+                if self.root.winfo_exists():
+                    self.root.lift()
+                    return
+            except Exception:
+                self.root = None
 
         self.root = tk.Tk()
         self.root.title("System Configuration")
@@ -94,6 +98,17 @@ class ConfigGUI:
         if camera_list:
             update_info_labels()
 
+        # 🌟 สร้างฟังก์ชันสำหรับเคลียร์ตัวแปรเมื่อหน้าต่างปิดตัวลง (ไม่ว่าจะกดบันทึกหรือกดกากบาท X)
+        def on_window_close():
+            cam_id = self.cam_var.get() if hasattr(self, 'cam_var') else None
+            if self.root:
+                self.root.destroy()
+            self.root = None  
+            if on_close_callback and cam_id:
+                on_close_callback(cam_id) # ส่งค่ากล้องปัจจุบันกลับเสมอ
+
+        self.root.protocol("WM_DELETE_WINDOW", on_window_close)
+
         # ─── ปุ่มบันทึกข้อมูล ───
         def save_and_close():
             cam_id = self.cam_var.get()
@@ -106,9 +121,13 @@ class ConfigGUI:
                 
                 if self.save_config():
                     messagebox.showinfo("สำเร็จ", f"บันทึกการตั้งค่าของ {cam_id} เรียบร้อยแล้ว")
-                    self.root.destroy()
+                    
+                    if self.root:
+                        self.root.destroy()
+                    self.root = None
+                    
                     if on_close_callback:
-                        on_close_callback() # ส่งสัญญาณกลับไปอัปเดตตัวแปรใน Main script
+                        on_close_callback(cam_id) # ส่งชื่อกล้องที่ถูกเลือกกลับไปให้ main.py ทำงานสลับกล้องต่อ
 
         btn_save = ttk.Button(self.root, text="บันทึกและปิดหน้าต่าง", command=save_and_close)
         btn_save.pack(pady=20)

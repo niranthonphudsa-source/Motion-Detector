@@ -13,7 +13,26 @@ class ROIHandler:
         self.is_confirmed = False  # ตัวแปรสถานะเพื่อบอกว่ากดยืนยันแล้วหรือยัง
 
 
+    # 1. Callback ฟังก์ชันดักจับเมาส์
+    def click_event(self, event, x, y, flags, param):
+        # ถ้ายังไม่ได้กดยืนยัน และอยู่ในโหมดวาด (current_mode == 1) จะคลิกเพิ่มจุดได้เรื่อย ๆ
+        if not self.is_confirmed and self.current_mode == 1:
+            if event == cv2.EVENT_LBUTTONDOWN:
+                self.mark_points.append([x, y])
+                print(f"📍 บันทึกจุดที่ {len(self.mark_points)}: ({x}, {y})")
 
+    def draw_rectangle_callback(self):         
+        if len(self.mark_points) >= 3:
+            self.is_confirmed = True
+            print(f"\n[ยืนยันพิกัดเรียบร้อย] รูปปิด (Polygon): {self.mark_points}")
+        else:
+            print("กรุณาคลิกอย่างน้อย 3 จุดก่อนกดยืนยันครับ")
+
+    def clear(self):
+        self.mark_points = []
+        self.is_confirmed = False
+        print("\nรีเซ็ตพิกัดเรียบร้อย เริ่มคลิกใหม่ได้เลยครับ")
+        
     # 1. Callback ฟังก์ชันดักจับเมาส์
     def click_event(self, event, x, y, flags, param):
         # ถ้ายังไม่ได้กดยืนยัน จะสามารถคลิกเพิ่มจุดได้เรื่อย ๆ

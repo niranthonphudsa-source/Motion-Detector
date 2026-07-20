@@ -1,106 +1,133 @@
-
-global:
-
-# Model File in lib
-#  pose_landmarker_lite.task
-#  pose_landmarker_full.task
-#  pose_landmarker_heavy.task
-  model_path: model\pose_classifier_1 copy.pkl
-  dataset_path: ..\..\dataset\pose_dataset copy 2.csv
-  # model_url: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
-  video_path: video_model
-  model_type: full
-  default_person_limit: 3
-  detection_confidence: 0.9
-  presence_confidence: 0.9
-  tracking_confidence: 0.9
-  record_width: 100
-  record_height: 300
-
-
 cameras:
   Camera_1:
-    enabled: false
-    Type: Video
-    source: video_model\videoTrain1.mp4
-    person_limit: 5
-    record_video: false
     Display:
       Position_x: 0
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-
-  Camera_2:
-    enabled: false
     Type: Video
+    enabled: false
+    person_limit: 5
+    record_video: false
+    save_ng: false
+    save_ok: false
     source: video_model\videoTrain2.mp4
-    person_limit: 5
-    record_video: false
+  Camera_2:
     Display:
       Position_x: 0
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-
-  
+    Type: Video
+    enabled: false
+    mark_points: []
+    person_limit: 5
+    record_video: false
+    save_ng: false
+    save_ok: false
+    source: video_model\videoTrain2.mp4
   Camera_3:
-    enabled: false
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
     Type: Video
+    enabled: false
+    mark_points:
+    - - 369
+      - 648
+    - - 730
+      - 639
+    - - 774
+      - 718
+    - - 386
+      - 726
+    - - 366
+      - 724
+    person_limit: 5
+    record_video: false
+    save_ng: true
+    save_ok: true
     source: video_model\videoTrain3.mp4
-    person_limit: 5
-    record_video: false
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
-
-
   Camera_4:
-    enabled: false
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
     Type: Video
-    source: video_model\videoTrain4.mp4
-    person_limit: 5
-    record_video: false
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
-
-  Camera_5:
-    enabled: True
-    Type: USB
-    source: 0
-    person_limit: 5
-    record_video: True
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
-
-  Camera_6:
-    enabled: true
-    Type: LIVE_STREAM
-    source: rtsp://admin:Aoyama456@xx.xx.xx.xx:xx/cam/realmonitor?channel=1&subtype=0
-    person_limit: 5
-    record_video: false
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
-
-  Camera_7:
     enabled: false
-    Type: LIVE_STREAM
-    source: rtsp://admin:aoyama123456@xx.xx.x.xx:xx/Streaming/Channels/101/
+    mark_points:
+    - - 374
+      - 616
+    - - 690
+      - 623
+    - - 755
+      - 705
+    - - 391
+      - 737
     person_limit: 5
     record_video: false
+    save_ng: true
+    save_ok: true
+    source: video_model\videoTrain4.mp4
+  Camera_5:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    person_limit: 5
+    record_video: true
+    save_ng: false
+    save_ok: false
+    source: 0
+  Camera_6:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    person_limit: 5
+    record_video: true
+    save_ng: false
+    save_ok: false
+    source: 1
+  Camera_7:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    person_limit: 5
+    record_video: false
+    source: rtsp://admin:Aoyama456@xx.xx.xx.xx:xx/cam/realmonitor?channel=1&subtype=0
+  Camera_8:
     Display:
       Position_x: 946
       Position_y: 486
       Size_x: 945
       Size_y: 485
+    Type: LIVE_STREAM
+    enabled: false
+    person_limit: 5
+    record_video: false
+    source: rtsp://admin:aoyama123456@xx.xx.x.xx:xx/Streaming/Channels/101/
+global:
+  dataset_path: ..\..\dataset\pose_dataset copy 2.csv
+  default_person_limit: 3
+  detection_confidence: 0.9
+  model_path: model\pose_classifier_1 copy.pkl
+  model_type: full
+  presence_confidence: 0.9
+  record_height: 300
+  record_width: 100
+  tracking_confidence: 0.9
+  video_path: video_model
