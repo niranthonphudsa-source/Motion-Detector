@@ -127,8 +127,7 @@ global:
   default_person_limit: 3
   detection_confidence: 0.9
   floder_model: model
-  model_path: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\model\pose_classifier_1
-    copy.pkl
+  model_path: pose_classifier_1 copy.pkl
   model_type: full
   presence_confidence: 0.9
   record_height: 300

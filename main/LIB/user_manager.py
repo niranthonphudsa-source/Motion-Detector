@@ -18,6 +18,19 @@ class UserStateManager:
         self.max_distance = max_distance
         self.buffer_output_time = buffer_output_time # 👈 ผูกค่าไว้ใช้งาน
 
+    def _safe_move_file(self, src, dst, retries=10, delay=0.5):
+        """ พยายามย้ายไฟล์จนกว่าจะสำเร็จ เพื่อแก้ปัญหาไฟล์โดนล็อกขณะบันทึก """
+        for i in range(retries):
+            try:
+                shutil.move(src, dst)
+                print(f"✅ ย้ายไฟล์สำเร็จในความพยายามครั้งที่ {i+1}")
+                return True
+            except (OSError, PermissionError) as e:
+                # ถ้าไฟล์ยังถูกล็อกอยู่ (OS กำลังเขียนไฟล์) ให้รอแล้วลองใหม่
+                time.sleep(delay)
+        print(f"❌ ย้ายไฟล์ไม่สำเร็จหลังจากพยายาม {retries} ครั้ง: {e}")
+        return False
+
     def get_or_recover_id(self, current_id, current_frame_active_ids, point_pose):
         # """
         # ตรรกะกู้คืน ID: หากพบ ID ใหม่เข้ามา จะเช็คว่ามี ID เก่าที่เพิ่งหายไปในตำแหน่งใกล้เคียงกันหรือไม่
@@ -55,7 +68,7 @@ class UserStateManager:
 
         if reclaimed_id is not None:
             self.user_states[current_id] = self.user_states.pop(reclaimed_id)
-            # 🌟 [เพิ่มใหม่] ถ้ากู้คืน ID กลับมาได้สำเร็จ ให้ยกเลิกการนับเวลาถอยหลังปิดไฟล์ทันที
+            # 🌟 ถ้ากู้คืน ID กลับมาได้สำเร็จ ให้ยกเลิกการนับเวลาถอยหลังปิดไฟล์ทันที
             self.user_states[current_id]["is_terminating"] = False
             self.user_states[current_id]["termination_start_time"] = None
             print(f"🔄 [ID Recovered] กู้คืนข้อมูลสำเร็จ: ID {reclaimed_id} สลับเป็น ID ใหม่ {current_id}")
@@ -70,8 +83,8 @@ class UserStateManager:
                 "was_inside_last_frame": False,
                 "last_seen_time": None,
                 "last_position": None,
-                "is_terminating": False,            # 👈 เพิ่มใหม่: เช็คว่ากำลังอยู่ในช่วงหน่วงเวลาปิดไฟล์ไหม
-                "termination_start_time": None     # 👈 เพิ่มใหม่: เวลาที่เริ่มหน่วงเพื่อปิดไฟล์
+                "is_terminating": False,            # 👈 เช็คว่ากำลังอยู่ในช่วงหน่วงเวลาปิดไฟล์ไหม
+                "termination_start_time": None     # 👈 เวลาที่เริ่มหน่วงเพื่อปิดไฟล์
             }
         return self.user_states[current_id]
 
@@ -84,8 +97,6 @@ class UserStateManager:
             state["last_position"] = (int(point_pose[16][0]), int(point_pose[16][1]))
         state["was_inside_last_frame"] = people_in_rectangle
 
-    # 2. ปรับปรุงฟังก์ชัน handle_lost_people ให้ฉลาดขึ้น
-    # เคสที่คนหายไปดื้อๆ (Lost Tracking) ก็จะหน่วงเวลาอัดต่อตามปกติจนครบกำหนด ถึงจะย้ายไฟล์
     def handle_lost_people(self, current_frame_active_ids):
         current_time = time.time()
         for active_id, active_state in list(self.user_states.items()):
@@ -94,31 +105,22 @@ class UserStateManager:
             if active_state["is_terminating"] and active_state["termination_start_time"] is not None:
                 elapsed_time = current_time - active_state["termination_start_time"]
                 
-                # 📝 เพิ่มจุดนี้: พิมพ์ดูวิวัฒนาการการนับถอยหลังใน Console
-                # (พิมพ์ทุกๆ 1 วินาที เพื่อไม่ให้ Log รันไวเกินไป)
                 if int(elapsed_time) % 2 == 0: 
                     remaining = max(0, self.buffer_output_time - elapsed_time)
                     print(f"⏳ ID {active_id} กำลังนับถอยหลังอัดแถมท้าย.. เหลืออีก {remaining:.1f} วินาที")
 
                 if elapsed_time >= self.buffer_output_time:
                     if active_state["writer"] is not None:
-                        print(f"🎬 ปิดการบันทึกวิดีโอสำหรับ ID {active_id}...")
                         active_state["writer"].release()
                         active_state["writer"] = None
-                        
-                        # ⏳ [แก้ไข] หน่วงเวลา 0.5 วินาที เพื่อรอให้ระบบปฏิบัติการเขียนไฟล์วิดีโอลงดิสก์ให้เสร็จสมบูรณ์
-                        time.sleep(0.5) 
                         
                         if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
                             base_filename = os.path.basename(active_state["video_filename"])
                             dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
-                            dest_path = f"{dest_folder}/{base_filename}"
-                            try:
-                                # 🔄 [แก้ไข] เปลี่ยนจาก copy เป็น move เพื่อป้องกันไฟล์ค้าง และย้ายไฟล์ที่สมบูรณ์ไปเลย
-                                shutil.move(active_state["video_filename"], dest_path)
-                                print(f"🎉 [BUFFER FINISHED] ย้ายไฟล์ที่สมบูรณ์ของ ID {active_id} เรียบร้อยแล้ว")
-                            except Exception as e:
-                                print(f"❌ ย้ายไฟล์หน่วงเวลาผิดพลาด: {e}")
+                            dest_path = os.path.join(dest_folder, base_filename)
+                            
+                            # 🔄 เรียกใช้ฟังก์ชันย้ายไฟล์แบบเช็คสถานะล็อก (Retry Move)
+                            self._safe_move_file(active_state["video_filename"], dest_path)
                         
                         # ล้างค่าหลังทำงานเสร็จ
                         active_state["video_filename"] = None
@@ -127,7 +129,7 @@ class UserStateManager:
                         if active_state["confirm"] != "OK":
                             active_state["valaus_last"] = []
                 
-                # บังคับข้ามการเช็ค Lost Timeout ด้านล่างไปก่อนเพื่อให้อัดต่อจนครบกำหนด
+                # บังคับข้ามการเช็ค Lost Timeout ด้านล่างเพื่อส่งผ่านการบันทึกแถมท้ายจนสมบูรณ์
                 continue 
             
             # ─── กรณีที่ 2: คนหายตัวไปจากกล้องดื้อๆ (Lost Tracking Timeout) ───
@@ -142,15 +144,16 @@ class UserStateManager:
                         if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
                             base_filename = os.path.basename(active_state["video_filename"])
                             dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
-                            dest_path = f"{dest_folder}/{base_filename}"
-                            try:
-                                shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"⚠️ [LOST TIMEOUT] ID {active_id} หายถาวรเกิน {self.max_lost_time} วิ -> ย้ายไฟล์อัตโนมัติ")
-                            except Exception as e:
-                                print(f"❌ คัดลอกไฟล์ผิดพลาดตอน Timeout: {e}")
+                            dest_path = os.path.join(dest_folder, base_filename)
+                            
+                            # 🔄 เรียกใช้ฟังก์ชันย้ายไฟล์แบบเช็คสถานะล็อก (Retry Move)
+                            self._safe_move_file(active_state["video_filename"], dest_path)
                         
+                        # ล้างค่าสถานะป้องกันลูปค้างคาสมบูรณ์
                         active_state["video_filename"] = None
                         active_state["was_inside_last_frame"] = False
+                        if active_state["confirm"] != "OK":
+                            active_state["valaus_last"] = []
 
     def close_all_writers(self):
         """

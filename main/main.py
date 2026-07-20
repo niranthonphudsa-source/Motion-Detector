@@ -5,7 +5,7 @@ from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
-from LIB.config_gui import ConfigGUI  # ✨ นำเข้าตัวจัดการ GUI หลังบ้าน
+from LIB.config_gui import ConfigGUI  
 from ultralytics import YOLO
 import numpy as np
 import joblib
@@ -48,13 +48,11 @@ if len(roi.mark_points) > 0:
 
 model = YOLO('yolo26n-pose.pt')
 
-
-
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 5.0
 SKIP_FRAMES = 1
 predicted_label = "None"
-confidence = 0.3
+confidence = 0.0
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),
@@ -116,9 +114,10 @@ def reload_config_callback(new_camera_id):
     save_ng_flag = cam_data.get("save_ng", True)
     print(f"⚙️ สเตตัสการบันทึกปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}")
 
-config_manager.open_settings(on_close_callback=reload_config_callback)
+config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)
     
 pose_classifier = joblib.load(model_sklearn) 
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
@@ -190,7 +189,6 @@ while True:
                 state["termination_start_time"] = None
                 print(f"🏃‍♂️ ID {s.p_id} กลับเข้ามาในพื้นที่ตรวจ -> ยกเลิกการหน่วงเวลาปิดไฟล์")
 
-            # ยุบตรรกะเปิดใช้งาน VideoWriter ไว้ที่จุดเดียว
             if state["writer"] is None:
                 current_time_str = int(time.time())
                 state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time_str}.avi"
@@ -236,12 +234,16 @@ while True:
                         state["is_ok_holding"] = True
                         state["ok_start_time"] = time.time()
 
-        # จังหวะที่เดินออกจากจุดเช็ค
+        # จังหวะที่เดินออกจากจุดเช็ค (แก้ไข: ปิด Writer ก่อนคัดลอกไฟล์ และทำในขอบเขตตัวแปรที่ปลอดภัย)
         if not people_in_rectangle and state["was_inside_last_frame"]:
             if state["writer"] is not None and not state["is_terminating"]:
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
                 print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับเวลาถอยหลังเพื่ออัดวิดีโอเพิ่ม {manager.buffer_output_time} วินาที...")
+
+                # ปิด Writer ปล่อย File Stream ก่อนทำการย้าย/คัดลอกไฟล์
+                state["writer"].release()
+                state["writer"] = None
 
                 if state["video_filename"] and os.path.exists(state["video_filename"]):
                     base_filename = os.path.basename(state["video_filename"])
@@ -262,6 +264,7 @@ while True:
                 state["video_filename"] = None
                 if state["confirm"] != "OK":
                     state["valaus_last"] = []
+
 
         manager.update_tracking_data(state, people_in_rectangle, point_pose)
 
@@ -284,8 +287,6 @@ while True:
                 cv2.putText(frame, line_text, (text_x, current_y + 90), cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
-
-
 
     manager.handle_lost_people(current_frame_active_ids)
 
@@ -313,9 +314,10 @@ while True:
     status_text = "MODE: DRAWING (Press '2' to confirm)" if roi.current_mode == 1 else "MODE: NORMAL (Press '1' to draw, 's' to settings)"
     cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     cv2.putText(frame, "1=Draw | 2=Save ROI | C=Clear | S=Settings | Q=Exit", (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-
+    # บันทึกเฟรมลงวิดีโอของ ID นั้นๆ (ย้ายเข้ามาในลูปบุคคลเพื่อความปลอดภัย)
     if state["writer"] is not None:
         state["writer"].write(frame)   
+
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
@@ -347,10 +349,8 @@ while True:
     elif key == ord('c'):  # ล้างพิกัดหน้าจอ
         roi.clear()
         
-    elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
+    elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ (แก้ไข: ลบคำสั่งซ้ำซ้อนออก)
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
-        config_manager.open_settings(on_close_callback=reload_config_callback)
-        # 🌟 ส่ง active_camera_id เข้าไป เพื่อให้ GUI รู้ว่าตอนนี้กำลังรันกล้องไหนอยู่
         config_manager.open_settings(
             current_cam_id=active_camera_id, 
             on_close_callback=reload_config_callback
