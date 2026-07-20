@@ -90,11 +90,14 @@ class UserStateManager:
         current_time = time.time()
         for active_id, active_state in list(self.user_states.items()):
             
-            # ตรวจสอบเคสหน่วงเวลาอัดต่อหลังจากเดินออก (จากตรรกะใน main.py)
+            # ─── กรณีที่ 1: อยู่ในช่วงหน่วงเวลาอัดต่อหลังจากเดินออก (Buffer Time) ───
             if active_state["is_terminating"] and active_state["termination_start_time"] is not None:
-                # ⏳ ถ้านับถอยหลังอัดต่อจนครบ 1.0 วินาทีแล้ว
-                if current_time - active_state["termination_start_time"] >= self.buffer_output_time:
-                        print(self.buffer_output_time)
+                # ⏳ คำนวณเวลาที่ผ่านไป
+                elapsed_time = current_time - active_state["termination_start_time"]
+                
+                # ตรวจสอบว่าครบเวลา buffer (เช่น 10 วินาที) หรือยัง
+                if elapsed_time >= self.buffer_output_time:
+                    if active_state["writer"] is not None:
                         active_state["writer"].release()
                         active_state["writer"] = None
                         
@@ -104,7 +107,7 @@ class UserStateManager:
                             dest_path = f"{dest_folder}/{base_filename}"
                             try:
                                 shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"⏱️ [BUFFER FINISHED] ID {active_id} อัดวิดีโอแถมท้ายครบ 1 วิ -> ย้ายไฟล์เรียบร้อย")
+                                print(f"⏱️ [BUFFER FINISHED] ID {active_id} บันทึกแถมท้ายครบ {self.buffer_output_time} วิ -> ย้ายไฟล์เรียบร้อย")
                             except Exception as e:
                                 print(f"❌ คัดลอกไฟล์หน่วงเวลาผิดพลาด: {e}")
                         
@@ -114,12 +117,17 @@ class UserStateManager:
                         active_state["termination_start_time"] = None
                         if active_state["confirm"] != "OK":
                             active_state["valaus_last"] = []
+                
+                # 🌟 สำคัญมาก: ถ้ายังไม่ครบเวลาหน่วง และคนหลุดจากกล้องไปแล้วในเฟรมนี้ 
+                # ให้ข้ามการเช็ค Lost Timeout ด้านล่างไปก่อน เพื่อให้อัดต่อจนครบกำหนด
+                continue 
             
-            # ตรวจสอบเคสที่คนหายตัวไปจากกล้องดื้อๆ (Lost Tracking เกิน 2 วินาที)
-            elif active_id not in current_frame_active_ids:
+            # ─── กรณีที่ 2: คนหายตัวไปจากกล้องดื้อๆ โดยไม่ได้เดินออกตามปกติ (Lost Tracking Timeout) ───
+            if active_id not in current_frame_active_ids:
                 if active_state["last_seen_time"] is not None:
                     time_lost_duration = current_time - active_state["last_seen_time"]
                     
+                    # หายไปถาวรเกิน max_lost_time และไม่ได้อยู่ในสถานะนับถอยหลังปิดไฟล์
                     if time_lost_duration > self.max_lost_time and active_state["writer"] is not None:
                         active_state["writer"].release()
                         active_state["writer"] = None
@@ -130,7 +138,7 @@ class UserStateManager:
                             dest_path = f"{dest_folder}/{base_filename}"
                             try:
                                 shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"⚠️ [LOST TIMEOUT] ID {active_id} หายถาวร -> ย้ายไฟล์: {dest_path}")
+                                print(f"⚠️ [LOST TIMEOUT] ID {active_id} หายถาวรเกิน {self.max_lost_time} วิ -> ย้ายไฟล์อัตโนมัติ")
                             except Exception as e:
                                 print(f"❌ คัดลอกไฟล์ผิดพลาดตอน Timeout: {e}")
                         

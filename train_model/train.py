@@ -4,6 +4,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 import yaml
+# ตัวอย่างในไฟล์ main_gui.py หรือสคริปต์หลักของคุณ
+import tkinter as tk
+from train_gui import TrainGUI # 👈 Import หน้าต่างเทรนที่เราเพิ่งสร้างไว้เข้ามา
+
+def open_train_window():
+    """ฟังก์ชันเปิดหน้าต่างเทรนแยกออกมาอีกบานหนึ่ง"""
+    train_window = tk.Toplevel() # เปิดเป็นหน้าต่างย่อย (Toplevel) ไม่ให้รบกวนหน้าต่างหลัก
+    app = TrainGUI(train_window)
+    
 
 with open(r"setting\config.yaml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)   

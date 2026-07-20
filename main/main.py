@@ -47,7 +47,8 @@ if len(roi.mark_points) > 0:
     roi.is_confirmed = True
 
 model = YOLO('yolo26n-pose.pt')
-pose_classifier = joblib.load(model_sklearn) 
+
+
 
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 5.0
@@ -115,6 +116,9 @@ def reload_config_callback(new_camera_id):
     save_ng_flag = cam_data.get("save_ng", True)
     print(f"⚙️ สเตตัสการบันทึกปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}")
 
+config_manager.open_settings(on_close_callback=reload_config_callback)
+    
+pose_classifier = joblib.load(model_sklearn) 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
@@ -346,6 +350,11 @@ while True:
     elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
         config_manager.open_settings(on_close_callback=reload_config_callback)
+        # 🌟 ส่ง active_camera_id เข้าไป เพื่อให้ GUI รู้ว่าตอนนี้กำลังรันกล้องไหนอยู่
+        config_manager.open_settings(
+            current_cam_id=active_camera_id, 
+            on_close_callback=reload_config_callback
+        )
 
 # เคลียร์ทรัพยากรระบบทั้งหมดเมื่อปิดโปรแกรม
 manager.close_all_writers()

@@ -47,8 +47,8 @@ cameras:
       - 724
     person_limit: 5
     record_video: false
-    save_ng: true
-    save_ok: true
+    save_ng: false
+    save_ok: false
     source: video_model\videoTrain3.mp4
   Camera_4:
     Display:
@@ -59,18 +59,18 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 374
-      - 616
-    - - 690
-      - 623
-    - - 755
-      - 705
-    - - 391
-      - 737
+    - - 794
+      - 777
+    - - 390
+      - 784
+    - - 390
+      - 636
+    - - 730
+      - 630
     person_limit: 5
     record_video: false
-    save_ng: true
-    save_ok: true
+    save_ng: false
+    save_ok: false
     source: video_model\videoTrain4.mp4
   Camera_5:
     Display:
@@ -108,6 +108,8 @@ cameras:
     enabled: true
     person_limit: 5
     record_video: false
+    save_ng: false
+    save_ok: false
     source: rtsp://admin:Aoyama456@xx.xx.xx.xx:xx/cam/realmonitor?channel=1&subtype=0
   Camera_8:
     Display:
@@ -124,7 +126,9 @@ global:
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
   default_person_limit: 3
   detection_confidence: 0.9
-  model_path: model\pose_classifier_1 copy.pkl
+  floder_model: model
+  model_path: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\model\pose_classifier_1
+    copy.pkl
   model_type: full
   presence_confidence: 0.9
   record_height: 300
