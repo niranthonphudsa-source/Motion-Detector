@@ -7,7 +7,7 @@ global:
 #  pose_landmarker_heavy.task
   model_path: model\pose_classifier_1 copy.pkl
   # model_url: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task
-  video_path: 99_videos
+  video_path: video_model
   model_type: full
   default_person_limit: 3
   detection_confidence: 0.9
@@ -21,7 +21,7 @@ cameras:
   Camera_1:
     enabled: false
     Type: Video
-    source: video\videoTrain1.mp4
+    source: video_model\videoTrain1.mp4
     person_limit: 5
     record_video: false
     Display:
@@ -33,7 +33,7 @@ cameras:
   Camera_2:
     enabled: false
     Type: Video
-    source: video\videoTrain2.mp4
+    source: video_model\videoTrain2.mp4
     person_limit: 5
     record_video: false
     Display:
@@ -46,7 +46,7 @@ cameras:
   Camera_3:
     enabled: false
     Type: Video
-    source: video\videoTrain3.mp4
+    source: video_model\videoTrain3.mp4
     person_limit: 5
     record_video: false
     Display:
@@ -59,7 +59,7 @@ cameras:
   Camera_4:
     enabled: false
     Type: Video
-    source: video\videoTrain4.mp4
+    source: video_model\videoTrain4.mp4
     person_limit: 5
     record_video: false
     Display:

@@ -12,17 +12,16 @@ import joblib
 import time
 import yaml
 import pandas as pd
-import tkinter as tk
 
 
 # โหลด config.yml
-with open("setting\config.yml", "r", encoding="utf-8") as f:
+with open(r"setting\config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 
 # # ดึงข้อมูลกล้อง
 camera = config["cameras"]["Camera_3"]
 model_sklearn = config["global"]["model_path"]
-print(f"Loaded model from: {model_sklearn}")
+# print(f"Loaded model from: {model_sklearn}")
 
 
 # # ตัวอย่างการเข้าถึงค่า
@@ -143,15 +142,17 @@ while True:
                 "valaus_last": [],
                 "confirm": "NG",
                 "is_ok_holding": False,
-                "ok_start_time": 0
+                "ok_start_time": 0,
+                "video_filename": None
             }
             
         # ดึงสถานะปัจจุบันของ ID นี้ขึ้นมาใช้
         state = user_states[s.p_id]
         
         people_in_rectangle = False
-        if roi.mark_points is not None and len(roi.mark_points) >= 2:
-        
+        if roi.mark_points and len(roi.mark_points) >= 2:
+            roi.is_confirmed = True
+
             contour = np.array(roi.mark_points, dtype=np.int32)
             foot_inside_count = 0
             for s.idx in (15, 16):
@@ -232,7 +233,6 @@ while True:
                         state["ok_start_time"] = time.time()
 
 
-
         # --- ส่วนที่ 3: จัดการแสดงผลเว้นบรรทัดแบบสวยงามใต้หัวไหล่ของแต่ละบุคคล ---
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
@@ -256,27 +256,47 @@ while True:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
                 
-            # ตรวจสอบเงื่อนไขการบันทึกวิดีโอ
-        if state["confirm"] != "OK":
-            if video_writer is None:
-                filename = f"video_ng/violation_{s.p_id}_{int(time.time())}.avi"
-                video_writer = cv2.VideoWriter(filename, fourcc, 20.0, (w, h))
-                print(f"เริ่มบันทึกวิดีโอ: {filename}")
 
-            # เขียนเฟรมหลังจากวาดเส้นครบแล้ว
-            video_writer.write(frame)
+    # 🎬 ตรรกะจัดการวิดีโอ:
+    if state["confirm"] != "OK":
+        # ถ้ายัง NGอยู่ และยังไม่มีการสร้าง Writer สำหรับ ID นี้
+        if video_writer is None:
+            current_time = int(time.time())
+            # เก็บชื่อไฟล์ไว้ใน state ของ ID นั้น ๆ
+            state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time}.avi"
+            video_writer = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
+            print(f"[NG] เริ่มบันทึกวิดีโอสำหรับ ID {s.p_id}: {state['video_filename']}")
+        
+        # ทำเครื่องหมายไว้ว่าเฟรมนี้มีคน NG (ใช้เช็กก่อนสั่ง write ท้ายลูปใหญ่)
+        should_record_video = True 
+        
+    else:
+        # 🎉 ถ้าเปลี่ยนเป็นสถานะ "OK" แล้ว!
+        if video_writer is not None:
+            video_writer.release()
+            video_writer = None
+            print(f"[OK] หยุดบันทึกวิดีโอสำหรับ ID {s.p_id}")
+            
+            # 💥 ลบไฟล์วิดีโอที่เพิ่งอัดทิ้งทันที เพราะเขาทำผ่านเงื่อนไขแล้ว
+            if state["video_filename"] and os.path.exists(state["video_filename"]):
+                try:
+                    os.remove(state["video_filename"])
+                    print(f"🗑️ ลบวิดีโอของ ID {s.p_id} ออกแล้ว เนื่องจากสถานะเป็น OK")
+                except Exception as e:
+                    print(f"❌ ไม่สามารถลบไฟล์ได้: {e}")
+            
+            state["video_filename"] = f"video_ok/violation_{s.p_id}_{current_time}.avi"
+            video_writer = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
+            print(f"[NG] เริ่มบันทึกวิดีโอสำหรับ ID {s.p_id}: {state['video_filename']}")
+            # ล้างค่าชื่อไฟล์ในระบบ
+            state["video_filename"] = None
 
-        else:
-            if video_writer is not None:
-                video_writer.release()
-                video_writer = None
-                print("หยุดบันทึกวิดีโอ (ทำครบเงื่อนไข)")
                 
     # --- ส่วนที่ 4: วาดอินเตอร์เฟซระบบ ROI รวม ---
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
     
-    if roi.mark_points is not None and len(roi.mark_points) >= 3:
+    if roi.mark_points and len(roi.mark_points) >= 3:
         pts = np.array(roi.mark_points, np.int32)
         pts = pts.reshape((-1, 1, 2))
         cv2.polylines(frame, [pts], isClosed=True, color=box_color, thickness=2)
@@ -286,6 +306,10 @@ while True:
     mode_text = "Mode: DRAWING (Press Mouse & Drag)" if roi.current_mode == 1 else "Mode: NORMAL (Press '1' to Edit)"
     mode_color = (0, 0, 255) if roi.current_mode == 1 else (255, 0, 0)
     cv2.putText(frame, mode_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mode_color, 2)
+
+    # 🔥 บันทึกวิดีโอหลังจากวาดทุกอย่างลงบนภาพเฟรมเสร็จสิ้นแล้ว
+    if should_record_video and video_writer is not None:
+        video_writer.write(frame)
 
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
