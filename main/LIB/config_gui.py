@@ -357,6 +357,10 @@ class ConfigGUI:
         btn_train = ttk.Button(train_win, text="🚀 เริ่มเทรนโมเดลใหม่ (Start Train)", command=start_train_thread)
         btn_train.pack(pady=10)
 
+    def safe_close_app(self):
+        self.root.quit()
+        self.root.destroy()
+
     def open_settings(self, current_cam_id=None, on_close_callback=None):
         """เปิดหน้าต่าง GUI สำหรับการ Setting"""
         if self.root is not None:

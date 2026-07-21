@@ -3,6 +3,7 @@ import shutil
 import time
 import cv2
 import numpy as np
+from LIB.stats_gui import StatsGUI
 
 class UserStateManager:
     def __init__(self, check_pose, fourcc, ok_display_time, max_lost_time, max_distance, buffer_output_time=3):
@@ -118,7 +119,7 @@ class UserStateManager:
             state["last_position"] = (avg_x, avg_y)
 
             
-    def handle_lost_people(self, current_frame_active_ids, save_ok, save_ng):
+    def handle_lost_people(self, current_frame_active_ids, save_ok, save_ng, stats_db=None, camera_id="Camera_1"):
         self.save_ok = save_ok 
         self.save_ng = save_ng
         current_time = time.time()
@@ -130,46 +131,54 @@ class UserStateManager:
                 elapsed_time = current_time - active_state["termination_start_time"]
                 remaining = max(0.0, self.buffer_output_time - elapsed_time)
                 
-                # พิมพ์ Log ทุกๆ 1 วินาที (ไม่บล็อกการทำงาน)
                 current_sec = int(elapsed_time)
                 if current_sec != active_state.get("last_logged_sec", -1):
                     active_state["last_logged_sec"] = current_sec
                     print(f"⏳ ID {active_id} กำลังอัดวิดีโอแถมท้าย.. เหลืออีก {remaining:.1f} วินาที")
 
-                # 🏁 เมื่อครบ 5 วินาทีพอดี -> ปิดวิดีโอและย้ายไฟล์
+                # 🏁 เมื่อครบ .. วินาทีพอดี -> ปิดวิดีโอและย้ายไฟล์
                 if elapsed_time >= self.buffer_output_time:
                     if active_state["writer"] is not None:
                         active_state["writer"].release()
                         active_state["writer"] = None
                         print(f"🛑 [Stop Recording] บันทึกแถมครบ {self.buffer_output_time} วินาทีแล้ว ปิดไฟล์วิดีโอ ID {active_id}")
 
-                        print(f"active_id: {active_id} active_state: {active_state["confirm"]}")
-                        # ย้ายไฟล์ชั่วคราวไปยังโฟลเดอร์ผลลัพธ์
-                        is_ok = (active_state["confirm"] == "OK")
-                        should_save = save_ok if is_ok else save_ng
+                    # -------------------------------------------------------------------
+                    # 🌟 📍 จุดบันทึก LOG สถิติลง SQLite Database 📍
+                    # -------------------------------------------------------------------
+                    if stats_db is not None:
+                        final_status = active_state["confirm"]  # ค่าจะเป็น "OK" หรือ "NG"
+                        # เรียก log_event จากคลาส StatsGUI
+                        stats_db.log_event(camera_id, final_status, active_id)
+                        print(f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}")
+                    # -------------------------------------------------------------------
 
-                        if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
-                            base_filename = os.path.basename(active_state["video_filename"])
-                            dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
-                            os.makedirs(dest_folder, exist_ok=True)
-                            dest_path = os.path.join(dest_folder, base_filename)
-                            
-                            if should_save:
-                                try:
-                                    # ย้ายไฟล์ทันทีด้วย os.replace
-                                    shutil.copy(active_state["video_filename"], dest_path)
-                                    print(f"📁 ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
-                                except Exception:
-                                    shutil.copy(active_state["video_filename"], dest_path)
+                    print(f"active_id: {active_id} active_state: {active_state['confirm']}")
+                    
+                    # ย้ายไฟล์ชั่วคราวไปยังโฟลเดอร์ผลลัพธ์
+                    is_ok = (active_state["confirm"] == "OK")
+                    should_save = save_ok if is_ok else save_ng
 
-                    # Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
-                    active_state["video_filename"] = None
-                    active_state["is_terminating"] = False
-                    active_state["termination_start_time"] = None
-                    active_state["last_logged_sec"] = -1
-                    if active_state["confirm"] != "OK":
-                        active_state["valaus_last"] = []
+                    if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
+                        base_filename = os.path.basename(active_state["video_filename"])
+                        dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
+                        os.makedirs(dest_folder, exist_ok=True)
+                        dest_path = os.path.join(dest_folder, base_filename)
+                        
+                        if should_save:
+                            try:
+                                shutil.copy(active_state["video_filename"], dest_path)
+                                print(f"📁 ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
+                            except Exception:
+                                shutil.copy(active_state["video_filename"], dest_path)
 
+                # Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
+                active_state["video_filename"] = None
+                active_state["is_terminating"] = False
+                active_state["termination_start_time"] = None
+                active_state["last_logged_sec"] = -1
+                if active_state["confirm"] != "OK":
+                    active_state["valaus_last"] = []
     
     def close_all_writers(self):
         """
