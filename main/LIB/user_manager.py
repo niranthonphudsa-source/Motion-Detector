@@ -3,7 +3,6 @@ import shutil
 import time
 import cv2
 import numpy as np
-from LIB.stats_gui import StatsGUI
 
 class UserStateManager:
     def __init__(self, check_pose, fourcc, ok_display_time, max_lost_time, max_distance, buffer_output_time=3):
