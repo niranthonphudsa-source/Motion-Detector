@@ -11,7 +11,7 @@ cameras:
     record_video: false
     save_ng: false
     save_ok: false
-    source: video_model\videoTrain2.mp4
+    source: video_model\videoTrain1.mp4
   Camera_2:
     Display:
       Position_x: 0
@@ -60,8 +60,8 @@ cameras:
     reverse_point:
     - 624
     - 945
-    save_ng: true
-    save_ok: true
+    save_ng: false
+    save_ok: false
     source: video_model\videoTrain3.mp4
     start_point:
     - 563
@@ -149,6 +149,7 @@ cameras:
     record_video: false
     source: rtsp://admin:aoyama123456@xx.xx.x.xx:xx/Streaming/Channels/101/
 global:
+  active_model: model\pose_classifier_1 copy.pkl
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
   default_person_limit: 3
   detection_confidence: 0.9

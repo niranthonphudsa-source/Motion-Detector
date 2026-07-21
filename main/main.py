@@ -7,6 +7,7 @@ from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
 from LIB.config_gui import ConfigGUI  
 from LIB.stats_gui import StatsGUI, StatsManager
+from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
 import numpy as np
 import joblib
@@ -15,33 +16,23 @@ import pandas as pd
 import threading
 
 
-# ─── โหลดและจัดการ CONFIG แยกตามกล้อง ───
-config_manager = ConfigGUI(r"setting\config.yml")
-config = config_manager.config
 
-# 🌟 กำหนดชื่อกล้องเริ่มต้นที่ต้องการรันในไฟล์นี้
-active_camera_id = "Camera_3" 
+# ─── โหลดและจัดการ CONFIG ───
+app_config = AppConfig(r"setting\config.yml")
 
-if active_camera_id not in config.get("cameras", {}):
-    print(f"❌ ไม่พบข้อมูลกล้อง '{active_camera_id}' ในไฟล์ config.yml กรุณาเปิดหน้าตั้งค่าเพื่อเพิ่มข้อมูล")
-    if "cameras" not in config: config["cameras"] = {}
-    config["cameras"][active_camera_id] = {
-        "source": 0, 
-        "save_ok": True, 
-        "save_ng": True, 
-        "mark_points": [],
-        "start_point": None,
-        "reverse_point": None
-    }
-
-camera = config["cameras"][active_camera_id]
-source = camera["source"]
+# เรียกใช้งานตัวแปรต่างๆ ได้ผ่าน app_config เลย เช่น:
+config_manager = app_config.config_manager
+config = app_config.config
+active_camera_id = app_config.active_camera_id
+camera = app_config.camera
+source = app_config.source
+save_ok_flag = app_config.save_ok_flag
+save_ng_flag = app_config.save_ng_flag
+model_sklearn = app_config.model_sklearn
 
 model_path = config["model"]["Model_path_1"]
 model_sklearn = model_path["source"]
-# ตัวแปรสถานะการบันทึกไฟล์ที่ซิงค์มาจาก GUI
-save_ok_flag = camera.get("save_ok", True)
-save_ng_flag = camera.get("save_ng", True)
+
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
@@ -85,6 +76,7 @@ manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_tim
 
 # 🌟 ตัวแปรกระเป๋าเก็บสถานะการเดินสวนทางรายบุคคล -> { p_id: {'first_touch': 'START'/'REVERSE', 'is_reverse': True/False} }
 direction_tracker = {}
+
 
 def get_distance(p1, p2):
     """คำนวณระยะห่างทางเรขาคณิต (Euclidean Distance) ระหว่างจุด 2 จุด"""
@@ -137,9 +129,8 @@ stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 # state = {}
 
-
-# config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
-config_manager.open_settings()  
+config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
+# config_manager.open_settings()  
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
@@ -347,8 +338,7 @@ while True:
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
-        if state["writer"] is not None:
-            state["writer"].write(frame)
+
 
 
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
@@ -374,6 +364,8 @@ while True:
     cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear | S=Settings | Q=Exit", 
                 (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
 
+    # if state["writer"] is not None:
+    #     state["writer"].write(frame)
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
