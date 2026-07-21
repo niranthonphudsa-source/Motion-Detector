@@ -135,49 +135,55 @@ class UserStateManager:
                     active_state["last_logged_sec"] = current_sec
                     print(f"⏳ ID {active_id} กำลังอัดวิดีโอแถมท้าย.. เหลืออีก {remaining:.1f} วินาที")
 
-                # 🏁 เมื่อครบ .. วินาทีพอดี -> ปิดวิดีโอและย้ายไฟล์
+                # 🏁 เมื่อครบเวลาบันทึกแถมพอดี -> ปิดวิดีโอ ย้ายไฟล์ และบันทึก Log
                 if elapsed_time >= self.buffer_output_time:
+                    # 1. คืนทรัพยากร VideoWriter
                     if active_state["writer"] is not None:
                         active_state["writer"].release()
                         active_state["writer"] = None
                         print(f"🛑 [Stop Recording] บันทึกแถมครบ {self.buffer_output_time} วินาทีแล้ว ปิดไฟล์วิดีโอ ID {active_id}")
 
-                    # -------------------------------------------------------------------
-                    # 🌟 📍 จุดบันทึก LOG สถิติลง SQLite Database 📍
-                    # -------------------------------------------------------------------
+                    # 2. บันทึก LOG สถิติลง SQLite Database
                     if stats_db is not None:
-                        final_status = active_state["confirm"]  # ค่าจะเป็น "OK" หรือ "NG"
-                        # เรียก log_event จากคลาส StatsGUI
+                        final_status = active_state["confirm"]  # "OK" หรือ "NG"
                         stats_db.log_event(camera_id, final_status, active_id)
                         print(f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}")
-                    # -------------------------------------------------------------------
 
-                    print(f"active_id: {active_id} active_state: {active_state['confirm']}")
-                    
-                    # ย้ายไฟล์ชั่วคราวไปยังโฟลเดอร์ผลลัพธ์
+                    # 3. ตรวจสอบเงื่อนไขการย้ายไฟล์วิดีโอ
+                    # 3. ตรวจสอบเงื่อนไขการย้าย/คัดลอกไฟล์วิดีโอ
                     is_ok = (active_state["confirm"] == "OK")
-                    should_save = save_ok if is_ok else save_ng
+                    should_save = self.save_ok if is_ok else self.save_ng
 
-                    if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
-                        base_filename = os.path.basename(active_state["video_filename"])
-                        dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
+                    temp_file = active_state["video_filename"]
+
+                    if temp_file and os.path.exists(temp_file):
+                        base_filename = os.path.basename(temp_file)
+                        dest_folder = "video_ok" if is_ok else "video_ng"
                         os.makedirs(dest_folder, exist_ok=True)
                         dest_path = os.path.join(dest_folder, base_filename)
                         
+                        # คัดลอกไฟล์ไปยังโฟลเดอร์ปลายทาง โดยไม่ลบไฟล์ต้นฉบับเดิม
                         if should_save:
                             try:
-                                shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"📁 ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
-                            except Exception:
-                                shutil.copy(active_state["video_filename"], dest_path)
+                                shutil.copy(temp_file, dest_path)
+                                print(f"📁 [SUCCESS] คัดลอกไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
+                            except Exception as e:
+                                print(f"❌ [ERROR] ไม่สามารถคัดลอกไฟล์ได้: {e}")
+                        else:
+                            # ถ้าผู้ใช้สั่งไม่เซฟ (Flag = False) ให้ลบไฟล์ชั่วคราวทิ้งทันที ไม่ให้เปลืองพื้นที่ disk
+                            try:
+                                os.remove(temp_file)
+                                print(f"🗑️ [CLEANUP] ลบไฟล์ชั่วคราวเนื่องจากตั้งค่าไม่บันทึก {dest_folder}: {temp_file}")
+                            except Exception as e:
+                                print(f"❌ [ERROR] ลบไฟล์ชั่วคราวไม่สำเร็จ: {e}")
 
-                # Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
-                active_state["video_filename"] = None
-                active_state["is_terminating"] = False
-                active_state["termination_start_time"] = None
-                active_state["last_logged_sec"] = -1
-                if active_state["confirm"] != "OK":
-                    active_state["valaus_last"] = []
+                    # 4. Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
+                    active_state["video_filename"] = None
+                    active_state["is_terminating"] = False
+                    active_state["termination_start_time"] = None
+                    active_state["last_logged_sec"] = -1
+                    if active_state["confirm"] != "OK":
+                        active_state["valaus_last"] = []
     
     def close_all_writers(self):
         """

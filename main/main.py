@@ -124,25 +124,26 @@ def reload_config_callback(new_camera_id):
     print(f"⚙️ สเตตัสการบันทึกปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}")
 
 
-config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)
+
     
 pose_classifier = joblib.load(model_sklearn) 
 
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
-stats_manager = StatsGUI()
+# stats_manager = StatsGUI()
 # 1. สร้างตัวเก็บ Log สถิติ (ใช้ชื่อ stats_db หรือ stats_gui)
 stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 
 # 2. สร้างตัวจัดการหน้าต่าง Dashboard โดยชี้ DB ไปที่ไฟล์เดียวกัน
-stats_manager = StatsManager    (db_path=r"setting\inspection_stats.db")
+stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 # state = {}
 
 
-
+# config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
+config_manager.open_settings()  
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
-    if not ret:
+    if not ret:     
         cv2.waitKey(30)
         continue
     h, w = frame.shape[:2]
@@ -377,6 +378,9 @@ while True:
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
     
+    # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
+    stats_manager.update_window()
+
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
@@ -427,7 +431,7 @@ while True:
     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
     elif key == ord('d'):
         print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
-        stats_manager.open_dashboard()     # 👈 เรียกเปิด UI บน Main Thread    
+        stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
 
 manager.close_all_writers()
 cap.release()

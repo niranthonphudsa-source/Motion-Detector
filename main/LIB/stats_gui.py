@@ -1,10 +1,11 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
 import sqlite3
 import pandas as pd
+from datetime import datetime, timedelta
+import tkinter as tk
+from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from datetime import datetime, timedelta
+
 
 class StatsGUI:
     def __init__(self, db_path=r"setting\inspection_stats.db"):
@@ -39,16 +40,15 @@ class StatsGUI:
         conn.commit()
         conn.close()
 
-import tkinter as tk
-from tkinter import ttk
 
 class StatsManager:
-    def __init__(self, db_path="stats.db"):
+    def __init__(self, db_path=r"setting\inspection_stats.db"):
         self.db_path = db_path
-        self.root = None  # บันทึกตัวแปรเก็บหน้าต่างไว้
+        self.root = None
+        self.fig = None  # เก็บตัวแปร Figure เพื่อสั่งปิดเมมโมรี่อย่างถูกต้อง
 
     def open_dashboard(self):
-        # 1. เช็กว่าหน้าต่างเปิดค้างผู้อยู่แล้วหรือไม่
+        # 1. ถ้าเปิดค้างไว้อยู่แล้ว ให้ยกขึ้นมาข้างหน้า ไม่สร้างซ้ำ
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -58,12 +58,14 @@ class StatsManager:
             except Exception:
                 self.root = None
 
-        # 2. สร้างหน้าต่าง GUI
+        # 2. สร้างหน้าต่าง Tkinter หลัก
         self.root = tk.Tk()
         self.root.title("📊 Inspection Statistics Dashboard")
         self.root.geometry("1000x700")
 
         def on_closing():
+            if self.fig:
+                plt.close(self.fig)  # ปิด Figure เพื่อคืน RAM
             if self.root:
                 self.root.destroy()
                 self.root = None
@@ -90,7 +92,6 @@ class StatsManager:
         cards_frame = ttk.Frame(self.root, padding=10)
         cards_frame.pack(fill="x")
 
-        # ปรับให้ทั้ง 4 คอลัมน์ ขยายขนาดเท่าๆ กัน
         for i in range(4):
             cards_frame.columnconfigure(i, weight=1)
 
@@ -119,7 +120,15 @@ class StatsManager:
         # โหลดข้อมูลแสดงผลครั้งแรกทันทีที่เปิดหน้าต่าง
         refresh_data()
 
-        self.root.mainloop()
+    def update_window(self):
+        """อัปเดตการแสดงผลของหน้าต่าง Tkinter โดยไม่บล็อก Main Loop ของ OpenCV"""
+        if self.root is not None:
+            try:
+                if self.root.winfo_exists():
+                    self.root.update_idletasks()
+                    self.root.update()
+            except Exception:
+                self.root = None
 
     def _create_card(self, parent, title, value, color, column):
         frame = tk.Frame(parent, bg=color, padx=15, pady=15)
@@ -148,10 +157,14 @@ class StatsManager:
             start_date = "1970-01-01 00:00:00"
 
         # ดึงข้อมูลจาก DB
-        conn = sqlite3.connect(self.db_path)
-        query = f"SELECT timestamp, camera_id, status FROM inspection_logs WHERE timestamp >= '{start_date}'"
-        df = pd.read_sql_query(query, conn)
-        conn.close()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            query = f"SELECT timestamp, camera_id, status FROM inspection_logs WHERE timestamp >= '{start_date}'"
+            df = pd.read_sql_query(query, conn)
+            conn.close()
+        except Exception as e:
+            print(f"❌ Error Reading DB: {e}")
+            df = pd.DataFrame(columns=['timestamp', 'camera_id', 'status'])
 
         # สรุปตัวเลข
         total = len(df)
@@ -164,16 +177,19 @@ class StatsManager:
         lbl_ng.config(text=str(ng_count))
         lbl_yield.config(text=f"{yield_rate:.1f}%")
 
-        # ล้างกราฟเก่าออก
+        # ล้างกราฟและ Memory เก่าออก
         for widget in chart_frame.winfo_children():
             widget.destroy()
+
+        if self.fig:
+            plt.close(self.fig)
 
         if df.empty:
             ttk.Label(chart_frame, text="ไม่พบข้อมูลในช่วงเวลาที่เลือก", font=("Arial", 14)).pack(pady=50)
             return
 
-        # สร้าง Matplotlib Figure
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 4), dpi=100)
+        # สร้าง Matplotlib Figure ใหม่
+        self.fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 4), dpi=100)
 
         # กราฟวงกลม (Pie Chart)
         labels = ['OK', 'NG']
@@ -192,6 +208,6 @@ class StatsManager:
         plt.tight_layout()
 
         # วาดกราฟลง Tkinter Canvas
-        canvas = FigureCanvasTkAgg(fig, master=chart_frame)
+        canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
