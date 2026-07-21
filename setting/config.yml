@@ -20,7 +20,15 @@ cameras:
       Size_y: 1080
     Type: Video
     enabled: false
-    mark_points: []
+    mark_points:
+    - - 346
+      - 913
+    - - 701
+      - 980
+    - - 695
+      - 1053
+    - - 313
+      - 983
     person_limit: 5
     record_video: false
     save_ng: false
@@ -35,22 +43,22 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 365
-      - 636
-    - - 740
-      - 632
-    - - 776
-      - 735
-    - - 389
-      - 744
-    - - 389
-      - 705
     - - 367
-      - 687
+      - 636
+    - - 726
+      - 632
+    - - 772
+      - 722
+    - - 385
+      - 728
+    - - 387
+      - 702
+    - - 365
+      - 690
     person_limit: 5
     record_video: false
     save_ng: false
-    save_ok: true
+    save_ok: false
     source: video_model\videoTrain3.mp4
   Camera_4:
     Display:
@@ -61,14 +69,18 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 794
-      - 777
+    - - 367
+      - 639
+    - - 714
+      - 639
+    - - 768
+      - 708
     - - 390
-      - 784
-    - - 390
-      - 636
-    - - 730
-      - 630
+      - 718
+    - - 389
+      - 693
+    - - 367
+      - 688
     person_limit: 5
     record_video: false
     save_ng: false

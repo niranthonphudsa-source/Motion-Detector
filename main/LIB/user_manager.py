@@ -13,7 +13,8 @@ class UserStateManager:
         self.max_lost_time = max_lost_time
         self.max_distance = max_distance
         self.buffer_output_time = buffer_output_time # 👈 กำหนดไว้เป็น 5 วินาที
-
+        self.save_ng = False
+        self.save_ok = False
     def get_or_recover_id(self, current_id, current_frame_active_ids, point_pose):
         if len(point_pose) < 17:
             return None
@@ -115,9 +116,13 @@ class UserStateManager:
             avg_x = sum(p[0] for p in valid_pts) / len(valid_pts)
             avg_y = sum(p[1] for p in valid_pts) / len(valid_pts)
             state["last_position"] = (avg_x, avg_y)
-    def handle_lost_people(self, current_frame_active_ids):
 
+            
+    def handle_lost_people(self, current_frame_active_ids, save_ok, save_ng):
+        self.save_ok = save_ok 
+        self.save_ng = save_ng
         current_time = time.time()
+
         for active_id, active_state in list(self.user_states.items()):
             
             # ตรวจสอบคนที่อยู่ในช่วงนับถอยหลังปิดไฟล์
@@ -140,18 +145,22 @@ class UserStateManager:
 
                         print(f"active_id: {active_id} active_state: {active_state["confirm"]}")
                         # ย้ายไฟล์ชั่วคราวไปยังโฟลเดอร์ผลลัพธ์
+                        is_ok = (active_state["confirm"] == "OK")
+                        should_save = save_ok if is_ok else save_ng
+
                         if active_state["video_filename"] and os.path.exists(active_state["video_filename"]):
                             base_filename = os.path.basename(active_state["video_filename"])
                             dest_folder = "video_ok" if active_state["confirm"] == "OK" else "video_ng"
                             os.makedirs(dest_folder, exist_ok=True)
                             dest_path = os.path.join(dest_folder, base_filename)
-
-                            try:
-                                # ย้ายไฟล์ทันทีด้วย os.replace
-                                shutil.copy(active_state["video_filename"], dest_path)
-                                print(f"📁 ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
-                            except Exception:
-                                shutil.move(active_state["video_filename"], dest_path)
+                            
+                            if should_save:
+                                try:
+                                    # ย้ายไฟล์ทันทีด้วย os.replace
+                                    shutil.copy(active_state["video_filename"], dest_path)
+                                    print(f"📁 ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
+                                except Exception:
+                                    shutil.copy(active_state["video_filename"], dest_path)
 
                     # Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
                     active_state["video_filename"] = None
