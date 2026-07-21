@@ -26,9 +26,10 @@ if active_camera_id not in config.get("cameras", {}):
     config["cameras"][active_camera_id] = {"source": 0, "save_ok": True, "save_ng": True, "mark_points": []}
 
 camera = config["cameras"][active_camera_id]
-model_sklearn = config["global"]["model_path"]
 source = camera["source"]
 
+model_path = config["model"]["Model_path_1"]
+model_sklearn = model_path["source"]
 # ตัวแปรสถานะการบันทึกไฟล์ที่ซิงค์มาจาก GUI
 save_ok_flag = camera.get("save_ok", True)
 save_ng_flag = camera.get("save_ng", True)
@@ -69,7 +70,7 @@ os.makedirs("video_center", exist_ok=True)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
 # เรียกใช้งานตัวจัดการสถานะ ID และวิดีโอ
-manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=10.0)
+manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=3)
 
 
 def reload_config_callback(new_camera_id):
@@ -182,18 +183,20 @@ while True:
                 continue
             cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
 
-        # ตรรกะตรวจจับท่าทางเมื่ออยู่ใน ROI
+        # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
         if people_in_rectangle:
+            # ถ้ากลับเข้ามาในจุดเช็ก ให้ยกเลิกการนับถอยหลังปิดไฟล์
             if state["is_terminating"]:
                 state["is_terminating"] = False
                 state["termination_start_time"] = None
                 print(f"🏃‍♂️ ID {s.p_id} กลับเข้ามาในพื้นที่ตรวจ -> ยกเลิกการหน่วงเวลาปิดไฟล์")
 
+            # ถ้าก้าวเข้ามาในจุดเช็กครั้งแรก ให้เริ่มเปิดไฟล์บันทึกวิดีโอทันที
             if state["writer"] is None:
                 current_time_str = int(time.time())
                 state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time_str}.avi"
                 state["writer"] = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
-                print(f"[Record] ID {s.p_id} เข้าจุด -> เปิดวิดีโอ: {state['video_filename']}")
+                print(f"[Record] ID {s.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {state['video_filename']}")
 
             normalized_points = []
             for kp in point_pose:
@@ -234,39 +237,16 @@ while True:
                         state["is_ok_holding"] = True
                         state["ok_start_time"] = time.time()
 
-        # จังหวะที่เดินออกจากจุดเช็ค (แก้ไข: ปิด Writer ก่อนคัดลอกไฟล์ และทำในขอบเขตตัวแปรที่ปลอดภัย)
+        # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
         if not people_in_rectangle and state["was_inside_last_frame"]:
             if state["writer"] is not None and not state["is_terminating"]:
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
-                print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับเวลาถอยหลังเพื่ออัดวิดีโอเพิ่ม {manager.buffer_output_time} วินาที...")
+                print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")
 
-                # ปิด Writer ปล่อย File Stream ก่อนทำการย้าย/คัดลอกไฟล์
-                state["writer"].release()
-                state["writer"] = None
+        # ─── 📍 จุดที่ 3: อัปเดตสถานะเข้า Manager และเขียน Frame ลงไฟล์วิดีโอของบุคคลนี้ ───
+        manager.update_tracking_data(state, people_in_rectangle,  point_pose)
 
-                if state["video_filename"] and os.path.exists(state["video_filename"]):
-                    base_filename = os.path.basename(state["video_filename"])
-                    dest_folder = "video_ok" if state["confirm"] == "OK" else "video_ng"
-                    dest_path = f"{dest_folder}/{base_filename}"
-                    
-                    should_save = (state["confirm"] == "OK" and save_ok_flag) or (state["confirm"] != "OK" and save_ng_flag)
-                    
-                    if should_save:
-                        try:
-                            shutil.copy(state["video_filename"], dest_path)
-                            print(f"💾 บันทึกคัดแยกไฟล์วิดีโอลง '{dest_folder}' สำเร็จ")
-                        except Exception as e:
-                            print(f"❌ คัดลอกไฟล์ผิดพลาด: {e}")
-                    else:
-                        print(f"🗑️ ข้ามการเซฟไฟล์วิดีโอลง '{dest_folder}' ตามคำสั่งใน Config ปัจจุบัน")
-
-                state["video_filename"] = None
-                if state["confirm"] != "OK":
-                    state["valaus_last"] = []
-
-
-        manager.update_tracking_data(state, people_in_rectangle, point_pose)
 
         # การแสดงผล Text บนตัวบุคคล
         text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
@@ -288,12 +268,13 @@ while True:
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
+    # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(current_frame_active_ids)
 
     # --- ส่วนที่ 3: UI กล่อง ROI รวม และโหมดวาด ---
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
-    
+
     # วาดจุดมาร์กและเส้นตาราง ROI
     if num_pts > 0:
         for idx, pt in enumerate(roi.mark_points):
@@ -314,10 +295,10 @@ while True:
     status_text = "MODE: DRAWING (Press '2' to confirm)" if roi.current_mode == 1 else "MODE: NORMAL (Press '1' to draw, 's' to settings)"
     cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     cv2.putText(frame, "1=Draw | 2=Save ROI | C=Clear | S=Settings | Q=Exit", (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-    # บันทึกเฟรมลงวิดีโอของ ID นั้นๆ (ย้ายเข้ามาในลูปบุคคลเพื่อความปลอดภัย)
-    if state["writer"] is not None:
-        state["writer"].write(frame)   
 
+
+    if state["writer"] is not None:
+        state["writer"].write(frame)
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
@@ -349,14 +330,13 @@ while True:
     elif key == ord('c'):  # ล้างพิกัดหน้าจอ
         roi.clear()
         
-    elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ (แก้ไข: ลบคำสั่งซ้ำซ้อนออก)
+    elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
         config_manager.open_settings(
             current_cam_id=active_camera_id, 
             on_close_callback=reload_config_callback
         )
 
-# เคลียร์ทรัพยากรระบบทั้งหมดเมื่อปิดโปรแกรม
 manager.close_all_writers()
 cap.release()
 cv2.destroyAllWindows()

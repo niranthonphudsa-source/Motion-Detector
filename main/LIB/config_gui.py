@@ -24,7 +24,7 @@ class ConfigGUI:
                 return yaml.safe_load(f) or {}
         except Exception as e:
             print(f"Error loading config: {e}")
-            return {"global": {}, "cameras": {}}
+            return {"global": {}, "cameras": {}, "model": {}}
 
     def save_config(self):
         try:
@@ -36,13 +36,25 @@ class ConfigGUI:
             return False
 
     def scan_models(self):
-        files = glob.glob("models/*.pkl") + glob.glob("models/*.joblib") + glob.glob("*.pkl") + glob.glob("*.joblib")
+        """สแกนไฟล์โมเดลในโฟลเดอร์ และดึงรายการโมเดลทั้งหมดที่มีอยู่ใน config"""
+        files = glob.glob("model/*.pkl") + glob.glob("model/*.joblib") + glob.glob("*.pkl") + glob.glob("*.joblib")
         model_names = [os.path.basename(f) for f in files]
-        if not model_names:
-            model_names = ["pose_classifier_1.pkl"]
-        return model_names
 
-    def open_train_studio(self):
+        # ดึงไฟล์ที่มีบันทึกไว้ใน config.yml ด้วย
+        if "model" in self.config and isinstance(self.config["model"], dict):
+            for k, v in self.config["model"].items():
+                if isinstance(v, dict) and "source" in v:
+                    model_names.append(os.path.basename(v["source"]))
+                elif isinstance(v, str):
+                    model_names.append(os.path.basename(v))
+
+        # ลบชื่อซ้ำ และเรียงลำดับ
+        unique_models = list(set([m for m in model_names if m]))
+        if not unique_models:
+            unique_models = ["pose_classifier_1.pkl"]
+        return sorted(unique_models)
+
+    def open_train_studio(self, selected_model_file):
         train_win = tk.Toplevel(self.root)
         train_win.title("Pose Model Training Studio")
         train_win.geometry("450x320")
@@ -54,7 +66,7 @@ class ConfigGUI:
         info_frame.pack(fill="x", padx=15, pady=5)
 
         dataset_path = self.config.get("global", {}).get("dataset_path", "dataset.csv")
-        model_path = self.config.get("global", {}).get("model_path", "pose_classifier_1.pkl")
+        model_path = os.path.join("model", selected_model_file) if not os.path.isabs(selected_model_file) else selected_model_file
 
         ttk.Label(info_frame, text=f"📊 Dataset: {os.path.basename(dataset_path)}", foreground="blue").pack(anchor="w")
         ttk.Label(info_frame, text=f"🤖 Target Save: {os.path.basename(model_path)}", foreground="green").pack(anchor="w")
@@ -89,11 +101,9 @@ class ConfigGUI:
                 y_pred = clf.predict(X_test)
                 acc_score = accuracy_score(y_test, y_pred) * 100
 
+                os.makedirs(os.path.dirname(model_path), exist_ok=True) if os.path.dirname(model_path) else None
                 joblib.dump(clf, model_path)
                 abs_path = os.path.abspath(model_path)
-
-                if hasattr(self, 'cb_model'):
-                    self.cb_model['values'] = self.scan_models()
 
                 train_win.after(0, lambda: success_callback(acc_score, abs_path))
             except Exception as e:
@@ -103,6 +113,11 @@ class ConfigGUI:
             progress.stop()
             btn_train.config(state=tk.NORMAL, text="🚀 เริ่มเทรนโมเดลใหม่")
             status_lbl.config(text="🟢 เทรนสำเร็จ!", fg="green")
+            
+            if hasattr(self, 'cb_model'):
+                self.available_models = self.scan_models()
+                self.cb_model['values'] = self.available_models
+                
             messagebox.showinfo("Train Success", f"🎉 เทรนโมเดลสำเร็จสมบูรณ์!\n\n🎯 Accuracy: {acc:.2f}%\n📂 PATH: {path}")
             train_win.destroy()
 
@@ -115,9 +130,8 @@ class ConfigGUI:
         btn_train = ttk.Button(train_win, text="🚀 เริ่มเทรนโมเดลใหม่ (Start Train)", command=start_train_thread)
         btn_train.pack(pady=10)
 
-    # 🌟 เพิ่มพารามิเตอร์ current_cam_id มารองรับการจำหน้ากล้องล่าสุด
     def open_settings(self, current_cam_id=None, on_close_callback=None):
-        """เปิดหน้าต่าง GUI สำหรับการ Setting เบื้องหลัง"""
+        """เปิดหน้าต่าง GUI สำหรับการ Setting"""
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -142,7 +156,6 @@ class ConfigGUI:
         self.cb_camera = ttk.Combobox(frame_cam, textvariable=self.cam_var, values=camera_list, state="readonly")
         self.cb_camera.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         
-        # 🌟 แก้ไข: ตรวจเช็กและกระโดดไปล็อกค่าที่กล้องตัวปัจจุบันทันทีเมื่อเปิดขึ้นมา
         if camera_list:
             if current_cam_id in camera_list:
                 idx = camera_list.index(current_cam_id)
@@ -193,52 +206,54 @@ class ConfigGUI:
         if camera_list:
             update_info_labels()
 
-        # ─── 🤖 โซนการตั้งค่าและเลือกโมเดล AI ───
+        # ─── 🤖 โซนการเลือกไฟล์โมเดล AI (Dropdown เดียวเหมือนเลือกกล้อง) ───
         frame_model = ttk.LabelFrame(self.root, text=" การตั้งค่าโมเดล AI (Model Settings) ", padding=10)
         frame_model.pack(fill="x", padx=15, pady=6)
 
-        ttk.Label(frame_model, text="โมเดลที่ต้องการใช้งาน:").grid(row=0, column=0, sticky="w", pady=5)
+        ttk.Label(frame_model, text="ไฟล์โมเดลที่ใช้งาน:").grid(row=0, column=0, sticky="w", pady=5)
 
         self.available_models = self.scan_models()
-        current_model_path = self.config.get("global", {}).get("model_path", "pose_classifier_1.pkl")
-        current_model_name = os.path.basename(current_model_path)
         
-        self.model_var = tk.StringVar(value=current_model_name)
+        # ดึงไฟล์โมเดลตัวแรกสุดที่พบบันทึกอยู่ใน config เป็นค่าเริ่มต้น
+        default_model_name = self.available_models[0] if self.available_models else ""
+        if "model" in self.config and isinstance(self.config["model"], dict):
+            for k, v in self.config["model"].items():
+                if isinstance(v, dict) and "source" in v:
+                    default_model_name = os.path.basename(v["source"])
+                    break
+
+        self.model_var = tk.StringVar(value=default_model_name)
         self.cb_model = ttk.Combobox(frame_model, textvariable=self.model_var, values=self.available_models, state="readonly", width=25)
         self.cb_model.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
+        # ตัวแปรเก็บ Full path ชั่วคราวกรณีเปิดไฟล์ผ่าน Browse
+        self.custom_model_full_path = None
+
         def browse_model_file():
+            """เปิดหน้าต่างเลือกไฟล์โมเดลภายนอกเข้ามาเพิ่มในตัวเลือก"""
             file_path = filedialog.askopenfilename(
-                title="เลือกไฟล์โมเดล AI",
+                title="เลือกไฟล์โมเดล AI เพิ่มเติม",
                 filetypes=[("Model Files", "*.pkl *.joblib"), ("All Files", "*.*")]
             )
             if file_path:
-                # แปลงให้เป็นระบบ Path มาตรฐานเพื่อป้องกันปัญหาเรื่องเครื่องหมาย / กับ \
                 file_path = os.path.normpath(file_path)
                 filename = os.path.basename(file_path)
                 
-                # 🌟 เช็กว่าไฟล์นี้ถูกเลือกมาจากโฟลเดอร์ models ในโปรแกรมของเราหรือไม่
-                # ค้นหาคำว่า "models" ในเส้นทางไฟล์ย่อย
                 current_dir = os.getcwd()
-                models_dir = os.path.join(current_dir, "models")
+                models_dir = os.path.join(current_dir, "model")
                 
                 if file_path.startswith(models_dir):
-                    # ถ้าดึงมาจากโฟลเดอร์ models ให้ใช้เป็น "models/filename.pkl"
-                    final_path_or_name = os.path.join("models", filename)
+                    final_path = os.path.join("model", filename)
                 else:
-                    # ถ้าดึงมาจากที่อื่นนอกโปรแกรม ให้ใช้ Path เต็มของไฟล์นั้นเลย เพื่อความปลอดภัย
-                    final_path_or_name = file_path
+                    final_path = file_path
 
-                # อัปเดตตัวเลือกใน Dropdown (แสดงแค่ชื่อไฟล์ให้ผู้ใช้เห็นเพื่อความสวยงามสะอาดตา)
+                # เพิ่มชื่อไฟล์เข้า Dropdown ถ้ายังไม่มี
                 if filename not in self.available_models:
                     self.available_models.append(filename)
                     self.cb_model['values'] = self.available_models
                 
                 self.model_var.set(filename)
-                
-                # 🌟 เก็บค่า Path จริง (ที่มีโฟลเดอร์นำหน้า) ซ่อนไว้ในตัวแปรชั่วคราวของคลาส 
-                # เพื่อเอาไปใช้ตอนกดปุ่มบันทึก (save_and_close)
-                self.selected_model_full_path = final_path_or_name
+                self.custom_model_full_path = final_path
 
         btn_browse = ttk.Button(frame_model, text="📁 ค้นหา...", command=browse_model_file, width=8)
         btn_browse.grid(row=0, column=2, padx=5, pady=5)
@@ -246,24 +261,19 @@ class ConfigGUI:
         btn_go_train = tk.Button(
             frame_model, 
             text="🏋️‍♂️ เปิดสตูดิโอเทรนโมเดล (Train AI)", 
-            command=self.open_train_studio,
+            command=lambda: self.open_train_studio(selected_model_file=self.model_var.get()),
             bg="#f39c12", 
             fg="white",
             font=("Helvetica", 9, "bold")
         )
         btn_go_train.grid(row=1, column=0, columnspan=3, sticky="ew", pady=5)
 
-        # 🌟 แก้ไข: ตรรกะปุ่มกากบาท X ให้ส่งคืนค่ากล้องตัวเดิมตัวล่าสุด (ไม่ดีดกลับไปกล้องแรก)
+        # ─── ตรรกะปิดหน้าต่าง ───
         def on_window_close():
-            # 1. โหลดคอนฟิกเดิมจากไฟล์กลับมาทับ เพื่อล้างค่าเก่าที่อาจจะเปลี่ยนเล่นใน GUI แต่ไม่ได้กดเซฟ
             self.config = self.load_config() 
-            
-            # 2. ปิดหน้าต่าง GUI
             if self.root:
                 self.root.destroy()
             self.root = None  
-            
-            # 3. บังคับส่งชื่อกล้องเริ่มต้น (หน้าปัจจุบัน) กลับไปที่โปรแกรมหลักเสมอ
             if on_close_callback and current_cam_id:
                 on_close_callback(current_cam_id)
 
@@ -271,26 +281,37 @@ class ConfigGUI:
 
         # ─── ปุ่มบันทึกข้อมูลหลัก ───
         def save_and_close():
-            # ─── ปุ่มบันทึกข้อมูลหลัก (save_and_close ใน LIB/config_gui.py) ───
             cam_id = self.cam_var.get()
-            selected_model = self.model_var.get()
+            selected_file = self.model_var.get()
 
-            # 🌟 แก้ไขตรงนี้: ตรวจสอบว่าผู้ใช้กด Browse มาหรือไม่ 
-            # ถ้ามีให้ใช้พิกัดเต็มที่เซ็ตไว้ แต่ถ้าไม่ได้กด (เลือกจาก dropdown ปกติ) ให้คำนวณหาโฟลเดอร์ตามระบบเดิม
-            if hasattr(self, 'selected_model_full_path') and self.selected_model_full_path and os.path.basename(self.selected_model_full_path) == selected_model:
-                final_model_path = self.selected_model_full_path
+            # คำนวณหา Path ที่จะบันทึกลงไฟล์ config.yml
+            if self.custom_model_full_path and os.path.basename(self.custom_model_full_path) == selected_file:
+                final_model_path = self.custom_model_full_path
             else:
-                if os.path.exists(os.path.join("models", selected_model)):
-                    final_model_path = os.path.join("model", selected_model)
+                if os.path.exists(os.path.join("model", selected_file)):
+                    final_model_path = os.path.join("model", selected_file)
                 else:
-                    final_model_path = selected_model
+                    final_model_path = selected_file
 
-            if "global" not in self.config: 
-                self.config["global"] = {}
-            
-            # บันทึกค่าที่มีโฟลเดอร์นำหน้า (หรือ Path เต็ม) ลงไฟล์ config.yml เรียบร้อย!
-            self.config["global"]["model_path"] = final_model_path
+            # 🌟 อัปเดตไฟล์โมเดลลงใน config
+            if "model" not in self.config or not isinstance(self.config["model"], dict):
+                self.config["model"] = {}
 
+            # ค้นหาว่าไฟล์นี้ตรงกับ key ไหนใน config หรือไม่ ถ้าตรงให้อัปเดต ถ้าไม่ตรงให้สร้าง key ใหม่เพิ่มเข้าไป
+            found_key = None
+            for key, val in self.config["model"].items():
+                if isinstance(val, dict) and os.path.basename(val.get("source", "")) == selected_file:
+                    found_key = key
+                    break
+
+            if found_key:
+                self.config["model"][found_key]["source"] = final_model_path
+            else:
+                # ถ้าเป็นโมเดลใหม่ที่เพิ่ง Browse เข้ามา หรือเพิ่งเพิ่ม ให้สร้าง key ใหม่ลง config
+                new_key = f"model_path_{len(self.config['model']) + 1}"
+                self.config["model"][new_key] = {"source": final_model_path}
+
+            # บันทึกค่ากล้อง
             if cam_id:
                 if "cameras" not in self.config: self.config["cameras"] = {}
                 if cam_id not in self.config["cameras"]: self.config["cameras"][cam_id] = {}
@@ -298,14 +319,13 @@ class ConfigGUI:
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
                 
-                if self.save_config():
-                    messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_model}\nบันทึกค่ากล้อง {cam_id} เรียบร้อยแล้ว")
-                    if self.root:
-                        self.root.destroy()
-                    self.root = None
-                    if on_close_callback:
-                        # ถ้ากดเซฟสำเร็จ ค่อยส่งกล้องตัวที่เลือกใหม่ใน GUI กลับไป
-                        on_close_callback(cam_id)
+            if self.save_config():
+                messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")
+                if self.root:
+                    self.root.destroy()
+                self.root = None
+                if on_close_callback:
+                    on_close_callback(cam_id)
 
         btn_save = ttk.Button(self.root, text="💾 บันทึกและปิดหน้าต่าง", command=save_and_close)
         btn_save.pack(pady=15)

@@ -35,19 +35,21 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 369
-      - 648
-    - - 730
-      - 639
-    - - 774
-      - 718
-    - - 386
-      - 726
-    - - 366
-      - 724
+    - - 365
+      - 636
+    - - 740
+      - 632
+    - - 776
+      - 735
+    - - 389
+      - 744
+    - - 389
+      - 705
+    - - 367
+      - 687
     person_limit: 5
     record_video: false
-    save_ng: true
+    save_ng: false
     save_ok: true
     source: video_model\videoTrain3.mp4
   Camera_4:
@@ -126,11 +128,16 @@ global:
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
   default_person_limit: 3
   detection_confidence: 0.9
-  floder_model: model
-  model_path: pose_classifier_1 copy.pkl
   model_type: full
   presence_confidence: 0.9
   record_height: 300
   record_width: 100
   tracking_confidence: 0.9
   video_path: video_model
+model:
+  Model_path_1:
+    source: model\pose_classifier_1 copy.pkl
+  Model_path_2:
+    source: model\pose_classifier_1.pkl
+  Model_path_3:
+    source: model\pose_classifier.pkl
