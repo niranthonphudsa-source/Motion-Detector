@@ -172,8 +172,8 @@ class UserStateManager:
                         else:
                             # ถ้าผู้ใช้สั่งไม่เซฟ (Flag = False) ให้ลบไฟล์ชั่วคราวทิ้งทันที ไม่ให้เปลืองพื้นที่ disk
                             try:
-                                os.remove(temp_file)
-                                print(f"🗑️ [CLEANUP] ลบไฟล์ชั่วคราวเนื่องจากตั้งค่าไม่บันทึก {dest_folder}: {temp_file}")
+                                # os.remove(temp_file)
+                                print(f"🗑️ [CLEANUP] NO COPY NG AND OK  {dest_folder}: {temp_file}")
                             except Exception as e:
                                 print(f"❌ [ERROR] ลบไฟล์ชั่วคราวไม่สำเร็จ: {e}")
 

@@ -30,8 +30,8 @@ save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 
-model_path = config["model"]["Model_path_1"]
-model_sklearn = model_path["source"]
+# model_path = config["model"]["Model_path_1"]
+# model_sklearn = model_path["source"]
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
@@ -76,19 +76,49 @@ manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_tim
 
 # 🌟 ตัวแปรกระเป๋าเก็บสถานะการเดินสวนทางรายบุคคล -> { p_id: {'first_touch': 'START'/'REVERSE', 'is_reverse': True/False} }
 direction_tracker = {}
-
+pose_classifier = joblib.load(model_sklearn) 
 
 def get_distance(p1, p2):
     """คำนวณระยะห่างทางเรขาคณิต (Euclidean Distance) ระหว่างจุด 2 จุด"""
     if p1 is None or p2 is None: return 999999
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
-def reload_config_callback(new_camera_id):
-    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi
+def reload_config_callback(new_camera_id, updated_config=None):
+    # 🌟 1. อย่าลืมเพิ่ม pose_classifier ใน global
+    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier
     
-    config_manager.config = config_manager.load_config()
-    config = config_manager.config
+    # 🌟 2. ถ้านำส่ง updated_config มาจาก GUI ให้ใช้ค่าใหม่ทันที ถ้าไม่มีค่อยไปดึงจากไฟล์
+    if updated_config:
+        config = updated_config
+        config_manager.config = updated_config
+    else:
+        config_manager.config = config_manager.load_config()
+        config = config_manager.config
     
+    # ---------------------------------------------------------
+    # 🤖 3. ดึง Path โมเดลล่าสุดจากกิ่ง config["model"] และสั่ง Reload
+    # ---------------------------------------------------------
+    try:
+        model_info = config.get("model", {}).get("Model_path_1", {})
+        if isinstance(model_info, dict):
+            new_model_path = model_info.get("source", "")
+            
+        else:
+            new_model_path = str(model_info)
+
+        if new_model_path and os.path.exists(new_model_path):
+            model_sklearn = new_model_path
+            # 🔄 โหลดออบเจกต์โมเดล AI ใหม่เข้า Memory ทันที
+            pose_classifier = joblib.load(model_sklearn)
+            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
+        else:
+            print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
+    except Exception as e:
+        print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
+
+    # ---------------------------------------------------------
+    # 🔄 4. ตรรกะการสลับกล้อง (Switch Camera)
+    # ---------------------------------------------------------
     if active_camera_id != new_camera_id:
         print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
         
@@ -102,7 +132,7 @@ def reload_config_callback(new_camera_id):
         if old_cap and old_cap.isOpened():
             old_cap.release()
 
-        # อัปเดตพิกัด ROI & จุดมาร์กทั้งสอง
+        # อัปเดตพิกัด ROI & จุดมาร์ก
         roi.clear()
         roi.mark_points = camera.get("mark_points", [])
         roi.start_point = camera.get("start_point", None)
@@ -110,15 +140,15 @@ def reload_config_callback(new_camera_id):
         if len(roi.mark_points) > 0:
             roi.is_confirmed = True
 
-    cam_data = config["cameras"][active_camera_id]
+    # ---------------------------------------------------------
+    # ⚙️ 5. อัปเดต Flag ต่างๆ
+    # ---------------------------------------------------------
+    cam_data = config["cameras"].get(active_camera_id, {})
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
-    print(f"⚙️ สเตตัสการบันทึกปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}")
-
-
-
     
-pose_classifier = joblib.load(model_sklearn) 
+    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
+
 
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
 # stats_manager = StatsGUI()
@@ -339,8 +369,6 @@ while True:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
 
-
-
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
         current_frame_active_ids, 
@@ -364,8 +392,8 @@ while True:
     cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear | S=Settings | Q=Exit", 
                 (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
 
-    # if state["writer"] is not None:
-    #     state["writer"].write(frame)
+    if state["writer"] is not None:
+        state["writer"].write(frame)
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 

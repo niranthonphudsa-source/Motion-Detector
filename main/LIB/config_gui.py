@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import time
+from LIB.export_data.export_data_to_exel import InspectionExporter
 
 # ─── 📁 คลาสหน้าต่างสำหรับจัดการวิดีโอ (Video Manager Window) ───
 class VideoFolderManagerWindow:
@@ -247,6 +248,26 @@ class ConfigGUI:
         self.config = self.load_config()
         self.root = None
 
+    def setup_ui(self):
+        # ... โค้ดสร้าง UI อื่นๆ ...
+        # ─── เพิ่มปุ่ม Export Excel ───
+        btn_export = ttk.Button(
+            self.root, 
+            text="📊 Export รายงาน Excel", 
+            command=self.handle_export_excel
+        )
+        btn_export.pack(pady=10)
+
+    def handle_export_excel(self):
+        """ฟังก์ชันจัดการเมื่อผู้ใช้กดปุ่ม Export"""
+        exporter = InspectionExporter(db_path="inspection_stats.db")
+        success, message = exporter.export_to_excel(auto_open=True)
+        
+        if success:
+            messagebox.showinfo("สำเร็จ", f"Export ข้อมูลเรียบร้อยแล้ว!\n\nไฟล์: {message}")
+        else:
+            messagebox.showwarning("ข้อผิดพลาด", message)
+
     def load_config(self):
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
@@ -263,6 +284,7 @@ class ConfigGUI:
         except Exception as e:
             messagebox.showerror("Error", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
             return False
+
 
     def scan_models(self):
         """สแกนไฟล์โมเดลในโฟลเดอร์ และดึงรายการโมเดลทั้งหมดที่มีอยู่ใน config"""
@@ -430,7 +452,7 @@ class ConfigGUI:
             command=lambda: open_folder_manager("video_center", "วิดีโอระหว่างการตรวจ")
         )
         btn_center.pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
-
+        # สเตตัสการบันทึกปัจจุบัน
         btn_ok = ttk.Button(
             frame_video_manager, 
             text="✅ video_ok", 
@@ -523,6 +545,14 @@ class ConfigGUI:
         )
         btn_go_train.grid(row=1, column=0, columnspan=3, sticky="ew", pady=5)
 
+        btn_export = ttk.Button(
+            self.root, 
+            text="📊 Export รายงาน Excel", 
+            command=self.handle_export_excel
+        )
+        btn_export.pack(pady=10)
+
+   
         # ─── ตรรกะปิดหน้าต่าง ───
         def on_window_close():
             self.config = self.load_config() 
@@ -539,6 +569,7 @@ class ConfigGUI:
             cam_id = self.cam_var.get()
             selected_file = self.model_var.get()
 
+            # 1. จัดการ Path ของโมเดลที่เลือก
             if self.custom_model_full_path and os.path.basename(self.custom_model_full_path) == selected_file:
                 final_model_path = self.custom_model_full_path
             else:
@@ -550,18 +581,24 @@ class ConfigGUI:
             if "model" not in self.config or not isinstance(self.config["model"], dict):
                 self.config["model"] = {}
 
+            # 🎯 2. อัปเดต Model_path_1 ให้เป็นโมเดลที่เลือกล่าสุดเสมอ
+            # เพื่อให้โปรแกรมหลักดึง Model_path_1 ไปใช้งานได้ทันที
+            if "Model_path_1" not in self.config["model"]:
+                self.config["model"]["Model_path_1"] = {}
+            
+            self.config["model"]["Model_path_1"]["source"] = final_model_path
+
+            # (Optional) หากต้องการอัปเดต key ย่อยอื่นๆ หรือคงอันเดิมไว้
             found_key = None
             for key, val in self.config["model"].items():
                 if isinstance(val, dict) and os.path.basename(val.get("source", "")) == selected_file:
                     found_key = key
                     break
 
-            if found_key:
+            if found_key and found_key != "Model_path_1":
                 self.config["model"][found_key]["source"] = final_model_path
-            else:
-                new_key = f"model_path_{len(self.config['model']) + 1}"
-                self.config["model"][new_key] = {"source": final_model_path}
 
+            # 3. บันทึกการตั้งค่ากล้อง (Save OK / Save NG)
             if cam_id:
                 if "cameras" not in self.config: self.config["cameras"] = {}
                 if cam_id not in self.config["cameras"]: self.config["cameras"][cam_id] = {}
@@ -569,13 +606,16 @@ class ConfigGUI:
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
                 
+            # 4. บันทึกลงไฟล์ YAML และส่ง Callback พร้อมส่ง config ชุดใหม่กลับไป
             if self.save_config():
                 messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")
                 if self.root:
                     self.root.destroy()
                 self.root = None
+                
+                # 🌟 จุดสำคัญ: ส่ง self.config ที่อัปเดตแล้วกลับไปให้โปรแกรมหลักทันที
                 if on_close_callback:
-                    on_close_callback(cam_id)
+                    on_close_callback(cam_id, self.config)
 
         btn_save = ttk.Button(self.root, text="💾 บันทึกและปิดหน้าต่าง", command=save_and_close)
         btn_save.pack(pady=15)
