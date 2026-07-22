@@ -366,7 +366,8 @@ while True:
             else:
                 cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
-
+        if state["writer"] is not None:
+            state["writer"].write(frame)
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
         current_frame_active_ids, 
@@ -390,8 +391,7 @@ while True:
     cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear | S=Settings | Q=Exit", 
                 (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
 
-    if state["writer"] is not None:
-        state["writer"].write(frame)
+
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
