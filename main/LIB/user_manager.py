@@ -165,14 +165,14 @@ class UserStateManager:
                         # คัดลอกไฟล์ไปยังโฟลเดอร์ปลายทาง โดยไม่ลบไฟล์ต้นฉบับเดิม
                         if should_save:
                             try:
-                                shutil.copy(temp_file, dest_path)
+                                shutil.move(temp_file, dest_path)
                                 print(f"📁 [SUCCESS] คัดลอกไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
                             except Exception as e:
                                 print(f"❌ [ERROR] ไม่สามารถคัดลอกไฟล์ได้: {e}")
                         else:
                             # ถ้าผู้ใช้สั่งไม่เซฟ (Flag = False) ให้ลบไฟล์ชั่วคราวทิ้งทันที ไม่ให้เปลืองพื้นที่ disk
                             try:
-                                # os.remove(temp_file)
+                                os.remove(temp_file)
                                 print(f"🗑️ [CLEANUP] NO COPY NG AND OK  {dest_folder}: {temp_file}")
                             except Exception as e:
                                 print(f"❌ [ERROR] ลบไฟล์ชั่วคราวไม่สำเร็จ: {e}")

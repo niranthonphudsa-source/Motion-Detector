@@ -1,4 +1,3 @@
-# LIB/stats_gui.py
 import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
@@ -46,11 +45,10 @@ class StatsManager:
     def __init__(self, db_path=r"setting\inspection_stats.db"):
         self.db_path = db_path
         self.root = None
-        self.fig = None  # เก็บตัวแปร Figure เพื่อสั่งปิดเมมโมรี่อย่างถูกต้อง
+        self.fig = None 
 
     def handle_export_excel(self):
         """ฟังก์ชันจัดการเมื่อผู้ใช้กดปุ่ม Export"""
-        # 🌟 ใช้ self.db_path เพื่อให้ตรงกับ Path หลักของ DB
         exporter = InspectionExporter(db_path=self.db_path)
         success, message = exporter.export_to_excel(auto_open=True)
         
@@ -60,7 +58,6 @@ class StatsManager:
             messagebox.showwarning("ข้อผิดพลาด", message)
 
     def open_dashboard(self):
-        # 1. ถ้าเปิดค้างไว้อยู่แล้ว ให้ยกขึ้นมาข้างหน้า ไม่สร้างซ้ำ
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -70,95 +67,125 @@ class StatsManager:
             except Exception:
                 self.root = None
 
-        # 2. สร้างหน้าต่าง Tkinter หลัก
-        self.root = tk.Tk()
-        self.root.title(" Inspection Statistics Dashboard")
-        self.root.geometry("1920x1080")
+        # ─── โทนสีหลักของ Dashboard (White & Blue Theme) ───
+        BG_COLOR = "#F8FAFC"        # สีพื้นหลังหลัก (ขาวนวล/ฟ้าอ่อนสว่าง)
+        PANEL_COLOR = "#FFFFFF"     # สีพื้นหลังการ์ด/กล่อง (ขาวบริสุทธิ์)
+        BORDER_COLOR = "#E2E8F0"    # สีขอบกล่อง (เทาอ่อน)
+        TEXT_MAIN = "#0F172A"       # สีตัวหนังสือหลัก (น้ำเงินเข้มเกือบดำ)
+        TEXT_MUTED = "#64748B"      # สีตัวหนังสือรอง (เทาอมน้ำเงิน)
+        PRIMARY_BLUE = "#2563EB"    # สีน้ำเงินสว่างสำหรับปุ่ม/จุดเน้น
 
-        # (Optional) เปลี่ยน Icon เล็กบน Title Bar
+        self.root = tk.Tk()
+        self.root.title("Inspection Analytics & Statistics Dashboard")
+        self.root.geometry("1400x850")
+        self.root.configure(bg=BG_COLOR)
+
+        # 🎨 ตั้งค่า Style ให้กับ TTK Widget
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        style.configure(".", background=BG_COLOR, foreground=TEXT_MAIN, font=("Segoe UI", 10))
+        style.configure("TFrame", background=BG_COLOR)
+        style.configure("Panel.TFrame", background=PANEL_COLOR)
+        style.configure("TLabel", background=BG_COLOR, foreground=TEXT_MAIN)
+        style.configure("Header.TLabel", font=("Segoe UI", 18, "bold"), foreground="#1E3A8A", background=BG_COLOR)
+        
+        # Style ปุ่ม Export (น้ำเงินสด)
+        style.configure(
+            "Accent.TButton", 
+            font=("Segoe UI", 10, "bold"), 
+            background=PRIMARY_BLUE, 
+            foreground="#FFFFFF", 
+            borderwidth=0, 
+            padding=(12, 8)
+        )
+        style.map("Accent.TButton", background=[("active", "#1D4ED8")])
+
+        # Style Combobox Dropdown
+        style.configure("TCombobox", fieldbackground=PANEL_COLOR, background=PANEL_COLOR, foreground=TEXT_MAIN, padding=5)
+
         try:
-            self.root.iconbitmap(r"main\Logo\atc_logo.png", height=16, width=16)
+            self.root.iconphoto(r"main\Logo\atc_logo.png")
         except Exception:
             pass
-        
-        # 🌟 2. สร้าง Header Frame ด้านบนสุดสำหรับวาง Logo + Title ชัดๆ
-        header_frame = ttk.Frame(self.root, padding=(15, 10))
+
+        # ─── 1. HEADER SECTION ───
+        header_frame = ttk.Frame(self.root, padding=(25, 20, 25, 10))
         header_frame.pack(fill="x")
 
-        # 🌟 เปลี่ยนไอคอนด้วยไฟล์ .png
+        # Logo
         try:
-            # ใช้ PhotoImage จาก Tkinter (หรือใช้ PIL.ImageTk หากเป็นไฟล์ .jpg)
-            self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png", height=50, width=50)
-            
-            # วางรูป Logo ทางซ้าย
+            self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png").subsample(2, 2)
             lbl_logo = ttk.Label(header_frame, image=self.logo_icon)
-            lbl_logo.pack(side="left", padx=(0, 10))
-
+            lbl_logo.pack(side="left", padx=(0, 15))
         except Exception as e:
             print(f"⚠️ ไม่สามารถโหลด Icon ได้: {e}")
 
-        # 🏷️ วางข้อความ Title ตัวใหญ่ข้างๆ Logo
-        lbl_title = ttk.Label(
-            header_frame, 
-            text="Inspection Statistics Dashboard", 
-            font=("Helvetica", 16, "bold")
-        )
-        lbl_title.pack(side="left")
+        # Title + Subtitle
+        title_box = ttk.Frame(header_frame)
+        title_box.pack(side="left")
+        
+        lbl_title = ttk.Label(title_box, text="Inspection Analytics", style="Header.TLabel")
+        lbl_title.pack(anchor="w")
+        
+        lbl_sub = tk.Label(title_box, text="Real-time Quality & Performance Monitoring System", fg=TEXT_MUTED, bg=BG_COLOR, font=("Segoe UI", 9))
+        lbl_sub.pack(anchor="w")
 
-        # ─── ส่วนควบคุมด้านบน (Filter Dropdown & Export Button) ───
-        filter_frame = ttk.Frame(self.root, padding=10)
-        filter_frame.pack(fill="x")
+        # ─── 2. FILTER & TOOLBAR SECTION ───
+        toolbar_frame = tk.Frame(self.root, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        toolbar_frame.pack(fill="x", padx=25, pady=(10, 15), ipady=5)
+
+        # Toolbar Content Container
+        tb_inner = tk.Frame(toolbar_frame, bg=PANEL_COLOR)
+        tb_inner.pack(fill="x", padx=15, pady=5)
+
+        tk.Label(tb_inner, text="PERIOD RANGE:", fg="#1E3A8A", bg=PANEL_COLOR, font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 10))
+
+        range_var = tk.StringVar(value="Today")
+        range_dropdown = ttk.Combobox(
+            tb_inner, 
+            textvariable=range_var, 
+            values=["Today", "Last 7 Days", "This Month", "This Year", "All Time"],
+            state="readonly",
+            width=16
+        )
+        range_dropdown.pack(side="left")
+
+        # Export Button
+        btn_export = ttk.Button(
+            tb_inner, 
+            text="📥 Export Excel Report", 
+            style="Accent.TButton",
+            command=self.handle_export_excel
+        )
+        btn_export.pack(side="right")
 
         def on_closing():
             if self.fig:
-                plt.close(self.fig)  # ปิด Figure เพื่อคืน RAM
+                plt.close(self.fig)
             if self.root:
                 self.root.destroy()
                 self.root = None
 
         self.root.protocol("WM_DELETE_WINDOW", on_closing)
 
-        # --- ส่วนควบคุมด้านบน (Filter Dropdown & Export Button) ---
-        filter_frame = ttk.Frame(self.root, padding=10)
-        filter_frame.pack(fill="x")
-
-        ttk.Label(filter_frame, text="ช่วงเวลา: ", font=("Arial", 11, "bold")).pack(side="left", padx=5)
-
-        range_var = tk.StringVar(value="Today")
-        range_dropdown = ttk.Combobox(
-            filter_frame, 
-            textvariable=range_var, 
-            values=["Today", "Last 7 Days", "This Month", "This Year", "All Time"],
-            state="readonly",
-            width=15
-        )
-        range_dropdown.pack(side="left", padx=5)
-
-        # 🌟 เพิ่มปุ่ม Export Excel ไว้ที่ Header ควบคู่กับ Filter
-        btn_export = ttk.Button(
-            filter_frame, 
-            text="📊 Export รายงาน Excel", 
-            command=self.handle_export_excel
-        )
-        btn_export.pack(side="right", padx=10)
-
-        # --- ส่วนแสดง Summary Cards (4 ช่อง) ---
-        cards_frame = ttk.Frame(self.root, padding=10)
+        # ─── 3. KPI SUMMARY CARDS (4 CARDS) ───
+        cards_frame = ttk.Frame(self.root, padding=(25, 0, 25, 15))
         cards_frame.pack(fill="x")
 
         for i in range(4):
             cards_frame.columnconfigure(i, weight=1)
 
-        card_total, lbl_total = self._create_card(cards_frame, "TOTAL CHECK", "0", "#2196F3", 0)
-        card_ok, lbl_ok = self._create_card(cards_frame, "OK COUNT", "0", "#4CAF50", 1)
-        card_ng, lbl_ng = self._create_card(cards_frame, "NG COUNT", "0", "#F44336", 2)
-        card_yield, lbl_yield = self._create_card(cards_frame, "YIELD RATE", "0.0%", "#FF9800", 3)
+        # การ์ดขาว ขอบเน้นสีน้ำเงินและสถานะ
+        _, lbl_total = self._create_kpi_card(cards_frame, "TOTAL INSPECTION", "0", "Total items scanned", "#2563EB", 0)
+        _, lbl_ok = self._create_kpi_card(cards_frame, "PASSED (OK)", "0", "Passed items", "#059669", 1)
+        _, lbl_ng = self._create_kpi_card(cards_frame, "REJECTED (NG)", "0", "Defects detected", "#DC2626", 2)
+        _, lbl_yield = self._create_kpi_card(cards_frame, "YIELD RATE", "0.0%", "Pass percentage", "#D97706", 3)
 
-        # --- ส่วนแสดงกราฟ (Chart Frame) ---
-        chart_frame = ttk.Frame(self.root, padding=10)
-        chart_frame.pack(fill="both", expand=True)
+        # ─── 4. CHARTS SECTION ───
+        chart_frame = tk.Frame(self.root, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        chart_frame.pack(fill="both", expand=True, padx=25, pady=(0, 25))
 
-        # ฟังก์ชันอัปเดตข้อมูลเมื่อเปลี่ยนตัวเลือก Dropdown
         def refresh_data(event=None):
             self.update_dashboard(
                 range_var.get(), 
@@ -170,12 +197,9 @@ class StatsManager:
             )
 
         range_dropdown.bind("<<ComboboxSelected>>", refresh_data)
-
-        # โหลดข้อมูลแสดงผลครั้งแรกทันทีที่เปิดหน้าต่าง
         refresh_data()
 
     def update_window(self):
-        """อัปเดตการแสดงผลของหน้าต่าง Tkinter โดยไม่บล็อก Main Loop ของ OpenCV"""
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -184,20 +208,33 @@ class StatsManager:
             except Exception:
                 self.root = None
 
-    def _create_card(self, parent, title, value, color, column):
-        frame = tk.Frame(parent, bg=color, padx=15, pady=15)
-        frame.grid(row=0, column=column, padx=5, pady=5, sticky="nsew")
+    def _create_kpi_card(self, parent, title, value, subtitle, accent_color, column):
+        """สร้างการ์ด KPI สไตล์ White & Blue Modern Light"""
+        CARD_BG = "#FFFFFF"
+        BORDER_COLOR = "#E2E8F0"
         
-        lbl_title = tk.Label(frame, text=title, fg="white", bg=color, font=("Helvetica", 10, "bold"))
+        card = tk.Frame(parent, bg=CARD_BG, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        card.grid(row=0, column=column, padx=8, pady=0, sticky="nsew")
+        
+        # แถบสีด้านบนการ์ด
+        top_bar = tk.Frame(card, bg=accent_color, height=4)
+        top_bar.pack(fill="x", side="top")
+
+        content = tk.Frame(card, bg=CARD_BG, padx=18, pady=12)
+        content.pack(fill="both", expand=True)
+
+        lbl_title = tk.Label(content, text=title, fg="#64748B", bg=CARD_BG, font=("Segoe UI", 9, "bold"))
         lbl_title.pack(anchor="w")
-        
-        lbl_val = tk.Label(frame, text=value, fg="white", bg=color, font=("Helvetica", 20, "bold"))
-        lbl_val.pack(anchor="e")
-        
-        return frame, lbl_val
+
+        lbl_val = tk.Label(content, text=value, fg="#1E3A8A", bg=CARD_BG, font=("Segoe UI", 22, "bold"))
+        lbl_val.pack(anchor="w", pady=(4, 0))
+
+        lbl_sub = tk.Label(content, text=subtitle, fg="#94A3B8", bg=CARD_BG, font=("Segoe UI", 8))
+        lbl_sub.pack(anchor="w")
+
+        return card, lbl_val
 
     def update_dashboard(self, selected_range, lbl_ok, lbl_ng, lbl_total, lbl_yield, chart_frame):
-        # คำนวณช่วงเวลา Query
         now = datetime.now()
         if selected_range == "Today":
             start_date = now.strftime("%Y-%m-%d 00:00:00")
@@ -210,7 +247,6 @@ class StatsManager:
         else:
             start_date = "1970-01-01 00:00:00"
 
-        # ดึงข้อมูลจาก DB
         try:
             conn = sqlite3.connect(self.db_path)
             query = f"SELECT timestamp, camera_id, status FROM inspection_logs WHERE timestamp >= '{start_date}'"
@@ -220,18 +256,17 @@ class StatsManager:
             print(f"❌ Error Reading DB: {e}")
             df = pd.DataFrame(columns=['timestamp', 'camera_id', 'status'])
 
-        # สรุปตัวเลข
         total = len(df)
         ok_count = len(df[df['status'] == 'OK'])
         ng_count = len(df[df['status'] == 'NG'])
         yield_rate = (ok_count / total * 100) if total > 0 else 0.0
 
-        lbl_total.config(text=str(total))
-        lbl_ok.config(text=str(ok_count))
-        lbl_ng.config(text=str(ng_count))
+        lbl_total.config(text=f"{total:,}")
+        lbl_ok.config(text=f"{ok_count:,}")
+        lbl_ng.config(text=f"{ng_count:,}")
         lbl_yield.config(text=f"{yield_rate:.1f}%")
 
-        # ล้างกราฟและ Memory เก่าออก
+        # ล้าง Canvas เก่า
         for widget in chart_frame.winfo_children():
             widget.destroy()
 
@@ -239,29 +274,81 @@ class StatsManager:
             plt.close(self.fig)
 
         if df.empty:
-            ttk.Label(chart_frame, text="ไม่พบข้อมูลในช่วงเวลาที่เลือก", font=("Arial", 14)).pack(pady=50)
+            no_data_lbl = tk.Label(
+                chart_frame, 
+                text="📊 No inspection data available for the selected period", 
+                fg="#64748B", 
+                bg="#FFFFFF", 
+                font=("Segoe UI", 12)
+            )
+            no_data_lbl.pack(expand=True)
             return
 
-        # สร้าง Matplotlib Figure ใหม่
-        self.fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 4), dpi=100)
+        # ─── ตกแต่ง MATPLOTLIB CHARTS (LIGHT MODE / BLUE THEME) ───
+        plt.style.use('default')
+        self.fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.2), dpi=100)
+        self.fig.patch.set_facecolor('#FFFFFF')
 
-        # กราฟวงกลม (Pie Chart)
+        TEXT_COLOR = "#1E3A8A"
+        COLOR_OK = '#059669'   # เขียวสว่าง
+        COLOR_NG = '#DC2626'   # แดงสว่าง
+
+        # 🍩 1. Donut Chart (Status Ratio)
         labels = ['OK', 'NG']
         counts = [ok_count, ng_count]
-        colors = ['#4CAF50', '#F44336']
-        if sum(counts) > 0:
-            ax1.pie(counts, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90, explode=(0, 0.1))
-        ax1.set_title("Status Ratio")
+        colors = [COLOR_OK, COLOR_NG]
 
-        # กราฟแท่งตามกล้อง (Bar Chart)
+        if sum(counts) > 0:
+            wedges, texts, autotexts = ax1.pie(
+                counts, 
+                labels=labels, 
+                autopct='%1.1f%%', 
+                colors=colors, 
+                startangle=90,
+                pctdistance=0.75,
+                textprops=dict(color=TEXT_COLOR, fontsize=10, weight="bold"),
+                wedgeprops=dict(width=0.4, edgecolor='#FFFFFF', linewidth=3)
+            )
+            for autotext in autotexts:
+                autotext.set_color('#FFFFFF')
+
+        ax1.set_title("Overall Pass/Fail Ratio", color=TEXT_COLOR, fontsize=12, pad=15, weight="bold")
+        ax1.set_facecolor('#FFFFFF')
+
+        # 📊 2. Bar Chart (Camera Breakdown)
         cam_stats = df.groupby(['camera_id', 'status']).size().unstack(fill_value=0)
-        cam_stats.plot(kind='bar', ax=ax2, color={'OK': '#4CAF50', 'NG': '#F44336'})
-        ax2.set_title("Camera Breakdown")
-        ax2.set_xlabel("Camera ID")
-        ax2.set_ylabel("Count")
+        
+        for st in ['OK', 'NG']:
+            if st not in cam_stats.columns:
+                cam_stats[st] = 0
+
+        cam_stats[['OK', 'NG']].plot(
+            kind='bar', 
+            ax=ax2, 
+            color={'OK': COLOR_OK, 'NG': COLOR_NG}, 
+            width=0.5,
+            edgecolor="none"
+        )
+
+        ax2.set_title("Breakdown by Camera", color=TEXT_COLOR, fontsize=12, pad=15, weight="bold")
+        ax2.set_xlabel("Camera ID", color="#64748B", fontsize=9, labelpad=8)
+        ax2.set_ylabel("Inspection Count", color="#64748B", fontsize=9)
+        ax2.set_facecolor('#FFFFFF')
+        ax2.tick_params(colors="#334155", labelsize=9)
+        ax2.grid(axis='y', color='#F1F5F9', linestyle='--', alpha=1.0)
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        ax2.spines['left'].set_color('#CBD5E1')
+        ax2.spines['bottom'].set_color('#CBD5E1')
+        
+        # Custom Legend
+        leg = ax2.legend(frameon=True, facecolor='#F8FAFC', edgecolor='#E2E8F0')
+        for text in leg.get_texts():
+            text.set_color("#334155")
+
         plt.tight_layout()
 
-        # วาดกราฟลง Tkinter Canvas
+        # วาดกราฟลงบน Canvas
         canvas = FigureCanvasTkAgg(self.fig, master=chart_frame)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
