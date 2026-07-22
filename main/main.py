@@ -15,8 +15,6 @@ import time
 import pandas as pd
 import threading
 
-
-
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 

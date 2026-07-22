@@ -61,7 +61,7 @@ cameras:
     - 624
     - 945
     save_ng: false
-    save_ok: true
+    save_ok: false
     source: video_model\videoTrain3.mp4
     start_point:
     - 563
@@ -161,7 +161,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_1.pkl
+    source: model\pose_classifier_1 copy.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:

@@ -1,3 +1,4 @@
+# LIB/stats_gui.py
 import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
@@ -5,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from LIB.export_data.export_data_to_exel import InspectionExporter
 
 class StatsGUI:
     def __init__(self, db_path=r"setting\inspection_stats.db"):
@@ -47,6 +48,17 @@ class StatsManager:
         self.root = None
         self.fig = None  # เก็บตัวแปร Figure เพื่อสั่งปิดเมมโมรี่อย่างถูกต้อง
 
+    def handle_export_excel(self):
+        """ฟังก์ชันจัดการเมื่อผู้ใช้กดปุ่ม Export"""
+        # 🌟 ใช้ self.db_path เพื่อให้ตรงกับ Path หลักของ DB
+        exporter = InspectionExporter(db_path=self.db_path)
+        success, message = exporter.export_to_excel(auto_open=True)
+        
+        if success:
+            messagebox.showinfo("สำเร็จ", f"Export ข้อมูลเรียบร้อยแล้ว!\n\nไฟล์: {message}")
+        else:
+            messagebox.showwarning("ข้อผิดพลาด", message)
+
     def open_dashboard(self):
         # 1. ถ้าเปิดค้างไว้อยู่แล้ว ให้ยกขึ้นมาข้างหน้า ไม่สร้างซ้ำ
         if self.root is not None:
@@ -60,8 +72,42 @@ class StatsManager:
 
         # 2. สร้างหน้าต่าง Tkinter หลัก
         self.root = tk.Tk()
-        self.root.title("📊 Inspection Statistics Dashboard")
-        self.root.geometry("1000x700")
+        self.root.title(" Inspection Statistics Dashboard")
+        self.root.geometry("1920x1080")
+
+        # (Optional) เปลี่ยน Icon เล็กบน Title Bar
+        try:
+            self.root.iconbitmap(r"main\Logo\atc_logo.png", height=16, width=16)
+        except Exception:
+            pass
+        
+        # 🌟 2. สร้าง Header Frame ด้านบนสุดสำหรับวาง Logo + Title ชัดๆ
+        header_frame = ttk.Frame(self.root, padding=(15, 10))
+        header_frame.pack(fill="x")
+
+        # 🌟 เปลี่ยนไอคอนด้วยไฟล์ .png
+        try:
+            # ใช้ PhotoImage จาก Tkinter (หรือใช้ PIL.ImageTk หากเป็นไฟล์ .jpg)
+            self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png", height=50, width=50)
+            
+            # วางรูป Logo ทางซ้าย
+            lbl_logo = ttk.Label(header_frame, image=self.logo_icon)
+            lbl_logo.pack(side="left", padx=(0, 10))
+
+        except Exception as e:
+            print(f"⚠️ ไม่สามารถโหลด Icon ได้: {e}")
+
+        # 🏷️ วางข้อความ Title ตัวใหญ่ข้างๆ Logo
+        lbl_title = ttk.Label(
+            header_frame, 
+            text="Inspection Statistics Dashboard", 
+            font=("Helvetica", 16, "bold")
+        )
+        lbl_title.pack(side="left")
+
+        # ─── ส่วนควบคุมด้านบน (Filter Dropdown & Export Button) ───
+        filter_frame = ttk.Frame(self.root, padding=10)
+        filter_frame.pack(fill="x")
 
         def on_closing():
             if self.fig:
@@ -72,12 +118,12 @@ class StatsManager:
 
         self.root.protocol("WM_DELETE_WINDOW", on_closing)
 
-        # --- ส่วนควบคุมด้านบน (Filter Dropdown) ---
+        # --- ส่วนควบคุมด้านบน (Filter Dropdown & Export Button) ---
         filter_frame = ttk.Frame(self.root, padding=10)
         filter_frame.pack(fill="x")
 
         ttk.Label(filter_frame, text="ช่วงเวลา: ", font=("Arial", 11, "bold")).pack(side="left", padx=5)
-        
+
         range_var = tk.StringVar(value="Today")
         range_dropdown = ttk.Combobox(
             filter_frame, 
@@ -87,6 +133,14 @@ class StatsManager:
             width=15
         )
         range_dropdown.pack(side="left", padx=5)
+
+        # 🌟 เพิ่มปุ่ม Export Excel ไว้ที่ Header ควบคู่กับ Filter
+        btn_export = ttk.Button(
+            filter_frame, 
+            text="📊 Export รายงาน Excel", 
+            command=self.handle_export_excel
+        )
+        btn_export.pack(side="right", padx=10)
 
         # --- ส่วนแสดง Summary Cards (4 ช่อง) ---
         cards_frame = ttk.Frame(self.root, padding=10)

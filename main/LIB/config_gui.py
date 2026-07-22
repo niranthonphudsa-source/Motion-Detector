@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import time
-from LIB.export_data.export_data_to_exel import InspectionExporter
+
 
 # ─── 📁 คลาสหน้าต่างสำหรับจัดการวิดีโอ (Video Manager Window) ───
 class VideoFolderManagerWindow:
@@ -248,25 +248,6 @@ class ConfigGUI:
         self.config = self.load_config()
         self.root = None
 
-    def setup_ui(self):
-        # ... โค้ดสร้าง UI อื่นๆ ...
-        # ─── เพิ่มปุ่ม Export Excel ───
-        btn_export = ttk.Button(
-            self.root, 
-            text="📊 Export รายงาน Excel", 
-            command=self.handle_export_excel
-        )
-        btn_export.pack(pady=10)
-
-    def handle_export_excel(self):
-        """ฟังก์ชันจัดการเมื่อผู้ใช้กดปุ่ม Export"""
-        exporter = InspectionExporter(db_path="inspection_stats.db")
-        success, message = exporter.export_to_excel(auto_open=True)
-        
-        if success:
-            messagebox.showinfo("สำเร็จ", f"Export ข้อมูลเรียบร้อยแล้ว!\n\nไฟล์: {message}")
-        else:
-            messagebox.showwarning("ข้อผิดพลาด", message)
 
     def load_config(self):
         try:
@@ -544,13 +525,6 @@ class ConfigGUI:
             font=("Helvetica", 9, "bold")
         )
         btn_go_train.grid(row=1, column=0, columnspan=3, sticky="ew", pady=5)
-
-        btn_export = ttk.Button(
-            self.root, 
-            text="📊 Export รายงาน Excel", 
-            command=self.handle_export_excel
-        )
-        btn_export.pack(pady=10)
 
    
         # ─── ตรรกะปิดหน้าต่าง ───
