@@ -42,7 +42,7 @@ class ConfigManager:
 # 2. หน้าต่างแสดงตารางข้อมูล (TABLE VIEWER WINDOW)
 # ==========================================
 class TableViewerWindow(tk.Toplevel):
-    def __init__(self, parent, config_data, user_id, camera_id, status_pose):
+    def __init__(self, parent, config_data):
         super().__init__(parent)
 
         print(f"Parent: {parent} Config: {config_data}")
@@ -159,7 +159,7 @@ class TableViewerWindow(tk.Toplevel):
             auth_type = config_data.get('auth_type')
 
             
-# สร้าง Connection String
+            # สร้าง Connection String
             if auth_type == 'SQL Server Authentication':
                 conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
             else:
