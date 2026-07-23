@@ -1,0 +1,8 @@
+{
+    "server": "",
+    "database": "mydatabase",
+    "auth_type": "SQL Server Authentication",
+    "username": "username",
+    "password": "password",
+    "driver": "ODBC Driver 18 for SQL Server"
+}

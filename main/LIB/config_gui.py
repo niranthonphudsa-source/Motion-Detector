@@ -22,7 +22,7 @@ class VideoFolderManagerWindow:
         self.folder_path = folder_path
         self.window = tk.Toplevel(parent)
         self.window.title(f"📁 จัดการวิดีโอ: {title_name} ({folder_path})")
-        self.window.geometry("500x450")
+        self.window.geometry("520x480")
         self.window.resizable(True, True)
         self.window.grab_set()  # ดึงโฟกัสมาที่หน้าต่างนี้ก่อน
         
@@ -40,7 +40,7 @@ class VideoFolderManagerWindow:
         ttk.Label(
             header_frame, 
             text=f"📂 โฟลเดอร์: {folder_path}", 
-            font=("Helvetica", 11, "bold")
+            font=("Segoe UI", 10, "bold")
         ).pack(side=tk.LEFT)
 
         btn_open_folder = ttk.Button(
@@ -51,7 +51,7 @@ class VideoFolderManagerWindow:
         btn_open_folder.pack(side=tk.RIGHT)
 
         # Table (Treeview) สำหรับแสดงรายการวิดีโอ
-        tree_frame = ttk.Frame(self.window, padding=10)
+        tree_frame = ttk.Frame(self.window, padding=(10, 0, 10, 10))
         tree_frame.pack(fill=tk.BOTH, expand=True)
 
         columns = ("name", "size", "date")
@@ -61,9 +61,9 @@ class VideoFolderManagerWindow:
         self.tree.heading("size", text="ขนาด")
         self.tree.heading("date", text="วันที่บันทึกล่าสุด")
 
-        self.tree.column("name", width=280)
-        self.tree.column("size", width=100, anchor="center")
-        self.tree.column("date", width=180, anchor="center")
+        self.tree.column("name", width=260)
+        self.tree.column("size", width=90, anchor="center")
+        self.tree.column("date", width=150, anchor="center")
 
         scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscroll=scrollbar.set)
@@ -76,13 +76,13 @@ class VideoFolderManagerWindow:
         btn_frame.pack(fill=tk.X)
 
         btn_refresh = ttk.Button(btn_frame, text="🔄 รีเฟรช", command=self.load_files)
-        btn_refresh.pack(side=tk.LEFT, padx=5)
+        btn_refresh.pack(side=tk.LEFT, padx=3)
 
         btn_play = ttk.Button(btn_frame, text="▶️ เปิดเล่นวิดีโอ", command=self.play_video)
-        btn_play.pack(side=tk.LEFT, padx=5)
+        btn_play.pack(side=tk.LEFT, padx=3)
 
         btn_delete = ttk.Button(btn_frame, text="🗑️ ลบไฟล์ที่เลือก", command=self.delete_video)
-        btn_delete.pack(side=tk.RIGHT, padx=5)
+        btn_delete.pack(side=tk.RIGHT, padx=3)
 
         # โหลดข้อมูลไฟล์วิดีโอเข้าตารางครั้งแรก
         self.load_files()
@@ -221,10 +221,7 @@ class VideoFolderManagerWindow:
     def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=1.0):
         """เริ่ม Background Thread คอยตรวจเช็กไฟล์ขยะตามระยะเวลาที่กำหนด"""
         def cleanup_loop():
-            # รันครั้งแรกทันที
             self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
-            
-            # ใช้วงรอบย่อยเช็กแบบละเอียดทุก 1 วินาที เพื่อหลุดลูปได้ทันทีเมื่อปิดหน้าต่าง
             counter = 0
             while True:
                 time.sleep(1)
@@ -305,7 +302,6 @@ class ConfigGUI:
             bg=BG_COLOR
         ).pack(pady=(15, 5))
 
-
         info_frame = tk.Frame(train_win, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
         info_frame.pack(fill="x", padx=20, pady=10, ipady=5)
 
@@ -315,12 +311,14 @@ class ConfigGUI:
         model_path = os.path.join("model", selected_model_file) if not os.path.isabs(selected_model_file) else selected_model_file
 
         def browse_file():
-            dataset_path = filedialog.askopenfilename(
+            nonlocal dataset_path
+            selected_path = filedialog.askopenfilename(
                 title="select_dataset",
                 filetypes=[("Csv", "*.csv"), ("All file", "*.*")]
             )
 
-            if dataset_path:
+            if selected_path:
+                dataset_path = selected_path
                 file_path = os.path.basename(dataset_path)
                 label_dataset.config(text=f"📊 Dataset: {file_path}")
 
@@ -328,28 +326,27 @@ class ConfigGUI:
                     self.config["global"]["dataset_path"] = file_path
 
         label_dataset = tk.Label(info_frame,
-                                    text=f"📊 Dataset: {os.path.basename(dataset_path)}",
-                                    fg="#2563EB",            # กำหนดสีข้อความแทนการใช้ style
-                                    bg=PANEL_COLOR,          # กำหนดสีพื้นหลัง
-                                    font=("Segoe UI", 9, "bold")
-                                )
-        label_dataset.grid(row=0, column=0, sticky="w", pady=2)
-
-        label_model = tk.Label(info_frame,
-                                text=f"🤖 Target Save: {os.path.basename(model_path)}",
-                                fg="#2563EB",            # กำหนดสีข้อความแทนการใช้ style
-                                bg=PANEL_COLOR,          # กำหนดสีพื้นหลัง
+                                text=f"📊 Dataset: {os.path.basename(dataset_path)}",
+                                fg="#2563EB",
+                                bg=PANEL_COLOR,
                                 font=("Segoe UI", 9, "bold")
                                 )
-        label_model.grid(row=1, column=0, sticky="w", pady=2)
+        label_dataset.grid(row=0, column=0, sticky="w", pady=2, padx=10)
 
+        label_model = tk.Label(info_frame,
+                               text=f"🤖 Target Save: {os.path.basename(model_path)}",
+                               fg="#2563EB",
+                               bg=PANEL_COLOR,
+                               font=("Segoe UI", 9, "bold")
+                               )
+        label_model.grid(row=1, column=0, sticky="w", pady=2, padx=10)
 
         btn_searce = ttk.Button(info_frame,
                                  text="📁 ค้นหา...", 
                                  style="Action.TButton", 
                                  command=browse_file, width=8
                                 )
-        btn_searce.grid(row=0, column=1, rowspan=2, sticky="e",  padx=(5, 10))
+        btn_searce.grid(row=0, column=1, rowspan=2, sticky="e", padx=(5, 10))
 
         progress = ttk.Progressbar(train_win, orient="horizontal", mode="indeterminate")
         progress.pack(fill="x", padx=20, pady=15)
@@ -381,7 +378,8 @@ class ConfigGUI:
                 y_pred = clf.predict(X_test)
                 acc_score = accuracy_score(y_test, y_pred) * 100
 
-                os.makedirs(os.path.dirname(model_path), exist_ok=True) if os.path.dirname(model_path) else None
+                if os.path.dirname(model_path):
+                    os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 joblib.dump(clf, model_path)
                 abs_path = os.path.abspath(model_path)
 
@@ -407,7 +405,6 @@ class ConfigGUI:
             status_lbl.config(text="❌ ล้มเหลว", fg="#DC2626")
             messagebox.showerror("Error", f"เกิดปัญหาขณะเทรนข้อมูล:\n{err}")
 
-
         btn_train = tk.Button(
             train_win, 
             text="🚀 เริ่มเทรนโมเดลใหม่ (Start Train)", 
@@ -422,15 +419,16 @@ class ConfigGUI:
         )
         btn_train.pack(pady=15)
 
-    def connect_data_base():
+    def connect_data_base(self):
         pass
+
     def safe_close_app(self):
         if self.root:
             self.root.quit()
             self.root.destroy()
 
     def open_settings(self, current_cam_id=None, on_close_callback=None):
-        """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Blue Theme)"""
+        """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Layout ใหม่)"""
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -449,10 +447,10 @@ class ConfigGUI:
         TITLE_BLUE = "#1E3A8A"      # สีกรมท่าสำหรับหัวข้อ
 
         self.root = tk.Tk()
-        self.root.title("System Configuration")
-        self.root.geometry("600x820")
-        self.root.minsize(450, 750)      # รองรับการขยายและย่อหน้าจอ
-        self.root.resizable(True, True)  # ✅ เปิดให้ลด-ขยายขนาดหน้าต่างได้
+        self.root.title("System Configuration Center")
+        self.root.geometry("640x720")
+        self.root.minsize(550, 650)
+        self.root.resizable(True, True)
         self.root.configure(bg=BG_COLOR)
 
         # ตั้งค่า App Icon
@@ -461,7 +459,7 @@ class ConfigGUI:
         except Exception:
             pass
 
-        # 🎨 ตั้งค่า Styling สำหรับ TTK Widget ให้ตรงกับโทนสีขาว-น้ำเงิน
+        # 🎨 Styling สำหรับ TTK Widget
         style = ttk.Style()
         style.theme_use('clam')
         style.configure(".", background=BG_COLOR, foreground=TEXT_MAIN, font=("Segoe UI", 9))
@@ -469,11 +467,10 @@ class ConfigGUI:
         style.configure("TCombobox", fieldbackground=PANEL_COLOR, background=PANEL_COLOR, foreground=TEXT_MAIN, padding=4)
         style.configure("TCheckbutton", background=PANEL_COLOR, foreground=TEXT_MAIN, font=("Segoe UI", 9))
         
-        # Style ปุ่มกดทั่วไป
         style.configure("Action.TButton", font=("Segoe UI", 9, "bold"), background="#F1F5F9", foreground=TITLE_BLUE, padding=6)
         style.map("Action.TButton", background=[("active", "#E2E8F0")])
 
-        # Scrollable Container หลักเพื่อรองรับการย่อหน้าต่าง
+        # Scrollable Container
         main_canvas = tk.Canvas(self.root, bg=BG_COLOR, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
         scrollable_frame = tk.Frame(main_canvas, bg=BG_COLOR)
@@ -493,11 +490,10 @@ class ConfigGUI:
         main_canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # ─── 1. HEADER SECTION (มี LOGO) ───
+        # ─── 1. HEADER SECTION ───
         header_frame = tk.Frame(scrollable_frame, bg=BG_COLOR, padx=20, pady=15)
         header_frame.pack(fill="x")
 
-        # แสดงรูป Logo
         try:
             self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png").subsample(2, 2)
             lbl_logo = tk.Label(header_frame, image=self.logo_icon, bg=BG_COLOR)
@@ -514,33 +510,37 @@ class ConfigGUI:
         lbl_sub = tk.Label(title_box, text="Camera, Model & Output Settings Center", font=("Segoe UI", 9), fg=TEXT_MUTED, bg=BG_COLOR)
         lbl_sub.pack(anchor="w")
 
-        # ฟังก์ชันสร้าง Card Container ให้ได้ขอบการ์ดขาวเรียบหรู
-        def create_card_frame(parent, title_text):
+        # Helper Function สร้าง Card
+        def create_card_frame(parent, title_text, fill=True):
             card = tk.Frame(parent, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
-            card.pack(fill="x", padx=20, pady=8)
+            if fill:
+                card.pack(fill="x", padx=20, pady=6)
             
             top_bar = tk.Frame(card, bg=PRIMARY_BLUE, height=3)
             top_bar.pack(fill="x", side="top")
             
-            content = tk.Frame(card, bg=PANEL_COLOR, padx=15, pady=12)
-            content.pack(fill="x", expand=True)
+            content = tk.Frame(card, bg=PANEL_COLOR, padx=12, pady=10)
+            content.pack(fill="both", expand=True)
             
-            tk.Label(content, text=title_text, font=("Segoe UI", 10, "bold"), fg=TITLE_BLUE, bg=PANEL_COLOR).pack(anchor="w", pady=(0, 8))
-            return content
+            tk.Label(content, text=title_text, font=("Segoe UI", 10, "bold"), fg=TITLE_BLUE, bg=PANEL_COLOR).pack(anchor="w", pady=(0, 6))
+            return card, content
 
-        # ─── 2. โซนเลือกกล้อง ───
-        c_cam = create_card_frame(scrollable_frame, "📷 การจัดการกล้อง (Camera Settings)")
-        
-        cam_grid = tk.Frame(c_cam, bg=PANEL_COLOR)
-        cam_grid.pack(fill="x")
-        cam_grid.columnconfigure(1, weight=1)
+        # ─── 2. ROW 1: GRID LAYOUT (กล้อง + การบันทึกวิดีโอ ขนานกัน) ───
+        row1_frame = tk.Frame(scrollable_frame, bg=BG_COLOR, padx=20)
+        row1_frame.pack(fill="x", pady=4)
+        row1_frame.columnconfigure(0, weight=1)
+        row1_frame.columnconfigure(1, weight=1)
 
-        tk.Label(cam_grid, text="เลือกกล้องที่ต้องการตั้งค่า:", fg=TEXT_MAIN, bg=PANEL_COLOR, font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=5)
+        # 2.1 โซนเลือกกล้อง
+        _, c_cam = create_card_frame(row1_frame, "📷 ตั้งค่ากล้อง (Camera)", fill=False)
+        c_cam.master.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+
+        tk.Label(c_cam, text="เลือกกล้องใช้งาน:", fg=TEXT_MAIN, bg=PANEL_COLOR, font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 2))
         
         camera_list = list(self.config.get("cameras", {}).keys())
         self.cam_var = tk.StringVar()
-        self.cb_camera = ttk.Combobox(cam_grid, textvariable=self.cam_var, values=camera_list, state="readonly")
-        self.cb_camera.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="ew")
+        self.cb_camera = ttk.Combobox(c_cam, textvariable=self.cam_var, values=camera_list, state="readonly")
+        self.cb_camera.pack(fill="x", pady=2)
         
         if camera_list:
             if current_cam_id in camera_list:
@@ -549,17 +549,18 @@ class ConfigGUI:
             else:
                 self.cb_camera.current(0)
 
-        # ─── 3. โซนตั้งค่าตัวเลือกการเซฟไฟล์ ───
-        c_save = create_card_frame(scrollable_frame, "📹 การบันทึกวิดีโอ (Video Output)")
+        # 2.2 โซนบันทึกวิดีโอ
+        _, c_save = create_card_frame(row1_frame, "📹 การบันทึกวิดีโอ (Output)", fill=False)
+        c_save.master.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
         self.var_ok = tk.BooleanVar()
         self.var_ng = tk.BooleanVar()
 
-        self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอเมื่อผลลัพธ์เป็น OK (video_ok)", variable=self.var_ok)
-        self.chk_ok.pack(anchor="w", pady=4)
+        self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ OK (video_ok)", variable=self.var_ok)
+        self.chk_ok.pack(anchor="w", pady=2)
 
-        self.chk_ng = ttk.Checkbutton(c_save, text="บันทึกวิดีโอเมื่อผลลัพธ์เป็น NG (video_ng)", variable=self.var_ng)
-        self.chk_ng.pack(anchor="w", pady=4)
+        self.chk_ng = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ NG (video_ng)", variable=self.var_ng)
+        self.chk_ng.pack(anchor="w", pady=2)
 
         def on_camera_select(event=None):
             cam_id = self.cam_var.get()
@@ -571,52 +572,19 @@ class ConfigGUI:
         if camera_list: 
             on_camera_select()
 
-        # ─── 4. โซนจัดการวิดีโอบันทึก (Video Viewer & Manager) ───
-        c_vm = create_card_frame(scrollable_frame, "🎥 คลังไฟล์วิดีโอบันทึก (Video Viewer)")
+        # ─── 3. ROW 2: GRID LAYOUT (ตั้งค่า AI Model + รายละเอียดกล้อง) ───
+        row2_frame = tk.Frame(scrollable_frame, bg=BG_COLOR, padx=20)
+        row2_frame.pack(fill="x", pady=4)
+        row2_frame.columnconfigure(0, weight=3)
+        row2_frame.columnconfigure(1, weight=2)
 
-        def open_folder_manager(folder_path, title):
-            VideoFolderManagerWindow(self.root, folder_path, title)
-
-        btn_box = tk.Frame(c_vm, bg=PANEL_COLOR)
-        btn_box.pack(fill="x", pady=5)
-        for i in range(3): btn_box.columnconfigure(i, weight=1)
-
-        btn_center = ttk.Button(btn_box, text="📂 video_center", style="Action.TButton", command=lambda: open_folder_manager("video_center", "วิดีโอระหว่างการตรวจ"))
-        btn_center.grid(row=0, column=0, padx=3, sticky="ew")
-
-        btn_ok = ttk.Button(btn_box, text="✅ video_ok", style="Action.TButton", command=lambda: open_folder_manager("video_ok", "วิดีโอผ่านเกณฑ์ (OK)"))
-        btn_ok.grid(row=0, column=1, padx=3, sticky="ew")
-
-        btn_ng = ttk.Button(btn_box, text="❌ video_ng", style="Action.TButton", command=lambda: open_folder_manager("video_ng", "วิดีโอไม่ผ่านเกณฑ์ (NG)"))
-        btn_ng.grid(row=0, column=2, padx=3, sticky="ew")
-
-        # ─── 5. รายละเอียดกล้องปัจจุบัน ───
-        c_info = create_card_frame(scrollable_frame, "ℹ️ ข้อมูลกล้องปัจจุบัน")
-        
-        self.lbl_source = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 9))
-        self.lbl_source.pack(anchor="w")
-        self.lbl_pts = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 9))
-        self.lbl_pts.pack(anchor="w", pady=(2, 0))
-
-        def update_info_labels(*args):
-            cam_id = self.cam_var.get()
-            cam_data = self.config.get("cameras", {}).get(cam_id, {})
-            self.lbl_source.config(text=f"Source: {cam_data.get('source', 'None')}")
-            pts_count = len(cam_data.get("mark_points", []))
-            self.lbl_pts.config(text=f"จำนวนจุดมาร์ก ROI ที่บันทึกไว้: {pts_count} จุด")
-
-        self.cam_var.trace_add("write", update_info_labels)
-        if camera_list:
-            update_info_labels()
-
-        # ─── 6. โซนการเลือกไฟล์โมเดล AI ───
-        c_model = create_card_frame(scrollable_frame, "🤖 การตั้งค่าโมเดล AI (Model Settings)")
+        # 3.1 AI Model Settings
+        _, c_model = create_card_frame(row2_frame, "🤖 โมเดล AI (Model Settings)", fill=False)
+        c_model.master.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
 
         model_grid = tk.Frame(c_model, bg=PANEL_COLOR)
         model_grid.pack(fill="x")
-        model_grid.columnconfigure(1, weight=1)
-
-        tk.Label(model_grid, text="ไฟล์โมเดลที่ใช้งาน:", fg=TEXT_MAIN, bg=PANEL_COLOR, font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=5)
+        model_grid.columnconfigure(0, weight=1)
 
         self.available_models = self.scan_models()
         default_model_name = self.available_models[0] if self.available_models else ""
@@ -627,8 +595,12 @@ class ConfigGUI:
                     break
 
         self.model_var = tk.StringVar(value=default_model_name)
-        self.cb_model = ttk.Combobox(model_grid, textvariable=self.model_var, values=self.available_models, state="readonly")
-        self.cb_model.grid(row=0, column=1, padx=8, pady=5, sticky="ew")
+        
+        m_select_box = tk.Frame(model_grid, bg=PANEL_COLOR)
+        m_select_box.pack(fill="x", pady=2)
+
+        self.cb_model = ttk.Combobox(m_select_box, textvariable=self.model_var, values=self.available_models, state="readonly")
+        self.cb_model.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
         self.custom_model_full_path = None
 
@@ -656,8 +628,8 @@ class ConfigGUI:
                 self.model_var.set(filename)
                 self.custom_model_full_path = final_path
 
-        btn_browse = ttk.Button(model_grid, text="📁 ค้นหา...", style="Action.TButton", command=browse_model_file, width=8)
-        btn_browse.grid(row=0, column=2, padx=(5, 0), pady=5)
+        btn_browse = ttk.Button(m_select_box, text="📁 ค้นหา...", style="Action.TButton", command=browse_model_file, width=8)
+        btn_browse.pack(side="right")
 
         btn_go_train = tk.Button(
             c_model, 
@@ -669,11 +641,50 @@ class ConfigGUI:
             activeforeground="white",
             font=("Segoe UI", 9, "bold"),
             bd=0,
-            pady=8,
+            pady=6,
             cursor="hand2"
         )
-        # ✅ แก้ไข: แสดงผลปุ่มเปิดสตูดิโอเทรนโมเดล
-        btn_go_train.pack(fill="x", pady=(10, 0))
+        btn_go_train.pack(fill="x", pady=(8, 0))
+
+        # 3.2 ข้อมูลกล้องปัจจุบัน
+        _, c_info = create_card_frame(row2_frame, "ℹ️ ข้อมูลกล้อง", fill=False)
+        c_info.master.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+
+        self.lbl_source = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 8), justify="left", wraplength=180)
+        self.lbl_source.pack(anchor="w")
+        self.lbl_pts = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 8), justify="left", wraplength=180)
+        self.lbl_pts.pack(anchor="w", pady=(4, 0))
+
+        def update_info_labels(*args):
+            cam_id = self.cam_var.get()
+            cam_data = self.config.get("cameras", {}).get(cam_id, {})
+            self.lbl_source.config(text=f"Source: {cam_data.get('source', 'None')}")
+            pts_count = len(cam_data.get("mark_points", []))
+            self.lbl_pts.config(text=f"จุดมาร์ก ROI: {pts_count} จุด")
+
+        self.cam_var.trace_add("write", update_info_labels)
+        if camera_list:
+            update_info_labels()
+
+        # ─── 4. ROW 3: โซนจัดการวิดีโอบันทึก (Video Viewer) ───
+        _, c_vm = create_card_frame(scrollable_frame, "🎥 คลังไฟล์วิดีโอบันทึก (Video Viewer Center)")
+
+        def open_folder_manager(folder_path, title):
+            VideoFolderManagerWindow(self.root, folder_path, title)
+
+        btn_box = tk.Frame(c_vm, bg=PANEL_COLOR)
+        btn_box.pack(fill="x", pady=2)
+        for i in range(3): 
+            btn_box.columnconfigure(i, weight=1)
+
+        btn_center = ttk.Button(btn_box, text="📂 video_center", style="Action.TButton", command=lambda: open_folder_manager("video_center", "วิดีโอระหว่างการตรวจ"))
+        btn_center.grid(row=0, column=0, padx=3, sticky="ew")
+
+        btn_ok = ttk.Button(btn_box, text="✅ video_ok", style="Action.TButton", command=lambda: open_folder_manager("video_ok", "วิดีโอผ่านเกณฑ์ (OK)"))
+        btn_ok.grid(row=0, column=1, padx=3, sticky="ew")
+
+        btn_ng = ttk.Button(btn_box, text="❌ video_ng", style="Action.TButton", command=lambda: open_folder_manager("video_ng", "วิดีโอไม่ผ่านเกณฑ์ (NG)"))
+        btn_ng.grid(row=0, column=2, padx=3, sticky="ew")
 
         # ─── ตรรกะปิดหน้าต่าง ───
         def on_window_close():
@@ -749,9 +760,8 @@ class ConfigGUI:
             pady=10,
             cursor="hand2"
         )
-        btn_save.pack(fill="x", padx=20, pady=(10, 25))
+        btn_save.pack(fill="x", padx=20, pady=(10, 20))
 
-        # ✅ แก้ไข: ปิดวงเล็บ mainloop
         self.root.mainloop()
 
 

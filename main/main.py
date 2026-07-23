@@ -5,7 +5,8 @@ from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
-from LIB.config_gui import ConfigGUI  
+from LIB.config_gui import ConfigGUI
+from app.app import TableViewerWindow, SSMSConnectGUI, ConfigManager
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
@@ -14,7 +15,7 @@ import joblib
 import time
 import pandas as pd
 import threading
-
+import tkinter as tk
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
@@ -146,7 +147,16 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
-    
+def open_ssms_gui():
+    """เปิดหน้าต่าง SSMSConnectGUI ใน Thread แยกเพื่อไม่ให้ OpenCV กระตุก/ค้าง"""
+    def run_gui():
+        db_root = tk.Tk()  # สร้าง Root Window สำหรับ GUI ตั้งค่า DB
+        app = SSMSConnectGUI(db_root)
+        db_root.mainloop()
+
+    gui_thread = threading.Thread(target=run_gui, daemon=True)
+    gui_thread.start()
+
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
 # stats_manager = StatsGUI()
 # 1. สร้างตัวเก็บ Log สถิติ (ใช้ชื่อ stats_db หรือ stats_gui)
@@ -467,6 +477,9 @@ while True:
         print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
         stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
  
+    elif key == ord('o'):
+        print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
+        open_ssms_gui()
 
 manager.close_all_writers()
 cap.release()

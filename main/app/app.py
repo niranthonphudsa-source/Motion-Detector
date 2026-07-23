@@ -184,9 +184,7 @@ class TableViewerWindow(tk.Toplevel):
 
 
         except Exception as e:
-            
-            print(f"Error: Pimary Key {e}")
-
+            print(f"⚠️ [DB Error] insert_data ล้มเหลว: {e}")
         finally:
             if conn:
                 conn.close()

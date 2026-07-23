@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from app.app import TableViewerWindow, ConfigManager
 import json
+import threading
 
 def load_data():
     if os.path.exists('db_config.json'):
@@ -161,15 +162,29 @@ class UserStateManager:
                         active_state["writer"] = None
                         print(f"🛑 [Stop Recording] บันทึกแถมครบ {self.buffer_output_time} วินาทีแล้ว ปิดไฟล์วิดีโอ ID {active_id}")
 
+
                     # 2. บันทึก LOG สถิติลง SQLite Database
                     if stats_db is not None:
                         final_status = active_state["confirm"]  # "OK" หรือ "NG"
                         stats_db.log_event(camera_id, final_status, active_id)
                         print(f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}")
                         data = (active_id, camera_id, final_status)
-                        print(*data)
-                        TableViewerWindow.insert_data(config_data, *data)
-                        
+                             
+                        # 🌟 ฟังก์ชันสำหรับ Insert Data พร้อมดักจับ Error
+                        def safe_insert_data(cfg, *d_args):
+                            try:
+                                TableViewerWindow.insert_data(cfg, *d_args)
+                            except Exception as e:
+                                # พิมพ์ Error Log ไว้ตรวจสอบ แต่จะไม่ทำให้ลูปวิดีโอพัง
+                                print(f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}")
+
+                        # 🌟 เรียกทำงานแบบ Async/Thread แยก ไม่บล็อกการดึงเฟรมวิดีโอ
+                        db_thread = threading.Thread(
+                            target=safe_insert_data, 
+                            args=(config_data, *data), 
+                            daemon=True
+                        )
+                        db_thread.start()   
                     # 3. ตรวจสอบเงื่อนไขการย้ายไฟล์วิดีโอ
                     # 3. ตรวจสอบเงื่อนไขการย้าย/คัดลอกไฟล์วิดีโอ
                     is_ok = (active_state["confirm"] == "OK")
