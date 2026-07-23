@@ -407,6 +407,7 @@ class ConfigGUI:
             status_lbl.config(text="❌ ล้มเหลว", fg="#DC2626")
             messagebox.showerror("Error", f"เกิดปัญหาขณะเทรนข้อมูล:\n{err}")
 
+
         btn_train = tk.Button(
             train_win, 
             text="🚀 เริ่มเทรนโมเดลใหม่ (Start Train)", 
@@ -421,6 +422,8 @@ class ConfigGUI:
         )
         btn_train.pack(pady=15)
 
+    def connect_data_base():
+        pass
     def safe_close_app(self):
         if self.root:
             self.root.quit()

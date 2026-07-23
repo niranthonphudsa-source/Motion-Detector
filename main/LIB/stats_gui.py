@@ -6,9 +6,10 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from LIB.export_data.export_data_to_exel import InspectionExporter
+# from main.app.run_app_combined import ConfigManager, SSMSConnectGUI
 
 class StatsGUI:
-    def __init__(self, db_path=r"setting\inspection_stats.db"):
+    def __init__(self, db_path=r"db_config.json"):
         self.db_path = db_path
         self.init_db()
 
