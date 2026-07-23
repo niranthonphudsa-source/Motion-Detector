@@ -3,6 +3,20 @@ import shutil
 import time
 import cv2
 import numpy as np
+from app.app import TableViewerWindow, ConfigManager
+import json
+
+def load_data():
+    if os.path.exists('db_config.json'):
+        try:
+            with open('db_config.json', "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    else:
+        print("File Not Found")
+        return None
+config_data = load_data()
 
 class UserStateManager:
     def __init__(self, check_pose, fourcc, ok_display_time, max_lost_time, max_distance, buffer_output_time=3):
@@ -15,6 +29,10 @@ class UserStateManager:
         self.buffer_output_time = buffer_output_time # 👈 กำหนดไว้เป็น 5 วินาที
         self.save_ng = False
         self.save_ok = False
+        self.user_id = None
+        self.camera_id = None
+        self.status_pose = None
+        
     def get_or_recover_id(self, current_id, current_frame_active_ids, point_pose):
         if len(point_pose) < 17:
             return None
@@ -148,7 +166,10 @@ class UserStateManager:
                         final_status = active_state["confirm"]  # "OK" หรือ "NG"
                         stats_db.log_event(camera_id, final_status, active_id)
                         print(f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}")
-
+                        data = (active_id, camera_id, final_status)
+                        print(*data)
+                        TableViewerWindow.insert_data(config_data, *data)
+                        
                     # 3. ตรวจสอบเงื่อนไขการย้ายไฟล์วิดีโอ
                     # 3. ตรวจสอบเงื่อนไขการย้าย/คัดลอกไฟล์วิดีโอ
                     is_ok = (active_state["confirm"] == "OK")

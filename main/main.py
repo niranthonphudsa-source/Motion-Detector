@@ -15,6 +15,7 @@ import time
 import pandas as pd
 import threading
 
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -28,8 +29,6 @@ save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 
-# model_path = config["model"]["Model_path_1"]
-# model_sklearn = model_path["source"]
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
@@ -147,7 +146,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
-
+    
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
 # stats_manager = StatsGUI()
 # 1. สร้างตัวเก็บ Log สถิติ (ใช้ชื่อ stats_db หรือ stats_gui)
@@ -161,6 +160,7 @@ config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=
 
 # สร้างตัวแปร Global สำหรับแชร์ Frame ล่าสุดไปยัง GUI หน้าต่างอื่น
 latest_frame = None
+
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
@@ -350,6 +350,7 @@ while True:
                 state["termination_start_time"] = time.time()
                 print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")
 
+                
         # ─── 📍 จุดที่ 3: อัปเดตสถานะเข้า Manager และเขียน Frame ลงไฟล์วิดีโอ ───
         manager.update_tracking_data(state, people_in_rectangle, point_pose)
 
@@ -358,14 +359,22 @@ while True:
         text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
         line_height = 20
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
-        
+
+       
+
         display_lines = [
             f"ID: {s.p_id}",
             f"Pose: {predicted_label} ({confidence:.1f}%)" if people_in_rectangle else "Pose: Outside ROI",
             f"Progress: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
             f"STATUS: {state['confirm']}"
         ]
-        
+
+
+
+
+        # if data:
+        #     TableViewerWindow.insert_data(config_data, *data)
+
         for i, line_text in enumerate(display_lines):
             current_y = text_y_start + (i * line_height)
             if "STATUS" in line_text:
@@ -457,6 +466,7 @@ while True:
     elif key == ord('d'):
         print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
         stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
+ 
 
 manager.close_all_writers()
 cap.release()

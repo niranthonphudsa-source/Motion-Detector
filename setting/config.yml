@@ -161,7 +161,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier.pkl
+    source: model\pose_classifier_1.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:
