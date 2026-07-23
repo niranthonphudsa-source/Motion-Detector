@@ -24,13 +24,14 @@ class VideoFolderManagerWindow:
         self.window.title(f"📁 จัดการวิดีโอ: {title_name} ({folder_path})")
         self.window.geometry("500x450")
         self.window.resizable(True, True)
-        self.window.grab_set()  # ดึง โฟกัสมาที่หน้าต่างนี้ก่อน
+        self.window.grab_set()  # ดึงโฟกัสมาที่หน้าต่างนี้ก่อน
+        
+        os.makedirs(self.folder_path, exist_ok=True)
+
         # ทำความสะอาดไฟล์เก่าอัตโนมัติทันทีเมื่อเปิดหน้าต่าง
         self.cleanup_old_videos(max_days=30, min_free_gb=1.0)
         # 🌟 เริ่มการทำความสะอาดเบื้องหลังอัตโนมัติ (เช็กทุกๆ 1 ชั่วโมง)
         self.start_auto_cleanup_thread(interval_seconds=3600, max_days=30, min_free_gb=1.0)
-        # สร้างโฟลเดอร์ให้อัตโนมัติถ้ายังไม่มีในระบบ
-        os.makedirs(self.folder_path, exist_ok=True)
 
         # Header Frame
         header_frame = ttk.Frame(self.window, padding=10)
@@ -99,11 +100,13 @@ class VideoFolderManagerWindow:
 
         for f in sorted(files, reverse=True):  # เรียงไฟล์ใหม่สุดขึ้นก่อน
             full_path = os.path.join(self.folder_path, f)
-            stat = os.stat(full_path)
-            size_mb = f"{stat.st_size / (1024 * 1024):.2f} MB"
-            mod_time = datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-            
-            self.tree.insert("", tk.END, values=(f, size_mb, mod_time))
+            try:
+                stat = os.stat(full_path)
+                size_mb = f"{stat.st_size / (1024 * 1024):.2f} MB"
+                mod_time = datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                self.tree.insert("", tk.END, values=(f, size_mb, mod_time))
+            except Exception:
+                continue
 
     def get_selected_file_path(self):
         """ดึง Path ของไฟล์วิดีโอที่ถูกคลิกเลือกในตาราง"""
@@ -157,89 +160,84 @@ class VideoFolderManagerWindow:
             subprocess.call(["xdg-open", self.folder_path])
 
     def cleanup_old_videos(self, max_days=30, min_free_gb=1.0):
-            """ฟังก์ชันลบไฟล์อัตโนมัติ (อายุเกิน 30 วัน หรือพื้นที่เหลือน้อยกว่า 1GB)"""
-            if not os.path.exists(self.folder_path):
-                return 0
+        """ฟังก์ชันลบไฟล์อัตโนมัติ (อายุเกิน 30 วัน หรือพื้นที่เหลือน้อยกว่า 1GB)"""
+        if not os.path.exists(self.folder_path):
+            return 0
 
-            valid_extensions = ('.avi', '.mp4', '.mkv', '.mov')
-            now = datetime.datetime.now().timestamp()
-            max_age_seconds = max_days * 86400  # 30 วัน
+        valid_extensions = ('.avi', '.mp4', '.mkv', '.mov')
+        now = datetime.datetime.now().timestamp()
+        max_age_seconds = max_days * 86400  # 30 วัน
 
-            file_list = []
-            for filename in os.listdir(self.folder_path):
-                if filename.lower().endswith(valid_extensions):
-                    full_path = os.path.join(self.folder_path, filename)
-                    try:
-                        mtime = os.path.getmtime(full_path)
-                        file_list.append((full_path, mtime))
-                    except Exception:
-                        continue  # ถ้าดึงข้อมูลไฟล์ไม่ได้ (เช่น ไฟล์ถูกล็อกอยู่) ให้ข้ามไปก่อน
+        file_list = []
+        for filename in os.listdir(self.folder_path):
+            if filename.lower().endswith(valid_extensions):
+                full_path = os.path.join(self.folder_path, filename)
+                try:
+                    mtime = os.path.getmtime(full_path)
+                    file_list.append((full_path, mtime))
+                except Exception:
+                    continue
 
-            # เรียงลำดับไฟล์จาก Oldest -> Newest (เก่าสุดขึ้นก่อน)
-            file_list.sort(key=lambda x: x[1])
+        file_list.sort(key=lambda x: x[1])
+        deleted_count = 0
 
-            deleted_count = 0
-
-            # ─── เงื่อนไข 1: ลบไฟล์อายุเกิน max_days (30 วัน) ───
-            remaining_files = []
-            for full_path, mtime in file_list:
-                if (now - mtime) > max_age_seconds:
-                    try:
-                        os.remove(full_path)
-                        deleted_count += 1
-                        print(f"🧹 [Auto Cleanup] ลบไฟล์หมดอายุ: {os.path.basename(full_path)}")
-                    except PermissionError:
-                        # ถ้าไฟล์กำลังถูกเขียน/เปิดใช้งานอยู่โดยโปรแกรมอื่น ให้เก็บไว้ก่อน
-                        remaining_files.append((full_path, mtime))
-                    except Exception as e:
-                        print(f"Error removing aged file {full_path}: {e}")
-                else:
-                    remaining_files.append((full_path, mtime))
-
-            # ─── เงื่อนไข 2: เช็กพื้นที่ดิสก์ หากเหลือน้อยกว่า min_free_gb (1 GB) ลบไฟล์เก่าสุด ───
-            target_free_bytes = int(min_free_gb * 1024 * 1024 * 1024)
-
-            for full_path, _ in remaining_files:
-                total, used, free = shutil.disk_usage(self.folder_path)
-
-                # ถ้าพื้นที่ว่างมากกว่าหรือเท่ากับ 1 GB แล้ว ให้หยุดลบ
-                if free >= target_free_bytes:
-                    break
-
+        # ─── เงื่อนไข 1: ลบไฟล์อายุเกิน max_days ───
+        remaining_files = []
+        for full_path, mtime in file_list:
+            if (now - mtime) > max_age_seconds:
                 try:
                     os.remove(full_path)
                     deleted_count += 1
-                    print(f"💾 [Space Cleanup] ลบไฟล์เก่าเพื่อคืนพื้นที่: {os.path.basename(full_path)}")
+                    print(f"🧹 [Auto Cleanup] ลบไฟล์หมดอายุ: {os.path.basename(full_path)}")
                 except PermissionError:
-                    continue  # ถ้าลบไม่ได้เพราะไฟล์ใช้งานอยู่ ให้ข้ามไปลบไฟล์ถัดไป
+                    remaining_files.append((full_path, mtime))
                 except Exception as e:
-                    print(f"Error removing file for space {full_path}: {e}")
+                    print(f"Error removing aged file {full_path}: {e}")
+            else:
+                remaining_files.append((full_path, mtime))
 
-            # ถ้ามีไฟล์ถูกลบ และหน้าจอ GUI ยังเปิดอยู่ ให้รีเฟรชตารางแสดงไฟล์
-            if deleted_count > 0 and hasattr(self, 'window') and self.window.winfo_exists():
-                # ใช้ root.after เพื่อสั่งอัปเดต UI จาก Thread หลักอย่างปลอดภัย
-                self.window.after(0, self.load_files)
+        # ─── เงื่อนไข 2: เช็กพื้นที่ดิสก์ หากเหลือน้อยกว่า min_free_gb ───
+        target_free_bytes = int(min_free_gb * 1024 * 1024 * 1024)
 
-            return deleted_count
+        for full_path, _ in remaining_files:
+            try:
+                total, used, free = shutil.disk_usage(self.folder_path)
+                if free >= target_free_bytes:
+                    break
+
+                os.remove(full_path)
+                deleted_count += 1
+                print(f"💾 [Space Cleanup] ลบไฟล์เก่าเพื่อคืนพื้นที่: {os.path.basename(full_path)}")
+            except PermissionError:
+                continue
+            except Exception as e:
+                print(f"Error removing file for space {full_path}: {e}")
+
+        if deleted_count > 0 and hasattr(self, 'window') and self.window.winfo_exists():
+            self.window.after(0, self.load_files)
+
+        return deleted_count
 
     def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=1.0):
-            """เริ่ม Background Thread คอยตรวจเช็กไฟล์ขยะตามระยะเวลาที่กำหนด"""
-            def cleanup_loop():
-                # รันครั้งแรกทันทีที่เปิดโปรแกรม/เปิดหน้าต่าง
-                self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
-                
-                while True:
-                    time.sleep(interval_seconds)  # หน่วงเวลาตาม interval (เช่น 3600 วินาที = 1 ชม.)
-                    
-                    # เช็กว่าหากวัตถุถูกทำลายหรือหน้าต่างถูกปิดไปแล้ว ให้หยุดการทำงานของ Thread
-                    if hasattr(self, 'window') and not self.window.winfo_exists():
-                        break
-                    
+        """เริ่ม Background Thread คอยตรวจเช็กไฟล์ขยะตามระยะเวลาที่กำหนด"""
+        def cleanup_loop():
+            # รันครั้งแรกทันที
+            self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
+            
+            # ใช้วงรอบย่อยเช็กแบบละเอียดทุก 1 วินาที เพื่อหลุดลูปได้ทันทีเมื่อปิดหน้าต่าง
+            counter = 0
+            while True:
+                time.sleep(1)
+                if not hasattr(self, 'window') or not self.window.winfo_exists():
+                    break
+                counter += 1
+                if counter >= interval_seconds:
                     self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
+                    counter = 0
 
-            # สร้าง Thread เบื้องหลัง (daemon=True จะปิดตัวลงเองเมื่อโปรแกรมหลักปิด)
-            cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
-            cleanup_thread.start()
+        cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+        cleanup_thread.start()
+
 
 class ConfigGUI:
     def __init__(self, config_path=r"setting\config.yml"):
@@ -307,14 +305,51 @@ class ConfigGUI:
             bg=BG_COLOR
         ).pack(pady=(15, 5))
 
+
         info_frame = tk.Frame(train_win, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
         info_frame.pack(fill="x", padx=20, pady=10, ipady=5)
+
+        info_frame.columnconfigure(0, weight=1)
 
         dataset_path = self.config.get("global", {}).get("dataset_path", "dataset.csv")
         model_path = os.path.join("model", selected_model_file) if not os.path.isabs(selected_model_file) else selected_model_file
 
-        tk.Label(info_frame, text=f"📊 Dataset: {os.path.basename(dataset_path)}", fg="#2563EB", bg=PANEL_COLOR, font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=10, pady=2)
-        tk.Label(info_frame, text=f"🤖 Target Save: {os.path.basename(model_path)}", fg="#059669", bg=PANEL_COLOR, font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=10, pady=2)
+        def browse_file():
+            dataset_path = filedialog.askopenfilename(
+                title="select_dataset",
+                filetypes=[("Csv", "*.csv"), ("All file", "*.*")]
+            )
+
+            if dataset_path:
+                file_path = os.path.basename(dataset_path)
+                label_dataset.config(text=f"📊 Dataset: {file_path}")
+
+                if hasattr(self, 'config') and "global" in self.config:
+                    self.config["global"]["dataset_path"] = file_path
+
+        label_dataset = tk.Label(info_frame,
+                                    text=f"📊 Dataset: {os.path.basename(dataset_path)}",
+                                    fg="#2563EB",            # กำหนดสีข้อความแทนการใช้ style
+                                    bg=PANEL_COLOR,          # กำหนดสีพื้นหลัง
+                                    font=("Segoe UI", 9, "bold")
+                                )
+        label_dataset.grid(row=0, column=0, sticky="w", pady=2)
+
+        label_model = tk.Label(info_frame,
+                                text=f"🤖 Target Save: {os.path.basename(model_path)}",
+                                fg="#2563EB",            # กำหนดสีข้อความแทนการใช้ style
+                                bg=PANEL_COLOR,          # กำหนดสีพื้นหลัง
+                                font=("Segoe UI", 9, "bold")
+                                )
+        label_model.grid(row=1, column=0, sticky="w", pady=2)
+
+
+        btn_searce = ttk.Button(info_frame,
+                                 text="📁 ค้นหา...", 
+                                 style="Action.TButton", 
+                                 command=browse_file, width=8
+                                )
+        btn_searce.grid(row=0, column=1, rowspan=2, sticky="e",  padx=(5, 10))
 
         progress = ttk.Progressbar(train_win, orient="horizontal", mode="indeterminate")
         progress.pack(fill="x", padx=20, pady=15)
@@ -387,8 +422,9 @@ class ConfigGUI:
         btn_train.pack(pady=15)
 
     def safe_close_app(self):
-        self.root.quit()
-        self.root.destroy()
+        if self.root:
+            self.root.quit()
+            self.root.destroy()
 
     def open_settings(self, current_cam_id=None, on_close_callback=None):
         """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Blue Theme)"""
@@ -410,7 +446,7 @@ class ConfigGUI:
         TITLE_BLUE = "#1E3A8A"      # สีกรมท่าสำหรับหัวข้อ
 
         self.root = tk.Tk()
-        self.root.title(" System Configuration")
+        self.root.title("System Configuration")
         self.root.geometry("600x820")
         self.root.minsize(450, 750)      # รองรับการขยายและย่อหน้าจอ
         self.root.resizable(True, True)  # ✅ เปิดให้ลด-ขยายขนาดหน้าต่างได้
@@ -630,9 +666,11 @@ class ConfigGUI:
             activeforeground="white",
             font=("Segoe UI", 9, "bold"),
             bd=0,
-            pady=8,  # 👈 เปลี่ยนเป็น pady=8 สำหรับ tk.Button
+            pady=8,
             cursor="hand2"
         )
+        # ✅ แก้ไข: แสดงผลปุ่มเปิดสตูดิโอเทรนโมเดล
+        btn_go_train.pack(fill="x", pady=(10, 0))
 
         # ─── ตรรกะปิดหน้าต่าง ───
         def on_window_close():
@@ -710,4 +748,11 @@ class ConfigGUI:
         )
         btn_save.pack(fill="x", padx=20, pady=(10, 25))
 
+        # ✅ แก้ไข: ปิดวงเล็บ mainloop
         self.root.mainloop()
+
+
+# ─── ตัวอย่างการเรียกใช้งาน ───
+if __name__ == "__main__":
+    app = ConfigGUI()
+    app.open_settings()

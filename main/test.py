@@ -1,83 +1,109 @@
 import cv2
+import joblib
+import numpy as np
+import yaml
+import tkinter as tk
+from PIL import Image, ImageTk
+from LIB.multi_cam_helper import MultiCameraManager
 
-# ลิสต์สำหรับเก็บพิกัดพอยต์ [(x1, y1), (x2, y2), ...]
-mouse_points = []
-# ตัวแปรสถานะเพื่อบอกว่ากดยืนยันแล้วหรือยัง
-is_confirmed = False
+# ─── 1. ตัวอย่างไฟล์การตั้งค่า (Config Mockup) ───
+config_data = {
+    "cameras": {
+        "Camera_1": {"source": 0},          # Webcam เครื่องหลัก
+        "Camera_2": {"source": 1},          # Webcam ตัวที่ 2 หรือไฟล์วิดีโอ
+        "Camera_3": {"source": "test.mp4"}, # ไฟล์ วิดีโอ หรือ RTSP Stream
+    }
+}
 
-# 1. Callback ฟังก์ชันดักจับเมาส์
-def click_event(event, x, y, flags, param):
-    global is_confirmed
-    # ถ้ายังไม่ได้กดยืนยัน จะสามารถคลิกเพิ่มจุดได้เรื่อย ๆ
-    if not is_confirmed:
-        if event == cv2.EVENT_LBUTTONDOWN:
-            mouse_points.append((x, y))
-            print(f"บันทึกจุดที่ {len(mouse_points)}: {x}, {y}")
+class MultiCamApp:
+    def __init__(self, root, config):
+        self.root = root
+        self.root.title("Multi-Camera AI Pose Detection Studio")
+        self.root.geometry("1024x600")
 
-# 2. อ่านภาพต้นฉบับ (หรือสร้างเฟรมดำขึ้นมาทดสอบ)
-cap = cv2.VideoCapture("videoTrain4.mp4") 
+        # โหลดโมเดล AI ที่เทรนไว้ (ถ้าไม่มีจะรันแบบดึงภาพเปล่า)
+        try:
+            self.model = joblib.load("pose_classifier_1.pkl")
+            print("🟢 [AI] โหลดโมเดล pose_classifier_1.pkl สำเร็จ")
+        except Exception as e:
+            self.model = None
+            print(f"⚠️ [AI] ไม่พบไฟล์โมเดล: {e} (รันโหมดดึงภาพปกติ)")
 
-# กรณีต้องการใช้หน้าต่างจำลองสำหรับทดสอบ (เปิดใช้งานบรรทัดล่างนี้ได้ครับ)
-# import numpy as np; img = np.zeros((600, 800, 3), np.uint8)
-
-window_name = "Point Tracker & Connector"
-cv2.namedWindow(window_name)
-cv2.setMouseCallback(window_name, click_event)
-
-print("--- วิธีใช้งาน ---")
-print("1. คลิกเมาส์ซ้ายบนภาพเพื่อเพิ่มจุด")
-print("2. กดปุ่ม '2' บนคีย์บอร์ด เพื่อยืนยัน (Confirm) และลากเส้นปิดรูปทรง")
-print("3. กดปุ่ม 'r' เพื่อรีเซ็ตเริ่มใหม่")
-print("4. กดปุ่ม 'q' เพื่อออกจากโปรแกรม")
-
-while True:
-    ret, temp_img = cap.read()
-    
-    if not ret:
-        break
-    # จำนวนจุดที่มีในปัจจุบัน
-    temp_img = cv2.resize(temp_img, (640, 480))
-    num_pts = len(mouse_points)
-    
-    # 3. วาดเส้นและจุดบนจอ
-    if num_pts > 0:
-        # วาดวงกลมเล็ก ๆ ในทุกจุดที่คลิก
-        for pt in mouse_points:
-            cv2.circle(temp_img, pt, 5, (0, 255, 0), -1)
-            
-        # ลากเส้นเชื่อมจาก จุด 1 -> 2 -> 3 ไปเรื่อย ๆ
-        for i in range(num_pts - 1):
-            cv2.line(temp_img, mouse_points[i], mouse_points[i+1], (0, 255, 255), 2)
-            
-        # ถ้ากดยืนยันแล้ว (is_confirmed == True) ให้ลากเส้นจาก จุดสุดท้าย กลับมา จุดแรก
-        if is_confirmed and num_pts > 2:
-            cv2.line(temp_img, mouse_points[-1], mouse_points[0], (0, 255, 255), 2)
-            # แสดงคำว่า CONFIRMED บนภาพ
-            cv2.putText(temp_img, "POLYGON CONFIRMED", (20, 40), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-
-    cv2.imshow(window_name, temp_img)
-    
-    # 4. ดักจับการกดปุ่มบนคีย์บอร์ด
-    key = cv2.waitKey(1) & 0xFF
-    
-    # หากกดปุ่ม '2' -> ยืนยันการตีกรอบ (ตราบใดที่มีมากกว่า 2 จุดขึ้นไป)
-    if key == ord('2'):
-        if len(mouse_points) > 2:
-            is_confirmed = True
-            print("\n[ยืนยันพิกัดเรียบร้อย!]")
-            print(f"พิกัดรูปปิด (Polygon): {mouse_points}")
-        else:
-            print("กรุณาคลิกอย่างน้อย 3 จุดก่อนกดยืนยันครับ")
-            
-    # หากกดปุ่ม 'r' -> รีเซ็ตทุกอย่างเพื่อเริ่มคลิกใหม่
-    elif key == ord('r'):
-        mouse_points = []
-        is_confirmed = False
-        print("\nรีเซ็ตพิกัดเรียบร้อย เริ่มคลิกใหม่ได้เลยครับ")
+        # เรียกใช้งาน MultiCameraManager จากคลาสที่คุณสร้างขึ้น
+        self.cam_manager = MultiCameraManager(config)
         
-    # หากกดปุ่ม 'q' -> ออกจากโปรแกรม
-    elif key == ord('q'):
-        break
+        # ตั้งค่าผูกกล้องลง Grid Slot (เช่น ช่อง 1 ใช้ Camera_1, ช่อง 2 ใช้ Camera_2)
+        self.cam_manager.update_grid_slots(["Camera_1", "Camera_2", "None", "None"])
 
-cv2.destroyAllWindows()
+        # UI Element สำหรับแสดงผล Grid 2x2
+        self.lbl_video = tk.Label(self.root, bg="black")
+        self.lbl_video.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # จัดการเมื่อปิดหน้าต่าง ให้ release กล้องทั้งหมด
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        # เริ่ม Main Loop การอ่านเฟรม
+        self.update_frame()
+
+    def process_ai_detection(self, raw_frames):
+        """
+        นำเฟรมแต่ละกล้องมาประมวลผลผ่าน AI Detect ก่อนส่งเข้า Grid
+        """
+        processed_frames = {}
+        for cam_id, frame in raw_frames.items():
+            if frame is None:
+                processed_frames[cam_id] = None
+                continue
+
+            # คัดลอกภาพมาวาดผลลัพธ์
+            annotated_frame = frame.copy()
+
+            # ----------------------------------------------------
+            # 🤖 [พื้นที่ใส่ Logic AI Pose Detection]
+            # 1. สกัด Keypoints พิกัดโครงกระดูก (เช่น Mediapipe Pose)
+            # 2. ทำ Prediction ด้วยโมเดล: pred = self.model.predict(X_keypoints)
+            # 3. วาด Bounding Box / Text บน annotated_frame
+            # ----------------------------------------------------
+            if self.model is not None:
+                cv2.putText(
+                    annotated_frame, f"AI Status: Active [{cam_id}]", 
+                    (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+                )
+
+            processed_frames[cam_id] = annotated_frame
+
+        return processed_frames
+
+    def update_frame(self):
+        """อ่านเฟรมจาก Manager -> ส่งประมวลผล AI -> สร้าง Grid -> แสดงบน Tkinter"""
+        # 1. อ่านเฟรมจากกล้องทุกตัว
+        raw_frames = self.cam_manager.read_frames()
+
+        # 2. ส่งเฟรมเข้าประมวลผลด้วย AI
+        ai_frames = self.process_ai_detection(raw_frames)
+
+        # 3. รวมเฟรมเป็น Grid 2x2 ผ่านเมธอด create_grid ของคุณ
+        grid_view = self.cam_manager.create_grid(ai_frames, target_size=(480, 270))
+
+        # 4. แปลงภาพ OpenCV (BGR) เป็น ImageTk
+        grid_rgb = cv2.cvtColor(grid_view, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(grid_rgb)
+        imgtk = ImageTk.PhotoImage(image=img)
+
+        self.lbl_video.imgtk = imgtk
+        self.lbl_video.configure(image=imgtk)
+
+        # วนรอบการทำงานทุก 30 Milliseconds (~33 FPS)
+        self.root.after(30, self.update_frame)
+
+    def on_closing(self):
+        """ปิดการเชื่อมต่อกล้องอย่างปลอดภัยก่อนปิดโปรแกรม"""
+        print("🛑 กำลังปิดการเชื่อมต่อกล้องทั้งหมด...")
+        self.cam_manager.release_all()
+        self.root.destroy()
+
+# ─── 🚀 สั่งรันแอปพลิเคชัน ───
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MultiCamApp(root, config_data)
+    root.mainloop()

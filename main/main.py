@@ -158,14 +158,21 @@ stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 # state = {}
 
 config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
-# config_manager.open_settings()  
+
+# สร้างตัวแปร Global สำหรับแชร์ Frame ล่าสุดไปยัง GUI หน้าต่างอื่น
+latest_frame = None
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
     if not ret:     
-        cv2.waitKey(30)
-        continue
+        break
+        # continue
     h, w = frame.shape[:2]
+
+    # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
+    latest_frame = frame.copy()
+
     
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
