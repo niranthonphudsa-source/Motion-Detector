@@ -67,7 +67,7 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16)
 ]
 
-cap = RTSPVideoGrabber(source)
+cap = cv2.VideoCapture(source)
 
 os.makedirs("video_ng", exist_ok=True)
 os.makedirs("video_ok", exist_ok=True)

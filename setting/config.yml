@@ -21,19 +21,21 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 346
-      - 913
-    - - 701
-      - 980
-    - - 695
-      - 1053
-    - - 313
-      - 983
+    - - 114
+      - 518
+    - - 481
+      - 481
+    - - 474
+      - 622
+    - - 146
+      - 611
     person_limit: 5
     record_video: false
+    reverse_point: null
     save_ng: false
     save_ok: false
     source: video_model\videoTrain2.mp4
+    start_point: null
   Camera_3:
     Display:
       Position_x: 0
@@ -43,29 +45,29 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 369
-      - 627
-    - - 731
-      - 621
-    - - 773
-      - 725
-    - - 388
-      - 725
-    - - 392
-      - 693
-    - - 369
-      - 687
+    - - 188
+      - 413
+    - - 362
+      - 415
+    - - 380
+      - 480
+    - - 194
+      - 481
+    - - 193
+      - 468
+    - - 183
+      - 463
     person_limit: 5
     record_video: false
     reverse_point:
-    - 624
-    - 945
-    save_ng: true
-    save_ok: true
+    - 300
+    - 626
+    save_ng: false
+    save_ok: false
     source: video_model\videoTrain3.mp4
     start_point:
-    - 563
-    - 681
+    - 282
+    - 454
   Camera_4:
     Display:
       Position_x: 0
@@ -106,11 +108,26 @@ cameras:
       Size_y: 1080
     Type: LIVE_STREAM
     enabled: true
+    mark_points:
+    - - 70
+      - 84
+    - - 264
+      - 87
+    - - 261
+      - 202
+    - - 63
+      - 190
     person_limit: 5
     record_video: true
+    reverse_point:
+    - 135
+    - 349
     save_ng: false
     save_ok: false
     source: 0
+    start_point:
+    - 157
+    - 137
   Camera_6:
     Display:
       Position_x: 0
