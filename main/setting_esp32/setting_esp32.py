@@ -8,6 +8,22 @@ import serial
 
 CONFIG_FILE = "hardware_config.json"
 
+# 📍 1. วางฟังก์ชันไว้ด้านบนของไฟล์ หรือไว้เป็น Helper Function
+def apply_pin_config_to_mcu(config):
+    port = config["port"]
+    baud = config["baudrate"]
+    
+    try:
+        with serial.Serial(port, baud, timeout=1) as ser:
+            command = f"SETPIN:TRIG={config['trig_pin']},ECHO={config['echo_pin']},RELAY={config['relay_pin']}\n"
+            ser.write(command.encode('utf-8'))
+            print(f"📡 ส่งคำสั่งตั้งค่า Pin ไปยัง {port}: {command.strip()}")
+            return True
+    except Exception as e:
+        print(f"❌ ไม่สามารถเชื่อมต่อกับ {port} ได้: {e}")
+        return False
+
+    
 class PinConfigGUI:
     def __init__(self, on_save_callback=None):
         self.on_save_callback = on_save_callback

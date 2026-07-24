@@ -147,6 +147,8 @@ cameras:
     enabled: false
     person_limit: 5
     record_video: false
+    save_ng: false
+    save_ok: false
     source: rtsp://admin:aoyama123456@xx.xx.x.xx:xx/Streaming/Channels/101/
 global:
   active_model: model\pose_classifier_1 copy.pkl
