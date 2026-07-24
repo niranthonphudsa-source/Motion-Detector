@@ -45,7 +45,7 @@ class TableViewerWindow(tk.Toplevel):
     def __init__(self, parent, config_data):
         super().__init__(parent)
 
-        print(f"Parent: {parent} Config: {config_data}")
+        # print(f"Parent: {parent} Config: {config_data}")
         self.title("📊 SQL Server Data Viewer")
         self.geometry("900x600")
         self.config_data = config_data
@@ -131,6 +131,7 @@ class TableViewerWindow(tk.Toplevel):
                 WHERE TABLE_TYPE = 'BASE TABLE'
                 ORDER BY TABLE_NAME
             """
+
             cursor.execute(query)
             tables = [row[0] for row in cursor.fetchall()]
             conn.close()
