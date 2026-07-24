@@ -1,6 +1,14 @@
 import os
 import cv2
 import math
+import numpy as np
+import joblib
+import time
+import pandas as pd
+import threading
+import tkinter as tk
+import serial
+
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
@@ -10,21 +18,13 @@ from app.app import TableViewerWindow, SSMSConnectGUI, ConfigManager
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
-import numpy as np
-import joblib
-import time
-import pandas as pd
-import threading
-import tkinter as tk
 from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
-import serial
 from rtspVideo import RTSPVideoGrabber
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
-# เรียกใช้งานตัวแปรต่างๆ ได้ผ่าน app_config เลย เช่น:
 config_manager = app_config.config_manager
 config = app_config.config
 active_camera_id = app_config.active_camera_id
@@ -33,8 +33,6 @@ source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
-
-
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
@@ -67,30 +65,25 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16)
 ]
 
-cap = cv2.VideoCapture(source)
+cap = RTSPVideoGrabber(source)
 
 os.makedirs("video_ng", exist_ok=True)
 os.makedirs("video_ok", exist_ok=True)
 os.makedirs("video_center", exist_ok=True)
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-# เรียกใช้งานตัวจัดการสถานะ ID และวิดีโอ
 manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=3)
 
-# 🌟 ตัวแปรกระเป๋าเก็บสถานะการเดินสวนทางรายบุคคล -> { p_id: {'first_touch': 'START'/'REVERSE', 'is_reverse': True/False} }
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
 
 def get_distance(p1, p2):
-    """คำนวณระยะห่างทางเรขาคณิต (Euclidean Distance) ระหว่างจุด 2 จุด"""
     if p1 is None or p2 is None: return 999999
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
 def reload_config_callback(new_camera_id, updated_config=None):
-    # 🌟 1. อย่าลืมเพิ่ม pose_classifier ใน global
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier
     
-    # 🌟 2. ถ้านำส่ง updated_config มาจาก GUI ให้ใช้ค่าใหม่ทันที ถ้าไม่มีค่อยไปดึงจากไฟล์
     if updated_config:
         config = updated_config
         config_manager.config = updated_config
@@ -98,20 +91,12 @@ def reload_config_callback(new_camera_id, updated_config=None):
         config_manager.config = config_manager.load_config()
         config = config_manager.config
     
-    # ---------------------------------------------------------
-    # 🤖 3. ดึง Path โมเดลล่าสุดจากกิ่ง config["model"] และสั่ง Reload
-    # ---------------------------------------------------------
     try:
         model_info = config.get("model", {}).get("Model_path_1", {})
-        if isinstance(model_info, dict):
-            new_model_path = model_info.get("source", "")
-            
-        else:
-            new_model_path = str(model_info)
+        new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
 
         if new_model_path and os.path.exists(new_model_path):
             model_sklearn = new_model_path
-            # 🔄 โหลดออบเจกต์โมเดล AI ใหม่เข้า Memory ทันที
             pose_classifier = joblib.load(model_sklearn)
             print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
         else:
@@ -119,9 +104,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
     except Exception as e:
         print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
 
-    # ---------------------------------------------------------
-    # 🔄 4. ตรรกะการสลับกล้อง (Switch Camera)
-    # ---------------------------------------------------------
+    # 🔄 สลับกล้อง (Switch Camera)
     if active_camera_id != new_camera_id:
         print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
         
@@ -130,10 +113,14 @@ def reload_config_callback(new_camera_id, updated_config=None):
         camera = config["cameras"][active_camera_id]
         
         new_source = camera["source"]
-        cap = cv2.VideoCapture(new_source)
+        cap = RTSPVideoGrabber(new_source)
         
-        if old_cap and old_cap.isOpened():
-            old_cap.release()
+        # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
+        if old_cap:
+            if hasattr(old_cap, 'stop'):
+                old_cap.stop()
+            elif hasattr(old_cap, 'release'):
+                old_cap.release()
 
         # อัปเดตพิกัด ROI & จุดมาร์ก
         roi.clear()
@@ -143,9 +130,6 @@ def reload_config_callback(new_camera_id, updated_config=None):
         if len(roi.mark_points) > 0:
             roi.is_confirmed = True
 
-    # ---------------------------------------------------------
-    # ⚙️ 5. อัปเดต Flag ต่างๆ
-    # ---------------------------------------------------------
     cam_data = config["cameras"].get(active_camera_id, {})
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
@@ -153,65 +137,51 @@ def reload_config_callback(new_camera_id, updated_config=None):
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
 def open_ssms_gui():
-    """เปิดหน้าต่าง SSMSConnectGUI ใน Thread แยกเพื่อไม่ให้ OpenCV กระตุก/ค้าง"""
     def run_gui():
-        db_root = tk.Tk()  # สร้าง Root Window สำหรับ GUI ตั้งค่า DB
+        db_root = tk.Tk()
         app = SSMSConnectGUI(db_root)
         db_root.mainloop()
 
     gui_thread = threading.Thread(target=run_gui, daemon=True)
     gui_thread.start()
 
-
 simulated_key = -1
 def trigger_key_from_gui(key_code):
-    """Callback function ให้ GUI เรียกใช้เมื่อมีกด Button"""
     global simulated_key
     simulated_key = key_code
 
-# สร้าง Instance ของ HelpGUI
 help_gui = HelpGUI(key_callback=trigger_key_from_gui)
 
-
 def open_help_window():
-    """เปิด GUI บน Thread แยก เพื่อไม่ให้บล็อก OpenCV Main Loop"""
     gui_thread = threading.Thread(target=help_gui.open_window, daemon=True)
     gui_thread.start()
 
-def apply_pin_config_to_mcu(config):
-    port = config["port"]
-    baud = config["baudrate"]
+def apply_pin_config_to_mcu(config_data):
+    port = config_data["port"]
+    baud = config_data["baudrate"]
     
     try:
         with serial.Serial(port, baud, timeout=1) as ser:
-            command = f"SETPIN:TRIG={config['trig_pin']},ECHO={config['echo_pin']},RELAY={config['relay_pin']}\n"
+            command = f"SETPIN:TRIG={config_data['trig_pin']},ECHO={config_data['echo_pin']},RELAY={config_data['relay_pin']}\n"
             ser.write(command.encode('utf-8'))
             print(f"📡 ส่งคำสั่งตั้งค่า Pin ไปยัง {port}: {command.strip()}")
     except Exception as e:
         print(f"❌ ไม่สามารถเชื่อมต่อกับ {port} ได้: {e}")
 
-# =========================================================
-# 📍 จุดที่ส่งฟังก์ชันนี้เป็น Callback ไปให้ GUI
-# =========================================================
+# 🔴 แก้ไข: เปิด PinConfigGUI แบบ Threading ไม่ให้บล็อก OpenCV
 def open_pin_config_window():
-    # ส่ง apply_pin_config_to_mcu เป็น callback ให้ GUI เรียกตอนกด Save
-    app = PinConfigGUI(on_save_callback=apply_pin_config_to_mcu)
-    app.run()
+    def run_gui():
+        app = PinConfigGUI(on_save_callback=apply_pin_config_to_mcu)
+        app.run()
 
-# 2. ประกาศตัวแปรสร้างฐานข้อมูล
-# stats_manager = StatsGUI()
-# 1. สร้างตัวเก็บ Log สถิติ (ใช้ชื่อ stats_db หรือ stats_gui)
+    gui_thread = threading.Thread(target=run_gui, daemon=True)
+    gui_thread.start()
+
 stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
-
-# 2. สร้างตัวจัดการหน้าต่าง Dashboard โดยชี้ DB ไปที่ไฟล์เดียวกัน
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
-# state = {}
 
 config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
-
-# สร้างตัวแปร Global สำหรับแชร์ Frame ล่าสุดไปยัง GUI หน้าต่างอื่น
 latest_frame = None
-
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
@@ -222,7 +192,6 @@ while True:
         # continue
     frame = cv2.resize(frame, (640, 640))
     h, w = frame.shape[:2]
-    
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
 

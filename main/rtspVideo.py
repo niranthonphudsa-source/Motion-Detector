@@ -6,6 +6,7 @@ class RTSPVideoGrabber:
         self.cap = cv2.VideoCapture(src)
         # ปรับอ่านผ่าน FFMPEG ให้กระชับขึ้น
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        # self.cap = cv2.resize(self.cap, (640, 360))
         self.ret, self.frame = self.cap.read()
         self.running = True
         
