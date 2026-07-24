@@ -5,20 +5,20 @@ REM ==================================================
 REM กำหนด path ของโปรเจกต์
 REM ==================================================
 set "PROJECT_DIR=C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector"
-set "SCRIPT_DIR=%PROJECT_DIR%\script_run"
-set "SCRIPT_FILE=%SCRIPT_DIR%venv\Scripts\activate.bat"
+set "SCRIPT_DIR=%PROJECT_DIR%\main"
+set "SCRIPT_FILE=%SCRIPT_DIR%\main.py"
 
 REM ==================================================
 REM ใช้ Python จาก .venv1
 REM ==================================================
-set "PYTHON_EXE=%PROJECT_DIR%\main\mian.py"
+set "PYTHON_EXE=%PROJECT_DIR%\main\main.py"
 
 REM ==================================================
 REM เพิ่ม path สำหรับ import module
 REM - root project
 REM - โฟลเดอร์ 00_setting
 REM ==================================================
-set "PYTHONPATH=%PROJECT_DIR%;%PROJECT_DIR%\setting\config.json;%PYTHONPATH%"
+set "PYTHONPATH=%PROJECT_DIR%\setting\config.yaml;%PYTHONPATH%"
 
 REM ==================================================
 REM ตรวจสอบไฟล์สำคัญ
@@ -53,7 +53,7 @@ echo.
 REM ==================================================
 REM เข้าโฟลเดอร์ script ก่อนรัน
 REM ==================================================
-cd /d "%SCRIPT_DIR%"
+cd /d "%PROJECT_DIR%"
 
 REM ==================================================
 REM รันโปรแกรม
