@@ -275,8 +275,9 @@ while True:
         if person_dir['first_touch'] is None:
             dist_to_start = get_distance(foot_pos, roi.start_point)
             dist_to_reverse = get_distance(foot_pos, roi.reverse_point)
+            reverse_y= roi.reverse_point[1]
 
-            if dist_to_reverse < 50:
+            if dist_to_reverse < 50 or foot_y >= reverse_y:
                 person_dir['first_touch'] = 'REVERSE'
                 person_dir['is_reverse'] = True
                 print(f"🚫 ID {s.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
