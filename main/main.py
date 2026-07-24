@@ -16,6 +16,8 @@ import time
 import pandas as pd
 import threading
 import tkinter as tk
+from LIB.help_gui import HelpGUI
+
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
@@ -157,6 +159,23 @@ def open_ssms_gui():
     gui_thread = threading.Thread(target=run_gui, daemon=True)
     gui_thread.start()
 
+
+simulated_key = -1
+def trigger_key_from_gui(key_code):
+    """Callback function ให้ GUI เรียกใช้เมื่อมีกด Button"""
+    global simulated_key
+    simulated_key = key_code
+
+# สร้าง Instance ของ HelpGUI
+help_gui = HelpGUI(key_callback=trigger_key_from_gui)
+
+
+def open_help_window():
+    """เปิด GUI บน Thread แยก เพื่อไม่ให้บล็อก OpenCV Main Loop"""
+    gui_thread = threading.Thread(target=help_gui.open_window, daemon=True)
+    gui_thread.start()
+
+
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
 # stats_manager = StatsGUI()
 # 1. สร้างตัวเก็บ Log สถิติ (ใช้ชื่อ stats_db หรือ stats_gui)
@@ -183,6 +202,13 @@ while True:
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
 
+    # 1. รับคำสั่งจากแป้นคีย์บอร์ดจริง
+    key = cv2.waitKey(1) & 0xFF
+
+    # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
+    if simulated_key != -1:
+        key = simulated_key
+        simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
     
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
@@ -370,27 +396,39 @@ while True:
         line_height = 20
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
 
-       
+        color_state1 = (0, 255, 0) if len(state['valaus_last']) >= 1 else (255, 255, 255)
+        color_state2 = (0, 255, 0) if len(state['valaus_last']) >= 2 else (255, 255, 255)
+        color_state3 = (0, 255, 0) if len(state['valaus_last']) >= 3 else (255, 255, 255)
+            
 
         display_lines = [
             f"ID: {s.p_id}",
             f"Pose: {predicted_label} ({confidence:.1f}%)" if people_in_rectangle else "Pose: Outside ROI",
-            f"Progress: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
+            # f"Progress Test: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
+            f"State Right",
+            f"State Left",
+            f"State Front",
             f"STATUS: {state['confirm']}"
         ]
 
-
-
-
-        # if data:
-        #     TableViewerWindow.insert_data(config_data, *data)
-
         for i, line_text in enumerate(display_lines):
             current_y = text_y_start + (i * line_height)
-            if "STATUS" in line_text:
-                cv2.putText(frame, line_text, (text_x, current_y + 90), cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)
+            if "Pose" in line_text:
+                cv2.putText(frame, line_text, (text_x + 40, current_y + 40), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 1, 3)
+            elif "State Right" in line_text:
+                cv2.putText(frame, line_text, (text_x + 40, current_y + 50), cv2.FONT_HERSHEY_COMPLEX, 0.8, color_state1, 1, 3)
+
+            elif "State Left" in line_text:
+                cv2.putText(frame, line_text, (text_x + 40, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_state2, 1, 3)
+
+            elif "State Front" in line_text:
+                cv2.putText(frame, line_text, (text_x + 40, current_y + 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_state3, 1, 3)
+
+            elif "STATUS" in line_text:
+                cv2.putText(frame, line_text, (text_x + 40, current_y + 80), cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)
+            
             else:
-                cv2.putText(frame, line_text, (text_x, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
+                cv2.putText(frame, line_text, (text_x - 50, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
 
         if state["writer"] is not None:
             state["writer"].write(frame)
@@ -429,6 +467,9 @@ while True:
     key = cv2.waitKey(1) & 0xFF
     if key == ord('q'):
         break
+    elif key == ord('h'):  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
+        print("💡 กำลังเปิดหน้าต่างคู่มือช่วยเหลือ (Help GUI)...")
+        open_help_window()
         
     elif key == ord('1'):  # โหมดมาร์กพิกัดพื้นที่ Polygon
         roi.clear()
