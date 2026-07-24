@@ -17,7 +17,8 @@ import pandas as pd
 import threading
 import tkinter as tk
 from LIB.help_gui import HelpGUI
-
+from setting_esp32.setting_esp32 import PinConfigGUI
+import serial
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
@@ -175,6 +176,25 @@ def open_help_window():
     gui_thread = threading.Thread(target=help_gui.open_window, daemon=True)
     gui_thread.start()
 
+def apply_pin_config_to_mcu(config):
+    port = config["port"]
+    baud = config["baudrate"]
+    
+    try:
+        with serial.Serial(port, baud, timeout=1) as ser:
+            command = f"SETPIN:TRIG={config['trig_pin']},ECHO={config['echo_pin']},RELAY={config['relay_pin']}\n"
+            ser.write(command.encode('utf-8'))
+            print(f"📡 ส่งคำสั่งตั้งค่า Pin ไปยัง {port}: {command.strip()}")
+    except Exception as e:
+        print(f"❌ ไม่สามารถเชื่อมต่อกับ {port} ได้: {e}")
+
+# =========================================================
+# 📍 จุดที่ส่งฟังก์ชันนี้เป็น Callback ไปให้ GUI
+# =========================================================
+def open_pin_config_window():
+    # ส่ง apply_pin_config_to_mcu เป็น callback ให้ GUI เรียกตอนกด Save
+    app = PinConfigGUI(on_save_callback=apply_pin_config_to_mcu)
+    app.run()
 
 # 2. ประกาศตัวแปรสร้างฐานข้อมูล
 # stats_manager = StatsGUI()

@@ -1,0 +1,7 @@
+{
+    "port": "COM3",
+    "baudrate": 9600,
+    "trig_pin": 26,
+    "echo_pin": 27,
+    "relay_pin": 12
+}
