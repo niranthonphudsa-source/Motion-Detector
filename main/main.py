@@ -19,6 +19,7 @@ import tkinter as tk
 from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 import serial
+from rtspVideo import RTSPVideoGrabber
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
@@ -66,7 +67,8 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16)
 ]
 
-cap = cv2.VideoCapture(source)
+cap = RTSPVideoGrabber(source)
+
 os.makedirs("video_ng", exist_ok=True)
 os.makedirs("video_ok", exist_ok=True)
 os.makedirs("video_center", exist_ok=True)
@@ -213,12 +215,14 @@ latest_frame = None
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
+    
     ret, frame = cap.read()
     if not ret:     
         break
         # continue
+    frame = cv2.resize(frame, (640, 640))
     h, w = frame.shape[:2]
-
+    
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
 
