@@ -21,7 +21,7 @@ from ultralytics import YOLO
 from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
-
+from LIB.zoom_arae import AdvancedZoomArea
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -46,6 +46,7 @@ cv2.setMouseCallback(window_name, roi.click_event)
 roi.mark_points = camera.get("mark_points", [])
 roi.start_point = camera.get("start_point", None)
 roi.reverse_point = camera.get("reverse_point", None)
+roi.point_zoom = camera.get("point_zoom", None)
 
 if len(roi.mark_points) > 0:
     roi.is_confirmed = True
@@ -65,7 +66,8 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16)
 ]
 
-cap = RTSPVideoGrabber(source)
+cap = RTSPVideoGrabber(source) 
+zoom_tool = AdvancedZoomArea(zoom_factor=2.5)
 
 os.makedirs("video_ng", exist_ok=True)
 os.makedirs("video_ok", exist_ok=True)
@@ -127,6 +129,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
         roi.mark_points = camera.get("mark_points", [])
         roi.start_point = camera.get("start_point", None)
         roi.reverse_point = camera.get("reverse_point", None)
+        roi.point_zoom = camera.get("point_zoom", None)
         if len(roi.mark_points) > 0:
             roi.is_confirmed = True
 
@@ -185,7 +188,6 @@ latest_frame = None
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
-    
     ret, frame = cap.read()
     if not ret:     
         break
@@ -194,6 +196,8 @@ while True:
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
+    zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
+    frame = zoomed_frame
 
     # 1. รับคำสั่งจากแป้นคีย์บอร์ดจริง
     key = cv2.waitKey(1) & 0xFF
@@ -275,16 +279,21 @@ while True:
         if person_dir['first_touch'] is None:
             dist_to_start = get_distance(foot_pos, roi.start_point)
             dist_to_reverse = get_distance(foot_pos, roi.reverse_point)
-            reverse_y= roi.reverse_point[1]
+            # ─── ดึงพิกัดแกน Y แบบปลอดภัย (ป้องกัน NoneType Error) ───
+            start_y = roi.start_point[1] if roi.start_point is not None else None
+            reverse_y = roi.reverse_point[1] if roi.reverse_point is not None else None
 
-            if dist_to_reverse < 50 or foot_y >= reverse_y:
-                person_dir['first_touch'] = 'REVERSE'
-                person_dir['is_reverse'] = True
-                print(f"🚫 ID {s.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
-            elif dist_to_start < 50:
-                person_dir['first_touch'] = 'START'
-                person_dir['is_reverse'] = False
-                print(f"✅ ID {s.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")
+            # ตรวจสอบว่าทั้งคู่มีค่าพิกัดอยู่จริง ก่อนทำเงื่อนไขเปรียบเทียบ
+            if person_dir['first_touch'] is None and start_y is not None and reverse_y is not None:
+
+                if dist_to_reverse < 50 or foot_y >= reverse_y:
+                    person_dir['first_touch'] = 'REVERSE'
+                    person_dir['is_reverse'] = True
+                    print(f"🚫 ID {s.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
+                elif dist_to_start < 50:
+                    person_dir['first_touch'] = 'START'
+                    person_dir['is_reverse'] = False
+                    print(f"✅ ID {s.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")
 
         # 🛑 หากเป็นคนที่เดินสวนทางมา ให้ข้ามตรรกะการตรวจท่าทางและการบันทึกไฟล์ไปเลย
         if person_dir['is_reverse']:
@@ -443,7 +452,7 @@ while True:
 
 
     # แสดงสถานะโหมดใช้งานบน UI
-    mode_names = {0: "NORMAL", 1: "DRAW POLYGON", 2: "MARK POINT 1 (START)", 3: "MARK POINT 2 (REVERSE)"}
+    mode_names = {0: "NORMAL", 1: "DRAW POLYGON", 2: "MARK POINT 1 (START)", 3: "MARK POINT 2 (REVERSE)", 5: "Mark Point Zoom"}
     status_text = f"MODE: {mode_names.get(roi.current_mode, 'NORMAL')}"
     cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear | S=Settings | Q=Exit", 
@@ -477,6 +486,10 @@ while True:
     elif key == ord('4'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.current_mode = 3
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
+
+    elif key == ord('5'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+        roi.current_mode = 5
+        print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
         
     elif key == ord('2'):  # บันทึกพิกัดจุดมาร์กเข้า config.yml
         roi.is_confirmed = True
@@ -488,6 +501,7 @@ while True:
         config_manager.config["cameras"][active_camera_id]["mark_points"] = roi.mark_points
         config_manager.config["cameras"][active_camera_id]["start_point"] = roi.start_point
         config_manager.config["cameras"][active_camera_id]["reverse_point"] = roi.reverse_point
+        config_manager.config["cameras"][active_camera_id]["point_zoom"] = roi.point_zoom 
         
         config_manager.save_config()
         print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")

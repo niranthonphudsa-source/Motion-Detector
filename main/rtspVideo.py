@@ -26,6 +26,6 @@ class RTSPVideoGrabber:
     def read(self):
         return self.ret, self.frame
 
-    def stop(self):
+    def release(self):
         self.running = False
         self.cap.release()

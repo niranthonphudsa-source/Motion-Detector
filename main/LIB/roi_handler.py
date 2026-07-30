@@ -14,6 +14,7 @@ class ROIHandler:
         
         # ─── พิกัดที่บันทึก ───
         self.mark_points = []      # ลิสต์เก็บพิกัดรูปปิด [(x1, y1), (x2, y2), ...]
+        self.point_zoom = None
         self.start_point = None    # พิกัดจุดที่ 1: Start Check (x, y)
         self.reverse_point = None  # พิกัดจุดที่ 2: Reverse Check (x, y)
         
@@ -36,6 +37,10 @@ class ROIHandler:
             elif self.current_mode == 3:
                 self.reverse_point = (x, y)
                 print(f"🔴 [Point 2 - Reverse] บันทึกจุดดักเดินสวน: ({x}, {y})")
+
+            elif self.current_mode == 5:
+                self.point_zoom = (x, y)
+                print(f"🟢 [Point 1 - Start] บันทึกจุดเริ่มเช็ก: ({x}, {y})")
 
     # 2. ยืนยันพิกัด Polygon ROI
     def draw_rectangle_callback(self):        
@@ -62,6 +67,10 @@ class ROIHandler:
             cv2.circle(frame, self.start_point, 8, (0, 255, 0), -1)
             cv2.putText(frame, "1: START", (self.start_point[0] + 10, self.start_point[1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # if self.point_zoom:
+            # cv2.putText(frame, "1: Point Zoom", (self.point_zoom[0] + 10, self.point_zoom[1] - 10),
+            # cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # วาด จุดที่ 2 (Reverse Point) - สีแดง 🔴
         if self.reverse_point:
