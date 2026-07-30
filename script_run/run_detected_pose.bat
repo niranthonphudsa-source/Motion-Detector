@@ -17,12 +17,10 @@ set "SCRIPT_FILE=%SCRIPT_DIR%\main.py"
 REM ==================================================
 REM ใช้ Python จาก .venv1
 REM ==================================================
-set "PYTHON_EXE=%PROJECT_DIR%\main\main.py"
+set "PYTHON_EXE=%SCRIPT_FILE%"
 
 REM ==================================================
 REM เพิ่ม path สำหรับ import module
-REM - root project
-REM - โฟลเดอร์ 00_setting
 REM ==================================================
 set "PYTHONPATH=%PROJECT_DIR%\setting\config.yaml;%PYTHONPATH%"
 
@@ -56,10 +54,6 @@ echo PYTHONPATH  : %PYTHONPATH%
 echo ==========================================
 echo.
 
-REM ==================================================
-REM เข้าโฟลเดอร์ script ก่อนรัน
-REM ==================================================
-cd /d "%PROJECT_DIR%"
 
 REM ==================================================
 REM รันโปรแกรม
