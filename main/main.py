@@ -22,7 +22,7 @@ from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
-from reload_config_callback import reload_config_
+from setting_esp32 import esp32_pin_config_gui
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -149,6 +149,12 @@ def open_ssms_gui():
     gui_thread = threading.Thread(target=run_gui, daemon=True)
     gui_thread.start()
 
+def set_esp32_pin():
+    def run_gui():
+        esp_root = tk.Tk()
+        app = esp32_pin_config_gui(esp_root)
+        esp_root.mainloop()
+        
 simulated_key = -1
 def trigger_key_from_gui(key_code):
     global simulated_key

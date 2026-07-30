@@ -1,10 +1,16 @@
 @echo off
 setlocal
+:: 1. เปลี่ยน Code Page ให้รองรับภาษาไทย / UTF-8
+chcp 65001 > nul
 
+
+cd /d "%~dp0"
+:: ออกจาก Script_Run
+cd ..
 REM ==================================================
 REM กำหนด path ของโปรเจกต์
 REM ==================================================
-set "PROJECT_DIR=%~dp0"
+set "PROJECT_DIR=%CD%"
 set "SCRIPT_DIR=%PROJECT_DIR%\main"
 set "SCRIPT_FILE=%SCRIPT_DIR%\main.py"
 
