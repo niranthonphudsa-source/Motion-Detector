@@ -67,7 +67,7 @@ SKELETON_CONNECTIONS = [
 ]
 
 cap = RTSPVideoGrabber(source) 
-zoom_tool = AdvancedZoomArea(zoom_factor=2.5)
+zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 os.makedirs("video_ng", exist_ok=True)
 os.makedirs("video_ok", exist_ok=True)
@@ -196,8 +196,9 @@ while True:
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
-    zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
-    frame = zoomed_frame
+    if roi.point_zoom is not None:
+        zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
+        frame = zoomed_frame
 
     # 1. รับคำสั่งจากแป้นคีย์บอร์ดจริง
     key = cv2.waitKey(1) & 0xFF
@@ -490,7 +491,12 @@ while True:
     elif key == ord('5'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.current_mode = 5
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
-        
+
+    elif key == ord('6'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+        roi.clear_point_zoom()
+        print("🔴[Cancle Mark Point Zoom]")
+
+
     elif key == ord('2'):  # บันทึกพิกัดจุดมาร์กเข้า config.yml
         roi.is_confirmed = True
         roi.current_mode = 0
@@ -527,7 +533,7 @@ while True:
         stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
  
     elif key == ord('o'):
-        print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
+        print("📊 กำลังเปิดหน้าต่าง Connect Database...")
         open_ssms_gui()
 
 manager.close_all_writers()

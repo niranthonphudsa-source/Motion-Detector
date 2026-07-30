@@ -4,7 +4,7 @@ setlocal
 REM ==================================================
 REM กำหนด path ของโปรเจกต์
 REM ==================================================
-set "PROJECT_DIR=C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector"
+set "PROJECT_DIR=%~dp0"
 set "SCRIPT_DIR=%PROJECT_DIR%\main"
 set "SCRIPT_FILE=%SCRIPT_DIR%\main.py"
 

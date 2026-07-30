@@ -59,6 +59,9 @@ class ROIHandler:
         self.current_mode = 0
         print("\n🧹 รีเซ็ตพิกัดทั้งหมดเรียบร้อยแล้ว")
 
+    def clear_point_zoom(self):
+        self.point_zoom = None
+
     # 4. ฟังก์ชันวาด Marker บนเฟรมพรีวิว (สำหรับนำไปเรียกใน OpenCV Loop)
     def draw_indicators(self, frame):
         """วาดจุดมาร์ก และ เส้น Polygon ลงบน Frame เพื่อให้ผู้ใช้เห็นบน UI"""

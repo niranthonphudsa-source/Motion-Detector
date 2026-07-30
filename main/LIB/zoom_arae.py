@@ -1,7 +1,7 @@
 import cv2
 import numpy
 class AdvancedZoomArea:
-    def __init__(self, zoom_factor=1.5):
+    def __init__(self, zoom_factor):
         self.zoom_factor = zoom_factor
 
     def apply(self, frame, center_pt=None):
