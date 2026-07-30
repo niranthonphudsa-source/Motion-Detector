@@ -10,11 +10,10 @@ import datetime
 import shutil
 import pandas as pd
 import joblib
+import time
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-import time
-
 
 # ─── 📁 คลาสหน้าต่างสำหรับจัดการวิดีโอ (Video Manager Window) ───
 class VideoFolderManagerWindow:

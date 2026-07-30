@@ -1,7 +1,8 @@
 @echo off
 echo "Start Connect Database.....!"
 
-cd /d "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector"
+cd /d "%~dp0"
+cd..
 
 call venv\Scripts\activate.bat
 

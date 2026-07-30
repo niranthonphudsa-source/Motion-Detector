@@ -2,8 +2,8 @@
 echo Starting Python Application...
 
 :: ย้ายไดเรกทอรีไปยังโฟลเดอร์ของโปรเจกต์
-cd /d "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector"
-
+cd /d "%~dp0"
+cd ..
 :: เปิดใช้งาน Virtual Environment
 call venv\Scripts\activate.bat
 
