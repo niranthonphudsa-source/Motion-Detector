@@ -22,6 +22,7 @@ from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
+from reload_config_callback import reload_config_
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
