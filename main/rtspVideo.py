@@ -21,7 +21,7 @@ class RTSPVideoGrabber:
                 if ret:
                     self.ret = ret
                     self.frame = frame # อัปเดตทับเป็นเฟรมล่าสุดเสมอ (ทิ้งเฟรมเก่า)
-            time.sleep(0.09) # หน่วงนิดหน่อยไม่ให้กิน CPU เกินไป
+            time.sleep(0.009) # หน่วงนิดหน่อยไม่ให้กิน CPU เกินไป
 
     def read(self):
         return self.ret, self.frame
