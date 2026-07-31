@@ -25,7 +25,6 @@ if not os.path.exists(csv_filename):
 model = YOLO('yolo26n-pose.pt') 
 # cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
 # cap = cv2.VideoCapture("videoTrain1.mp4")
-cap = cv2.VideoCapture(r"recordings\video_20260731_115325.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว

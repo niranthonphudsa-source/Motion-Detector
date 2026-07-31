@@ -173,8 +173,8 @@ cameras:
     reverse_point:
     - 296
     - 628
-    save_ng: false
-    save_ok: false
+    save_ng: true
+    save_ok: true
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
     - 278
@@ -192,7 +192,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_31-07-2026-1427.pkl
+    source: model\pose_classifier_31-7-26_15_57.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:
