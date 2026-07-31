@@ -192,7 +192,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_13_15-31-7-26.pkl
+    source: model\pose_classifier_31-07-2026-1427.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:

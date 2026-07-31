@@ -25,6 +25,7 @@ class ROIHandler:
         if event == cv2.EVENT_LBUTTONDOWN:
             # 🟢 โหมดที่ 1: วาดรูปปิด Polygon (ต้องกดยืนยันก่อนถึงจะหยุด)
             if self.current_mode == 1 and not self.is_confirmed:
+                self.mark_points = []
                 self.mark_points.append((x, y))
                 print(f"📍 [ROI Polygon] บันทึกจุดที่ {len(self.mark_points)}: ({x}, {y})")
 

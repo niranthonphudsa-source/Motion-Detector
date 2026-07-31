@@ -476,7 +476,7 @@ while True:
         open_help_window()
         
     elif key == ord('1'):  # โหมดมาร์กพิกัดพื้นที่ Polygon
-        roi.clear()
+        # roi.clear()
         roi.current_mode = 1
         print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
 
