@@ -77,7 +77,7 @@ os.makedirs("video_ok", exist_ok=True)
 os.makedirs("video_center", exist_ok=True)
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=3)
+manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 

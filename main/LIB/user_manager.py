@@ -20,7 +20,7 @@ def load_data():
 config_data = load_data()
 
 class UserStateManager:
-    def __init__(self, check_pose, fourcc, ok_display_time, max_lost_time, max_distance, buffer_output_time=3):
+    def __init__(self, check_pose, fourcc, ok_display_time, max_lost_time, max_distance, buffer_output_time=5):
         self.user_states = {}
         self.check_pose = check_pose
         self.fourcc = fourcc
@@ -114,7 +114,7 @@ class UserStateManager:
 
         # ─── 2. จังหวะก้าวออกจากจุดเช็ก (ROI = False) ───
         else:
-            # ถ้าเคยมี่การอัดวิดีโออยู่ แล้วก้าวออกเป็นเฟรมแรก -> เริ่มนับถอยหลัง 5 วินาที
+            # ถ้าเคยมีการอัดวิดีโออยู่ แล้วก้าวออกเป็นเฟรมแรก -> เริ่มนับถอยหลัง 5 วินาที
             if state["writer"] is not None and not state["is_terminating"]:
                 state["is_terminating"] = True
                 state["termination_start_time"] = current_time
