@@ -8,6 +8,7 @@ import pandas as pd
 import threading
 import tkinter as tk
 import serial
+import mark_roi_polygon as mark_roi
 
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
@@ -23,6 +24,7 @@ from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from setting_esp32 import esp32_pin_config_gui
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -207,14 +209,6 @@ while True:
         zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
         frame = zoomed_frame
 
-    # 1. รับคำสั่งจากแป้นคีย์บอร์ดจริง
-    key = cv2.waitKey(1) & 0xFF
-
-    # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
-    if simulated_key != -1:
-        key = simulated_key
-        simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
-    
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
@@ -223,29 +217,22 @@ while True:
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
 
-    # วาดจุดมาร์กและเส้นตาราง ROI Polygon
-    if num_pts > 0:
-        for idx, pt in enumerate(roi.mark_points):
-            x, y = int(pt[0]), int(pt[1])
-            cv2.circle(frame, (x, y), 4, (0, 0, 255), -1)
-            cv2.putText(frame, str(idx + 1), (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
-            
-        for i in range(num_pts - 1):
-            cv2.line(frame, tuple(roi.mark_points[i]), tuple(roi.mark_points[i+1]), (0, 255, 255), 2)
-            
-        if roi.is_confirmed and num_pts > 2:
-            contour = np.array(roi.mark_points, dtype=np.int32).reshape((-1, 1, 2))
-            cv2.polylines(frame, [contour], isClosed=True, color=box_color, thickness=2)
-            cv2.putText(frame, check_people, (int(roi.mark_points[0][0]), int(roi.mark_points[0][1] - 10)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
+
+    # # วาดจุดมาร์กและเส้นตาราง ROI Polygon
+    # สิ่งที่ต้องส่งเข้าฟังชันนี้ num_pts, roi.mark_point
+    # mark_roi_polygon(num_pts, roi.mark_point)
+    # return x, y
+
+    mark_roi.mark_roi_polygon(num_pts, frame, roi.mark_points,  check_people, box_color, roi.is_confirmed)
 
     # 🌟 วาดจุด Start (จุดที่ 1) และ Reverse (จุดที่ 2) บนหน้าจอ
     frame = roi.draw_indicators(frame)
 
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
+    # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
     if s.frame_count % SKIP_FRAMES == 0:
         predict_frame = model.track(source=frame,
-                                    conf=0.5, 
+                                    conf=0.3, 
                                     persist=True, 
                                     verbose=False, 
                                     tracker="bytetrack.yaml")
@@ -476,6 +463,12 @@ while True:
 
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
     key = cv2.waitKey(1) & 0xFF
+
+        # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
+    if simulated_key != -1:
+        key = simulated_key
+        simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
+
     if key == ord('q'):
         break
     elif key == ord('h'):  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI

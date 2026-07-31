@@ -10,7 +10,7 @@ FRAME_WIDTH = 1280  # ความกว้างภาพ (1280x720 = HD)
 FRAME_HEIGHT = 720  # ความสูงภาพ
 
 # สร้างโฟลเดอร์สำหรับเก็บวิดีโอหากยังไม่มี
-output_dir = "recordings"
+output_dir = r"../../ProjectDetection/recordings"
 if not os.path.exists(output_dir):
   os.makedirs(output_dir)
 
@@ -45,6 +45,7 @@ try:
       print("❌ ไม่สามารถดึงสัญญาณภาพจากกล้องได้")
       break
 
+    # frame = cv2.resize(frame, (640, 420))
     # สร้าง Frame สำหรับแสดงผล (เพื่อไม่ให้ข้อความสัญลักษณ์ไปโผล่ในวิดีโอจริง)
     display_frame = frame.copy()
 
@@ -94,7 +95,7 @@ try:
       if is_recording:
         # สร้างชื่อไฟล์อัตโนมัติจาก วัน-เวลา ปัจจุบัน
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(output_dir, f"video_{timestamp}.mp4")
+        filename = os.path.join(output_dir, f"VideoTrain_{timestamp}.mp4")
 
         # กำหนด Codec mp4v สำหรับไฟล์ .mp4
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")

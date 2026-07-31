@@ -13,10 +13,10 @@ echo %PROJECT_DIR%
 
 
 
-set "SCRIPT_DIR=%PROJECT_DIR%\main"
+set "SCRIPT_DIR=%PROJECT_DIR%\train_model"
 echo %SCRIPT_DIR%
 
-set "MAIN_DIR=%SCRIPT_DIR%\main.py"
+set "MAIN_DIR=%SCRIPT_DIR%\train_gui.py"
 echo %MAIN_DIR%
 
 :: ----------------------------------------------------
