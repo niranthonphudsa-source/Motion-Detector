@@ -25,7 +25,6 @@ class ROIHandler:
         if event == cv2.EVENT_LBUTTONDOWN:
             # 🟢 โหมดที่ 1: วาดรูปปิด Polygon (ต้องกดยืนยันก่อนถึงจะหยุด)
             if self.current_mode == 1 and not self.is_confirmed:
-                self.mark_points = []
                 self.mark_points.append((x, y))
                 print(f"📍 [ROI Polygon] บันทึกจุดที่ {len(self.mark_points)}: ({x}, {y})")
 
@@ -51,9 +50,12 @@ class ROIHandler:
         else:
             print("⚠️ กรุณาคลิกอย่างน้อย 3 จุดก่อนกดยืนยัน Polygon ครับ")
 
+    def clear_roi(self):
+        self.mark_points = []
+        self.current_mode = 0
+        self.is_confirmed = False
     # 3. ล้างค่าพิกัดทั้งหมด
     def clear(self):
-        self.mark_points = []
         self.start_point = None
         self.reverse_point = None
         self.is_confirmed = False

@@ -9,7 +9,7 @@ import threading
 import tkinter as tk
 import serial
 import mark_roi_polygon as mark_roi
-
+import check_key_setting as key_set
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
@@ -469,6 +469,8 @@ while True:
         key = simulated_key
         simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
+
+    # สิ่งที่ต้องส่งไป check_key
     if key == ord('q'):
         break
     elif key == ord('h'):  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
@@ -476,7 +478,7 @@ while True:
         open_help_window()
         
     elif key == ord('1'):  # โหมดมาร์กพิกัดพื้นที่ Polygon
-        # roi.clear()
+        roi.clear_roi()
         roi.current_mode = 1
         print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
 
