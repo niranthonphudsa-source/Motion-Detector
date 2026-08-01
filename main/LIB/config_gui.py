@@ -651,6 +651,8 @@ class ConfigGUI:
 
         self.lbl_source = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 8), justify="left", wraplength=180)
         self.lbl_source.pack(anchor="w")
+        self.lbl_type = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 8), justify="left", wraplength=180)
+        self.lbl_type.pack(anchor="w")
         self.lbl_pts = tk.Label(c_info, text="", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 8), justify="left", wraplength=180)
         self.lbl_pts.pack(anchor="w", pady=(4, 0))
 
@@ -658,8 +660,10 @@ class ConfigGUI:
             cam_id = self.cam_var.get()
             cam_data = self.config.get("cameras", {}).get(cam_id, {})
             self.lbl_source.config(text=f"Source: {cam_data.get('source', 'None')}")
+            self.lbl_type.config(text=f"Type: {cam_data.get('Type', 'None')}")
             pts_count = len(cam_data.get("mark_points", []))
             self.lbl_pts.config(text=f"จุดมาร์ก ROI: {pts_count} จุด")
+            
 
         self.cam_var.trace_add("write", update_info_labels)
         if camera_list:

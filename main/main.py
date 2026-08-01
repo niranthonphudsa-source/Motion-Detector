@@ -27,7 +27,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from setting_esp32 import esp32_pin_config_gui
 from show_status_pose import ShowStatusPose
-
+from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -39,13 +39,14 @@ source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
+type = app_config.type
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
 # show_status = ShowStatusPose()
 window_name = f"Mode Control ROI - {active_camera_id}"
 s = ShowPredict()
-
+# movement = Check_direction_of_Movement()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
 cv2.setMouseCallback(window_name, roi.click_event)
 
@@ -74,12 +75,21 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16)
 ]
 
-cap = RTSPVideoGrabber(source) 
+def check_source_type():
+    global delay        
+    if type == "Video":
+        delay = 0.05
+        return delay
+    else:
+        delay = 0.009
+        return delay
+    
+cap = RTSPVideoGrabber(source, delay) 
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
-os.makedirs("video_ng", exist_ok=True)
-os.makedirs("video_ok", exist_ok=True)
-os.makedirs("video_center", exist_ok=True)
+# os.makedirs("video_ng", exist_ok=True)
+# os.makedirs("video_ok", exist_ok=True)
+# os.makedirs("video_center", exist_ok=True)
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
@@ -89,7 +99,7 @@ pose_classifier = joblib.load(model_sklearn)
 
 
 def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier
+    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
     
     if updated_config:
         config = updated_config
@@ -106,6 +116,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
             model_sklearn = new_model_path
             pose_classifier = joblib.load(model_sklearn)
             print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
+            
         else:
             print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
     except Exception as e:
@@ -114,14 +125,15 @@ def reload_config_callback(new_camera_id, updated_config=None):
     # 🔄 สลับกล้อง (Switch Camera)
     if active_camera_id != new_camera_id:
         print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
-        
         old_cap = cap
         active_camera_id = new_camera_id
         camera = config["cameras"][active_camera_id]
         
         new_source = camera["source"]
-        cap = RTSPVideoGrabber(new_source)
-        
+        cap = RTSPVideoGrabber(new_source, delay)
+
+        type = camera["Type"]
+        print(f"Type Main {type}")
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
             if hasattr(old_cap, 'stop'):
@@ -197,6 +209,7 @@ stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
 
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
@@ -259,37 +272,6 @@ while True:
         if s.p_id not in direction_tracker:
             direction_tracker[s.p_id] = {'first_touch': None, 'is_reverse': False}
 
-        person_dir = direction_tracker[s.p_id]
-
-        # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
-        if person_dir['first_touch'] is None:
-            dist_to_start = get_distance.get_distance(foot_pos, roi.start_point)
-            dist_to_reverse = get_distance.get_distance(foot_pos, roi.reverse_point)
-            # ─── ดึงพิกัดแกน Y แบบปลอดภัย (ป้องกัน NoneType Error) ───
-            start_y = roi.start_point[1] if roi.start_point is not None else None
-            reverse_y = roi.reverse_point[1] if roi.reverse_point is not None else None
-
-            # ตรวจสอบว่าทั้งคู่มีค่าพิกัดอยู่จริง ก่อนทำเงื่อนไขเปรียบเทียบ
-            if person_dir['first_touch'] is None and start_y is not None and reverse_y is not None:
-
-                if dist_to_reverse < 50 or foot_y >= reverse_y:
-                    person_dir['first_touch'] = 'REVERSE'
-                    person_dir['is_reverse'] = True
-                    print(f"🚫 ID {s.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
-                elif dist_to_start < 50:
-                    person_dir['first_touch'] = 'START'
-                    person_dir['is_reverse'] = False
-                    print(f"✅ ID {s.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")
-
-        # 🛑 หากเป็นคนที่เดินสวนทางมา ให้ข้ามตรรกะการตรวจท่าทางและการบันทึกไฟล์ไปเลย
-        if person_dir['is_reverse']:
-            cv2.putText(frame, f"ID: {s.p_id} [REVERSE - IGNORED]", (foot_x - 30, foot_y - 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            continue
-
-        checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
-
         # วาดเส้นกระดูก Skeleton
         point_skel = point_pose.astype(int)
         for start_idx, end_idx in SKELETON_CONNECTIONS:
@@ -297,6 +279,27 @@ while True:
                (point_skel[end_idx, 0] == 0 and point_skel[end_idx, 1] == 0):
                 continue
             cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
+
+
+        person_dir = direction_tracker[s.p_id]
+
+        movement = Check_direction_of_Movement(
+            person_dir,
+            foot_pos,
+            foot_x,
+            foot_y,
+            roi.start_point,
+            roi.reverse_point,
+            s.p_id
+        )
+        person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
+        # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
+        if person_dir['is_reverse']:
+            continue
+
+        # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
+        checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
+        people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
 
 
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───

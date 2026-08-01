@@ -16,7 +16,7 @@ class AppConfig:
         self.save_ok_flag = False
         self.save_ng_flag = False
         self.model_sklearn = ""
-
+        self.type = None
         # รันการตั้งค่าเริ่มต้นทันทีที่เรียกใช้ Class
         self.load_initial_settings()
 
@@ -33,7 +33,8 @@ class AppConfig:
                     "save_ng": False, 
                     "mark_points": [],
                     "start_point": None,
-                    "reverse_point": None
+                    "reverse_point": None,
+                    "Type": "Video"
                 }
             }
         else:
@@ -42,6 +43,7 @@ class AppConfig:
 
         self.camera = self.config["cameras"][self.active_camera_id]
         self.source = self.camera.get("source", 0)
+        self.type = self.camera.get("Type", 0)
 
         # อ่านค่าการบันทึกวิดีโอ
         self.save_ok_flag = self.camera.get("save_ok", False)
@@ -50,6 +52,7 @@ class AppConfig:
         # โหลดโมเดล AI
         model_path = self.config.get("model", {}).get("Model_path_1", {})
         self.model_sklearn = model_path.get("source", "")
+        
 
         # ปริ้นท์สรุปสถานะเมื่อเริ่มโปรแกรม
         self.print_status()
@@ -61,4 +64,5 @@ class AppConfig:
         print(f"📹 Source: {self.source}")
         print(f"⚙️ สเตตัสการบันทึก: Save OK={self.save_ok_flag}, Save NG={self.save_ng_flag}")
         print(f"🤖 Model Path: {self.model_sklearn}")
+        print(f"🤖 Type Camera: {self.type}")
         print("=" * 50) 
