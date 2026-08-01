@@ -9,16 +9,15 @@ import threading
 import tkinter as tk
 import serial
 import mark_roi_polygon as mark_roi
-import check_key_setting as key_set
 import get_distance
 
+from check_people_in_roi import CheckPeopleInRoi
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
-from LIB.config_gui import ConfigGUI
-from app.app import TableViewerWindow, SSMSConnectGUI, ConfigManager
+from app.app import SSMSConnectGUI
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
@@ -288,24 +287,8 @@ while True:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
             continue
 
-        # --- ตรวจสอบว่าอยู่ในพื้นที่ ROI Polygon หรือไม่ ---
-        if roi.mark_points and len(roi.mark_points) >= 2:
-            contour = np.array(roi.mark_points, dtype=np.int32).reshape((-1, 1, 2))
-            foot_inside_count = 0
-            for idx in (15, 16):
-                hpx, hpy = int(point_pose[idx][0]), int(point_pose[idx][1])
-                inside = cv2.pointPolygonTest(contour, (hpx, hpy), False)
-                if inside >= 0:
-                    foot_inside_count += 1
-            
-            if foot_inside_count > 0:
-                people_in_rectangle = True
-                any_people_inside = True 
-
-            for idx in range(17):
-                hpx, hpy = int(point_pose[idx][0]), int(point_pose[idx][1])
-                if hpx > 0 and hpy > 0:
-                    cv2.circle(frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
+        checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
+        people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
 
         # วาดเส้นกระดูก Skeleton
         point_skel = point_pose.astype(int)
@@ -422,8 +405,10 @@ while True:
     mode_names = {0: "NORMAL", 1: "DRAW POLYGON", 2: "MARK POINT 1 (START)", 3: "MARK POINT 2 (REVERSE)", 5: "Mark Point Zoom"}
     status_text = f"MODE: {mode_names.get(roi.current_mode, 'NORMAL')}"
     cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear | S=Settings | Q=Exit", 
+    cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear", 
                 (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
+    cv2.putText(frame, "o=open_database_gui | d=open_stats_gui | S=Settings | Q=Exit", 
+            (15, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
 
 
     # เรนเดอร์ภาพออกหน้าจอหลัก
