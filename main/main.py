@@ -274,8 +274,8 @@ while True:
 
         # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
         if person_dir['first_touch'] is None:
-            dist_to_start = get_distance(foot_pos, roi.start_point)
-            dist_to_reverse = get_distance(foot_pos, roi.reverse_point)
+            dist_to_start = get_distance.get_distance(foot_pos, roi.start_point)
+            dist_to_reverse = get_distance.get_distance(foot_pos, roi.reverse_point)
             # ─── ดึงพิกัดแกน Y แบบปลอดภัย (ป้องกัน NoneType Error) ───
             start_y = roi.start_point[1] if roi.start_point is not None else None
             reverse_y = roi.reverse_point[1] if roi.reverse_point is not None else None
