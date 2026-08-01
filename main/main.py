@@ -24,7 +24,7 @@ from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from setting_esp32 import esp32_pin_config_gui
-
+from show_status_pose import ShowStatusPose
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -39,6 +39,7 @@ model_sklearn = app_config.model_sklearn
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
+# show_status = ShowStatusPose()
 window_name = f"Mode Control ROI - {active_camera_id}"
 s = ShowPredict()
 
@@ -394,39 +395,19 @@ while True:
         line_height = 20
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
 
-        color_state1 = (0, 255, 0) if len(state['valaus_last']) >= 1 else (255, 255, 255)
-        color_state2 = (0, 255, 0) if len(state['valaus_last']) >= 2 else (255, 255, 255)
-        color_state3 = (0, 255, 0) if len(state['valaus_last']) >= 3 else (255, 255, 255)
-            
+        status_show = ShowStatusPose(s.p_id,
+                                        predicted_label, 
+                                        confidence,
+                                        people_in_rectangle, 
+                                        line_height,
+                                        status_color, 
+                                        text_x, 
+                                        text_y_start, 
+                                        state["confirm"], 
+                                        state['valaus_last']
+                                    )
 
-        display_lines = [
-            f"ID: {s.p_id}",
-            f"Pose: {predicted_label} ({confidence:.1f}%)" if people_in_rectangle else "Pose: Outside ROI",
-            # f"Progress Test: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
-            f"State Right",
-            f"State Left",
-            f"State Front",
-            f"STATUS: {state['confirm']}"
-        ]
-
-        for i, line_text in enumerate(display_lines):
-            current_y = text_y_start + (i * line_height)
-            if "Pose" in line_text:
-                cv2.putText(frame, line_text, (text_x + 40, current_y + 40), cv2.FONT_HERSHEY_COMPLEX, 0.8, (255, 255, 255), 1, 3)
-            elif "State Right" in line_text:
-                cv2.putText(frame, line_text, (text_x + 40, current_y + 50), cv2.FONT_HERSHEY_COMPLEX, 0.8, color_state1, 1, 3)
-
-            elif "State Left" in line_text:
-                cv2.putText(frame, line_text, (text_x + 40, current_y + 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_state2, 1, 3)
-
-            elif "State Front" in line_text:
-                cv2.putText(frame, line_text, (text_x + 40, current_y + 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_state3, 1, 3)
-
-            elif "STATUS" in line_text:
-                cv2.putText(frame, line_text, (text_x + 40, current_y + 80), cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, 2)
-            
-            else:
-                cv2.putText(frame, line_text, (text_x - 50, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)
+        status_show.showStatus(frame)
 
         if state["writer"] is not None:
             state["writer"].write(frame)
@@ -462,44 +443,44 @@ while True:
     stats_manager.update_window()
 
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
-    key = cv2.waitKey(1) & 0xFF
+    key_input = cv2.waitKey(1) & 0xFF
 
         # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
     if simulated_key != -1:
-        key = simulated_key
+        key_input = simulated_key
         simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
-
+    key = chr(key_input).lower()
     # สิ่งที่ต้องส่งไป check_key
-    if key == ord('q'):
+    if key == 'q':
         break
-    elif key == ord('h'):  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
+    elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
         print("💡 กำลังเปิดหน้าต่างคู่มือช่วยเหลือ (Help GUI)...")
         open_help_window()
         
-    elif key == ord('1'):  # โหมดมาร์กพิกัดพื้นที่ Polygon
+    elif key == '1':  # โหมดมาร์กพิกัดพื้นที่ Polygon
         roi.clear_roi()
         roi.current_mode = 1
         print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
 
-    elif key == ord('3'):  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
+    elif key == '3':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
         roi.current_mode = 2
         print("🟢 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 1: Start Check Point]")
 
-    elif key == ord('4'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+    elif key == '4':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.current_mode = 3
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
 
-    elif key == ord('5'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+    elif key == '5':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.current_mode = 5
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
 
-    elif key == ord('6'):  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+    elif key == '6':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.clear_point_zoom()
         print("🔴[Cancle Mark Point Zoom]")
 
 
-    elif key == ord('2'):  # บันทึกพิกัดจุดมาร์กเข้า config.yml
+    elif key == '2':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
         roi.is_confirmed = True
         roi.current_mode = 0
         
@@ -517,7 +498,7 @@ while True:
     elif key == ord('c'):  # ล้างพิกัดหน้าจอ
         roi.clear()
         
-    elif key == ord('s'):  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
+    elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
         gui_thread = threading.Thread(
             target=config_manager.open_settings,
@@ -530,11 +511,11 @@ while True:
         gui_thread.start()
     # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
-    elif key == ord('d'):
+    elif key == 'd':
         print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
         stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
  
-    elif key == ord('o'):
+    elif key == 'o':
         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
         open_ssms_gui()
 
