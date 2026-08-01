@@ -10,6 +10,9 @@ import tkinter as tk
 import serial
 import mark_roi_polygon as mark_roi
 import check_key_setting as key_set
+import get_distance
+
+
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
@@ -25,6 +28,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from setting_esp32 import esp32_pin_config_gui
 from show_status_pose import ShowStatusPose
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -83,9 +87,6 @@ manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_tim
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
 
-def get_distance(p1, p2):
-    if p1 is None or p2 is None: return 999999
-    return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
 def reload_config_callback(new_camera_id, updated_config=None):
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier
