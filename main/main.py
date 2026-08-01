@@ -9,7 +9,8 @@ import threading
 import tkinter as tk
 import serial
 import mark_roi_polygon as mark_roi
-import get_distance
+import run_start.default_config_var as df
+import callback_command.callback_command as clb
 
 from check_people_in_roi import CheckPeopleInRoi
 from search_keypoint import SearchKeypoint
@@ -17,17 +18,15 @@ from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
-from app.app import SSMSConnectGUI
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
-from LIB.help_gui import HelpGUI
-from setting_esp32.setting_esp32 import PinConfigGUI
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
-from setting_esp32 import esp32_pin_config_gui
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
+
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -61,29 +60,24 @@ if len(roi.mark_points) > 0:
 
 model = YOLO('yolo26n-pose.pt')
 
-check_pose = ["Right", "Left", "Front"]
-ok_display_time = 5.0
-SKIP_FRAMES = 1
-predicted_label = "None"
-confidence = 0.0
-any_people_inside = False
+check_pose = df.check_pose
+ok_display_time = df.ok_display_time
+SKIP_FRAMES = df.SKIP_FRAMES
+predicted_label = df.predicted_label
+confidence = df.confidence
+any_people_inside = df.any_people_inside
 
-SKELETON_CONNECTIONS = [
-    (0, 1), (0, 2), (1, 3), (2, 4),
-    (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
-    (5, 11), (6, 12), (11, 12),
-    (11, 13), (13, 15), (12, 14), (14, 16)
-]
+SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 
-def check_source_type():
-    global delay        
+def check_source_type():      
     if type == "Video":
         delay = 0.05
         return delay
     else:
         delay = 0.009
         return delay
-    
+
+delay = check_source_type()    
 cap = RTSPVideoGrabber(source, delay) 
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
@@ -96,7 +90,6 @@ manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_tim
 
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
-
 
 def reload_config_callback(new_camera_id, updated_config=None):
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
@@ -156,52 +149,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
-def open_ssms_gui():
-    def run_gui():
-        db_root = tk.Tk()
-        app = SSMSConnectGUI(db_root)
-        db_root.mainloop()
-
-    gui_thread = threading.Thread(target=run_gui, daemon=True)
-    gui_thread.start()
-
-def set_esp32_pin():
-    def run_gui():
-        esp_root = tk.Tk()
-        app = esp32_pin_config_gui(esp_root)
-        esp_root.mainloop()
-        
-simulated_key = -1
-def trigger_key_from_gui(key_code):
-    global simulated_key
-    simulated_key = key_code
-
-help_gui = HelpGUI(key_callback=trigger_key_from_gui)
-
-def open_help_window():
-    gui_thread = threading.Thread(target=help_gui.open_window, daemon=True)
-    gui_thread.start()
-
-def apply_pin_config_to_mcu(config_data):
-    port = config_data["port"]
-    baud = config_data["baudrate"]
-    
-    try:
-        with serial.Serial(port, baud, timeout=1) as ser:
-            command = f"SETPIN:TRIG={config_data['trig_pin']},ECHO={config_data['echo_pin']},RELAY={config_data['relay_pin']}\n"
-            ser.write(command.encode('utf-8'))
-            print(f"📡 ส่งคำสั่งตั้งค่า Pin ไปยัง {port}: {command.strip()}")
-    except Exception as e:
-        print(f"❌ ไม่สามารถเชื่อมต่อกับ {port} ได้: {e}")
-
-# 🔴 แก้ไข: เปิด PinConfigGUI แบบ Threading ไม่ให้บล็อก OpenCV
-def open_pin_config_window():
-    def run_gui():
-        app = PinConfigGUI(on_save_callback=apply_pin_config_to_mcu)
-        app.run()
-
-    gui_thread = threading.Thread(target=run_gui, daemon=True)
-    gui_thread.start()
+simulated_key = clb.simulated_key
 
 stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
@@ -426,8 +374,8 @@ while True:
 
         # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
     if simulated_key != -1:
-        key_input = simulated_key
-        simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
+        key_input = clb.simulated_key
+        clb.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
     key = chr(key_input).lower()
     # สิ่งที่ต้องส่งไป check_key
@@ -435,7 +383,7 @@ while True:
         break
     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
         print("💡 กำลังเปิดหน้าต่างคู่มือช่วยเหลือ (Help GUI)...")
-        open_help_window()
+        clb.open_help_window()
         
     elif key == '1':  # โหมดมาร์กพิกัดพื้นที่ Polygon
         roi.clear_roi()
@@ -496,7 +444,7 @@ while True:
  
     elif key == 'o':
         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
-        open_ssms_gui()
+        clb.open_ssms_gui()
 
 manager.close_all_writers()
 cap.release()
