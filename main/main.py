@@ -16,7 +16,7 @@ from check_people_in_roi import CheckPeopleInRoi
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
-from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
+# from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
@@ -25,7 +25,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
-
+from check_key_setting import KeyboardHandler
 
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
@@ -149,7 +149,6 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
-simulated_key = clb.simulated_key
 
 stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
@@ -336,6 +335,7 @@ while True:
 
         if state["writer"] is not None:
             state["writer"].write(frame)
+
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
         current_frame_active_ids, 
@@ -373,12 +373,13 @@ while True:
     key_input = cv2.waitKey(1) & 0xFF
 
         # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
-    if simulated_key != -1:
+    if clb.simulated_key != -1:
         key_input = clb.simulated_key
         clb.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
     key = chr(key_input).lower()
     # สิ่งที่ต้องส่งไป check_key
+    checkKey = KeyboardHandler(key)
     if key == 'q':
         break
     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
@@ -398,7 +399,7 @@ while True:
         roi.current_mode = 3
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
 
-    elif key == '5':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+    elif key == '5':  # 🌟 โหมดมาร์กจุด Zoom
         roi.current_mode = 5
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
 

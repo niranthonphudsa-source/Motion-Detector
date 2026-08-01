@@ -29,4 +29,4 @@ class CheckPeopleInRoi():
                 if hpx > 0 and hpy > 0:
                     cv2.circle(self.frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
 
-            return people_in_rectangle, any_people_inside 
+        return people_in_rectangle, any_people_inside 
