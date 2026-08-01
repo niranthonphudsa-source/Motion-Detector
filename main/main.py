@@ -12,7 +12,7 @@ import mark_roi_polygon as mark_roi
 import check_key_setting as key_set
 import get_distance
 
-
+from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
@@ -67,6 +67,7 @@ SKIP_FRAMES = 1
 predicted_label = "None"
 confidence = 0.0
 any_people_inside = False
+
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),
     (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
@@ -232,20 +233,9 @@ while True:
 
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
-    if s.frame_count % SKIP_FRAMES == 0:
-        predict_frame = model.track(source=frame,
-                                    conf=0.3, 
-                                    persist=True, 
-                                    verbose=False, 
-                                    tracker="bytetrack.yaml")
-        s.update_pose_history(predict_frame)    
-    else:
-        s.predicted_people_kp = []
-        s.predicted_people_ids = []
-        s.predict_keypoints_from_history(s.pose_history, s.frame_count, SKIP_FRAMES)
-        if len(s.predicted_people_kp) > 0:
-            s.current_frame_poses = np.array(s.predicted_people_kp)
-            s.current_frame_ids = np.array(s.predicted_people_ids)
+
+    search_key = SearchKeypoint(SKIP_FRAMES, frame, model, s.frame_count)
+    s.current_frame_poses, s.current_frame_ids =  search_key.searchKeypoint()
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
     any_people_inside = False
