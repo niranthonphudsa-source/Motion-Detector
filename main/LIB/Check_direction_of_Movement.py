@@ -36,7 +36,7 @@ class Check_direction_of_Movement():
                     self.person_dir['first_touch'] = 'REVERSE'
                     self.person_dir['is_reverse'] = True
                     print(f"🚫 ID {self.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
-                elif dist_to_start < 50:
+                elif dist_to_start < 50 or self.foot_y >= start_y:
                     self.person_dir['first_touch'] = 'START'
                     self.person_dir['is_reverse'] = False
                     print(f"✅ ID {self.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")

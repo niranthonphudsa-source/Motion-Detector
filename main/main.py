@@ -16,7 +16,6 @@ from check_people_in_roi import CheckPeopleInRoi
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
-# from LIB.file_manager import save_roi_to_txt, load_roi_from_txt
 from LIB.user_manager import UserStateManager  
 from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
@@ -69,15 +68,16 @@ any_people_inside = df.any_people_inside
 
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 
-def check_source_type():      
+def check_source_type(type):
+    print(f"Type Main {type}")     
     if type == "Video":
         delay = 0.05
         return delay
     else:
-        delay = 0.009
+        delay = 0.005
         return delay
 
-delay = check_source_type()    
+delay = check_source_type(type)    
 cap = RTSPVideoGrabber(source, delay) 
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
@@ -126,7 +126,8 @@ def reload_config_callback(new_camera_id, updated_config=None):
         cap = RTSPVideoGrabber(new_source, delay)
 
         type = camera["Type"]
-        print(f"Type Main {type}")
+        check_source_type(type)
+        print(f"Type Main {type}")   
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
             if hasattr(old_cap, 'stop'):
@@ -249,18 +250,19 @@ while True:
         people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
 
 
+        # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
+        if state["writer"] is None:
+            current_time_str = int(time.time())
+            state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time_str}.avi"
+            state["writer"] = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
+            print(f"[Record] ID {s.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {state['video_filename']}")
+
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
         if people_in_rectangle:
             if state["is_terminating"]:
                 state["is_terminating"] = False
                 state["termination_start_time"] = None
                 print(f"🏃‍♂️ ID {s.p_id} กลับเข้ามาในพื้นที่ตรวจ -> ยกเลิกการหน่วงเวลาปิดไฟล์")
-
-            if state["writer"] is None:
-                current_time_str = int(time.time())
-                state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time_str}.avi"
-                state["writer"] = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
-                print(f"[Record] ID {s.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {state['video_filename']}")
 
             normalized_points = []
             for kp in point_pose:
@@ -308,6 +310,7 @@ while True:
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
                 print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")
+
 
                 
         # ─── 📍 จุดที่ 3: อัปเดตสถานะเข้า Manager และเขียน Frame ลงไฟล์วิดีโอ ───
