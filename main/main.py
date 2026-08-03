@@ -25,7 +25,7 @@ from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 from check_key_setting import KeyboardHandler
-
+from check_where_inRectangle import Check_where_inRectangle
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -48,15 +48,19 @@ s = ShowPredict()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
 cv2.setMouseCallback(window_name, roi.click_event)
 
-# ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
-roi.mark_points = camera.get("mark_points", [])
-roi.start_point = camera.get("start_point", None)
-roi.reverse_point = camera.get("reverse_point", None)
-roi.point_zoom = camera.get("point_zoom", None)
 
+# ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
+cam_mark = camera.get("mark_points", [])
+cam_start = camera.get("start_point", None)
+cam_reverse = camera.get("reverse_point", None)
+point_zoom = camera.get("point_zoom", None)
 if len(roi.mark_points) > 0:
     roi.is_confirmed = True
-
+roi.mark_points, roi.start_point, roi.reverse_point, roi.point_zoom, roi.is_confirmed = roi.update_roi_start_check(cam_mark,
+                                                                                                                    cam_start,
+                                                                                                                    cam_reverse, 
+                                                                                                                    point_zoom
+                                                                                                                )
 model = YOLO('yolo26n-pose.pt')
 
 check_pose = df.check_pose
@@ -65,25 +69,26 @@ SKIP_FRAMES = df.SKIP_FRAMES
 predicted_label = df.predicted_label
 confidence = df.confidence
 any_people_inside = df.any_people_inside
-
+fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
+
 
 def check_source_type(type):
     print(f"Type Main {type}")     
     if type == "Video":
-        delay = 0.05
-        return delay
-    else:
-        delay = 0.005
-        return delay
+        fps = 20
+    elif type == "LIVE_STREAM":
+        fps = 15
 
-delay = check_source_type(type)    
-cap = RTSPVideoGrabber(source, delay) 
+    return fps 
+
+
+target_fps = check_source_type(type)
+frame_duration = 1.0 / target_fps
+
+cap = RTSPVideoGrabber(source, frame_duration)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
-# os.makedirs("video_ng", exist_ok=True)
-# os.makedirs("video_ok", exist_ok=True)
-# os.makedirs("video_center", exist_ok=True)
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
@@ -121,13 +126,14 @@ def reload_config_callback(new_camera_id, updated_config=None):
         old_cap = cap
         active_camera_id = new_camera_id
         camera = config["cameras"][active_camera_id]
-        
-        new_source = camera["source"]
-        cap = RTSPVideoGrabber(new_source, delay)
 
         type = camera["Type"]
-        check_source_type(type)
-        print(f"Type Main {type}")   
+        fps = check_source_type(type)
+        print(f"Type Main {type}  fps_limit={fps}")
+        new_source = camera["source"]
+        cap = RTSPVideoGrabber(new_source, frame_duration)
+
+   
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
             if hasattr(old_cap, 'stop'):
@@ -135,14 +141,15 @@ def reload_config_callback(new_camera_id, updated_config=None):
             elif hasattr(old_cap, 'release'):
                 old_cap.release()
 
-        # อัปเดตพิกัด ROI & จุดมาร์ก
         roi.clear()
-        roi.mark_points = camera.get("mark_points", [])
-        roi.start_point = camera.get("start_point", None)
-        roi.reverse_point = camera.get("reverse_point", None)
-        roi.point_zoom = camera.get("point_zoom", None)
-        if len(roi.mark_points) > 0:
-            roi.is_confirmed = True
+        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
+        point_zoom = camera.get("point_zoom", None)
+        roi.mark_points, roi.start_point, roi.reverse_point, roi.point_zoom, roi.is_confirmed = roi.update_roi_start_check(cam_mark,
+                                                                                                                    cam_start,
+                                                                                                                    cam_reverse, 
+                                                                                                                    point_zoom
+                                                                                                                    )
+
 
     cam_data = config["cameras"].get(active_camera_id, {})
     save_ok_flag = cam_data.get("save_ok", True)
@@ -160,6 +167,7 @@ latest_frame = None
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
+
     ret, frame = cap.read()
     if not ret:     
         break
@@ -258,51 +266,22 @@ while True:
             print(f"[Record] ID {s.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {state['video_filename']}")
 
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
-        if people_in_rectangle:
-            if state["is_terminating"]:
-                state["is_terminating"] = False
-                state["termination_start_time"] = None
-                print(f"🏃‍♂️ ID {s.p_id} กลับเข้ามาในพื้นที่ตรวจ -> ยกเลิกการหน่วงเวลาปิดไฟล์")
+        cw_inRectangle = Check_where_inRectangle(                            
+                                                people_in_rectangle,
+                                                state["is_terminating"], 
+                                                state["termination_start_time"], 
+                                                state["is_ok_holding"], 
+                                                state["confirm"],
+                                                state["valaus_last"], 
+                                                state["ok_start_time"],
+                                                point_pose,
+                                                s.p_id,
+                                                pose_classifier,
+                                                check_pose,
+                                        )
 
-            normalized_points = []
-            for kp in point_pose:
-                kpx, kpy = int(kp[0]), int(kp[1])
-                if kpx == 0 and kpy == 0:
-                    normalized_points.append((0.0, 0.0))
-                    continue
-                normalized_points.append((kpx / w, kpy / h))
-                cv2.circle(frame, (kpx, kpy), 5, (0, 0, 255), cv2.FILLED)
+        confidence, state["is_terminating"], state["termination_start_time"], state["is_ok_holding"], state["confirm"], state["valaus_last"], state["ok_start_time"] = cw_inRectangle.check_where_inRectangle(frame, w, h, manager)
 
-            feature_names = [f"{axis}_{i}" for i in range(17) for axis in ("x", "y")]
-            features = np.array(normalized_points).flatten()
-
-            if len(features) == 34:
-                features_df = pd.DataFrame([features], columns=feature_names)
-                predicted_label = pose_classifier.predict(features_df)[0]
-                probabilities = pose_classifier.predict_proba(features_df)[0]
-                confidence = np.max(probabilities) * 100
-
-                # ล็อกแสดงผล OK ค้าง
-                if state["is_ok_holding"]:
-                    if time.time() - state["ok_start_time"] < manager.ok_display_time:
-                        state["confirm"] = "OK"
-                    else:
-                        state["is_ok_holding"] = False
-                        state["confirm"] = "NG"
-                        state["valaus_last"] = [] 
-
-                else:
-                    expected_pose_idx = len(state["valaus_last"])
-                    if expected_pose_idx < len(check_pose):
-                        expected_pose = check_pose[expected_pose_idx]
-                        if predicted_label == expected_pose:
-                            if not state["valaus_last"] or predicted_label != state["valaus_last"][-1]:
-                                state["valaus_last"].append(predicted_label)
-                
-                    if state["valaus_last"] == check_pose:
-                        state["confirm"] = "OK"
-                        state["is_ok_holding"] = True
-                        state["ok_start_time"] = time.time()
 
         # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
         if not people_in_rectangle and state["was_inside_last_frame"]:
@@ -357,7 +336,7 @@ while True:
 
     # แสดงสถานะโหมดใช้งานบน UI
     mode_names = {0: "NORMAL", 1: "DRAW POLYGON", 2: "MARK POINT 1 (START)", 3: "MARK POINT 2 (REVERSE)", 5: "Mark Point Zoom"}
-    status_text = f"MODE: {mode_names.get(roi.current_mode, 'NORMAL')}"
+    status_text = f"MODE: {mode_names.get(roi.current_mode, 'NORMAL')} FPS_LIMT: {fps}"
     cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
     cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear", 
                 (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)

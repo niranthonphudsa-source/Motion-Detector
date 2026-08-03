@@ -1,4 +1,5 @@
 import cv2
+
 from LIB.file_manager import save_roi_to_txt
 
 class ROIHandler:
@@ -89,3 +90,15 @@ class ROIHandler:
             cv2.arrowedLine(frame, self.start_point, self.reverse_point, (255, 255, 0), 2, tipLength=0.2)
 
         return frame
+
+    def update_roi_start_check(self, cam_mark, cam_start, cam_reverse, point_zoom):
+                # อัปเดตพิกัด ROI & จุดมาร์ก
+        self.mark_points = cam_mark
+        self.start_point = cam_start
+        self.reverse_point = cam_reverse
+        self.point_zoom = point_zoom
+        if len(self.mark_points) > 0:
+            self.is_confirmed = True
+
+        return self.mark_points, self.start_point, self.reverse_point, self.point_zoom, self.is_confirmed
+        
