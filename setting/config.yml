@@ -45,18 +45,16 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 184
-      - 412
-    - - 367
-      - 416
-    - - 389
-      - 481
-    - - 190
+    - - 189
+      - 407
+    - - 363
+      - 402
+    - - 387
+      - 482
+    - - 200
       - 484
     - - 190
-      - 464
-    - - 186
-      - 460
+      - 459
     person_limit: 5
     point_zoom: null
     record_video: false
@@ -80,16 +78,16 @@ cameras:
     mark_points:
     - - 184
       - 411
-    - - 366
-      - 413
-    - - 384
-      - 472
-    - - 193
-      - 484
-    - - 194
-      - 469
-    - - 182
-      - 460
+    - - 367
+      - 407
+    - - 387
+      - 478
+    - - 192
+      - 481
+    - - 192
+      - 463
+    - - 180
+      - 459
     person_limit: 5
     point_zoom: null
     record_video: false

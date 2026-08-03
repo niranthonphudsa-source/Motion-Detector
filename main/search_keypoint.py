@@ -22,7 +22,7 @@ class SearchKeypoint():
         
         if self.frame_count % self.skip_frame == 0:
             predict_frame = self.model.track(source=self.frame,
-                                        conf=0.3, 
+                                        conf=0.7, 
                                         persist=True, 
                                         verbose=False, 
                                         tracker="bytetrack.yaml")

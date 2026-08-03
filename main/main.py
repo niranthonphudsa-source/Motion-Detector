@@ -11,8 +11,10 @@ import serial
 import mark_roi_polygon as mark_roi
 import run_start.default_config_var as df
 import callback_command.callback_command as clb
+import show_mode_inDisplay as show_m
 
-from check_people_in_roi import CheckPeopleInRoi
+
+from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
@@ -24,8 +26,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
-from check_key_setting import KeyboardHandler
-from check_where_inRectangle import Check_where_inRectangle
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -284,7 +285,7 @@ while True:
 
 
         # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
-        if not people_in_rectangle and state["was_inside_last_frame"]:
+        if not people_in_rectangle and state["was_inside_last_frame"] :
             if state["writer"] is not None and not state["is_terminating"]:
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
@@ -334,15 +335,7 @@ while True:
             del direction_tracker[tid]
 
 
-    # แสดงสถานะโหมดใช้งานบน UI
-    mode_names = {0: "NORMAL", 1: "DRAW POLYGON", 2: "MARK POINT 1 (START)", 3: "MARK POINT 2 (REVERSE)", 5: "Mark Point Zoom"}
-    status_text = f"MODE: {mode_names.get(roi.current_mode, 'NORMAL')} FPS_LIMT: {fps}"
-    cv2.putText(frame, status_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-    cv2.putText(frame, "1=Polygon | 3=Start Pt | 4=Reverse Pt | 2=Save Config | C=Clear", 
-                (15, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
-    cv2.putText(frame, "o=open_database_gui | d=open_stats_gui | S=Settings | Q=Exit", 
-            (15, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 0), 1)
-
+    show_m.showModeDisplay(frame, roi.current_mode, fps)
 
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
@@ -360,8 +353,6 @@ while True:
         clb.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
     key = chr(key_input).lower()
-    # สิ่งที่ต้องส่งไป check_key
-    checkKey = KeyboardHandler(key)
     if key == 'q':
         break
     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
