@@ -17,6 +17,7 @@ class AppConfig:
         self.save_ng_flag = False
         self.model_sklearn = ""
         self.type = None
+        self.reverse_point = None
         # รันการตั้งค่าเริ่มต้นทันทีที่เรียกใช้ Class
         self.load_initial_settings()
 
@@ -44,6 +45,7 @@ class AppConfig:
         self.camera = self.config["cameras"][self.active_camera_id]
         self.source = self.camera.get("source", 0)
         self.type = self.camera.get("Type", 0)
+        self.reverse_point = self.camera.get("reverse_point", None)
 
         # อ่านค่าการบันทึกวิดีโอ
         self.save_ok_flag = self.camera.get("save_ok", False)
@@ -65,4 +67,6 @@ class AppConfig:
         print(f"⚙️ สเตตัสการบันทึก: Save OK={self.save_ok_flag}, Save NG={self.save_ng_flag}")
         print(f"🤖 Model Path: {self.model_sklearn}")
         print(f"🤖 Type Camera: {self.type}")
+        print(f"🤖 Reverse Camera: {self.reverse_point}")
+        
         print("=" * 50) 

@@ -4,7 +4,7 @@ import numpy as np
 import yaml
 import tkinter as tk
 from PIL import Image, ImageTk
-from LIB.multi_cam_helper import MultiCameraManager
+from ..delete.multi_cam_helper import MultiCameraManager
 
 # ─── 1. ตัวอย่างไฟล์การตั้งค่า (Config Mockup) ───
 config_data = {

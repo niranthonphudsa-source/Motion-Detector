@@ -40,6 +40,7 @@ save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
+
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
 # show_status = ShowStatusPose()
@@ -55,13 +56,22 @@ cam_mark = camera.get("mark_points", [])
 cam_start = camera.get("start_point", None)
 cam_reverse = camera.get("reverse_point", None)
 point_zoom = camera.get("point_zoom", None)
+
+# type = camera["Type"]
+# cam_reverse = camera["reverse_point"]
+
 if len(roi.mark_points) > 0:
     roi.is_confirmed = True
-roi.mark_points, roi.start_point, roi.reverse_point, roi.point_zoom, roi.is_confirmed = roi.update_roi_start_check(cam_mark,
-                                                                                                                    cam_start,
-                                                                                                                    cam_reverse, 
-                                                                                                                    point_zoom
-                                                                                                                )
+    
+(roi.mark_points, 
+ roi.start_point, 
+ roi.reverse_point, 
+ roi.point_zoom, 
+ roi.is_confirmed) = roi.update_roi_start_check(cam_mark,
+                                                cam_start,
+                                                cam_reverse, 
+                                                point_zoom
+                                            )
 model = YOLO('yolo26n-pose.pt')
 
 check_pose = df.check_pose
@@ -77,7 +87,7 @@ SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 def check_source_type(type):
     print(f"Type Main {type}")     
     if type == "Video":
-        fps = 20
+        fps = 30
     elif type == "LIVE_STREAM":
         fps = 15
 
@@ -86,6 +96,8 @@ def check_source_type(type):
 
 target_fps = check_source_type(type)
 frame_duration = 1.0 / target_fps
+
+print(target_fps, frame_duration)
 
 cap = RTSPVideoGrabber(source, frame_duration)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
@@ -127,10 +139,12 @@ def reload_config_callback(new_camera_id, updated_config=None):
         old_cap = cap
         active_camera_id = new_camera_id
         camera = config["cameras"][active_camera_id]
-
         type = camera["Type"]
+        cam_reverse = camera["reverse_point"]
+        
         fps = check_source_type(type)
         print(f"Type Main {type}  fps_limit={fps}")
+        print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
         cap = RTSPVideoGrabber(new_source, frame_duration)
 
@@ -145,11 +159,16 @@ def reload_config_callback(new_camera_id, updated_config=None):
         roi.clear()
         cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
         point_zoom = camera.get("point_zoom", None)
-        roi.mark_points, roi.start_point, roi.reverse_point, roi.point_zoom, roi.is_confirmed = roi.update_roi_start_check(cam_mark,
-                                                                                                                    cam_start,
-                                                                                                                    cam_reverse, 
-                                                                                                                    point_zoom
-                                                                                                                    )
+        (roi.mark_points, 
+         roi.start_point, 
+         roi.reverse_point, 
+         roi.point_zoom, 
+         roi.is_confirmed
+         ) = roi.update_roi_start_check(cam_mark,
+                                        cam_start,
+                                        cam_reverse, 
+                                        point_zoom
+                                        )
 
 
     cam_data = config["cameras"].get(active_camera_id, {})
@@ -165,10 +184,15 @@ stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
 
+# ตัวแปรคำนวณ fps
+prev_frame_time = 0
+new_frame_time = 0
 
+type = camera["Type"]
+cam_reverse = camera["reverse_point"]
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
-
+    start = time.perf_counter()
     ret, frame = cap.read()
     if not ret:     
         break
@@ -185,6 +209,7 @@ while True:
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
 
+    
     # --- ส่วนที่ 3: UI กล่อง ROI รวม และวาด Marker Indicators ---
     check_people = "People in Rectangle" if any_people_inside else "None People"
     box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
@@ -250,6 +275,7 @@ while True:
             s.p_id
         )
         person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
+
         # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
         if person_dir['is_reverse']:
             continue
@@ -281,7 +307,13 @@ while True:
                                                 check_pose,
                                         )
 
-        confidence, state["is_terminating"], state["termination_start_time"], state["is_ok_holding"], state["confirm"], state["valaus_last"], state["ok_start_time"] = cw_inRectangle.check_where_inRectangle(frame, w, h, manager)
+        (confidence, state["is_terminating"], 
+            state["termination_start_time"], 
+            state["is_ok_holding"], 
+            state["confirm"], 
+            state["valaus_last"], 
+            state["ok_start_time"]
+        ) = cw_inRectangle.check_where_inRectangle(frame, w, h, manager)
 
 
         # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
@@ -334,12 +366,29 @@ while True:
         if tid not in current_frame_active_ids and tid not in manager.user_states:
             del direction_tracker[tid]
 
+    last_x = w
+    # - 310
+    # - 628
+    reverse_y = cam_reverse[1]
+    cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
 
-    show_m.showModeDisplay(frame, roi.current_mode, fps)
+    # show fps
+    new_frame_time = time.time()
+    fps_per_sec = 1 / (new_frame_time - prev_frame_time)
+    prev_frame_time = new_frame_time
+
+    fps_per_sec = int(fps_per_sec)
+    show_m.showModeDisplay(frame, roi.current_mode, fps, fps_per_sec)
 
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
+
+
+    elapsed = time.perf_counter() - start
+    sleep_time = frame_duration - elapsed
+    if sleep_time > 0:
+        time.sleep(sleep_time)
     
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
     stats_manager.update_window()

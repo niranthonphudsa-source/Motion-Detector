@@ -59,10 +59,10 @@ cameras:
     point_zoom: null
     record_video: false
     reverse_point:
-    - 300
-    - 626
+    - 308
+    - 623
     save_ng: false
-    save_ok: false
+    save_ok: true
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 281
@@ -153,24 +153,24 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 185
+    - - 182
       - 409
-    - - 368
-      - 404
-    - - 385
+    - - 367
+      - 403
+    - - 387
       - 481
     - - 193
-      - 482
+      - 486
     - - 194
-      - 468
-    - - 184
-      - 461
+      - 470
+    - - 182
+      - 460
     person_limit: 5
     point_zoom: null
     record_video: true
     reverse_point:
-    - 318
-    - 629
+    - 310
+    - 617
     save_ng: false
     save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0

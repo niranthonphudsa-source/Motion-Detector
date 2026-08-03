@@ -5,6 +5,11 @@ predicted_label = "None"
 confidence = 0.0
 any_people_inside = False
 fps = 15
+strat_y = 0
+start_y = 0
+reverse_point = None
+
+
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),
     (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),

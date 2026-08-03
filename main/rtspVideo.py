@@ -17,7 +17,7 @@ class RTSPVideoGrabber:
         self.frame_duration = frame_duration
 
             
-    def _update(self, ):
+    def _update(self):
         while self.running:
             start = time.perf_counter()
             if self.cap.isOpened():
