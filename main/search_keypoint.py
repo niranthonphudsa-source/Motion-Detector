@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 from LIB.predict_frame_pose import ShowPredict
 
@@ -21,12 +22,15 @@ class SearchKeypoint():
 
         
         if self.frame_count % self.skip_frame == 0:
+            t=time.perf_counter()
             predict_frame = self.model.track(source=self.frame,
-                                        conf=0.7, 
+                                        conf=0.5, 
                                         persist=True, 
                                         verbose=False, 
                                         tracker="bytetrack.yaml")
-            predict.update_pose_history(predict_frame)    
+            predict.update_pose_history(predict_frame)   
+
+            print(time.perf_counter()-t) 
         else:
             predict.predicted_people_kp = []
             predict.predicted_people_ids = []

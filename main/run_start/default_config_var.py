@@ -1,5 +1,5 @@
 check_pose = ["Right", "Left", "Front"]
-ok_display_time = 5.0
+ok_display_time = 3.0
 SKIP_FRAMES = 1
 predicted_label = "None"
 confidence = 0.0

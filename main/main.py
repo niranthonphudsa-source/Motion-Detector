@@ -192,7 +192,6 @@ type = camera["Type"]
 cam_reverse = camera["reverse_point"]
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
-    start = time.perf_counter()
     ret, frame = cap.read()
     if not ret:     
         break
@@ -385,11 +384,6 @@ while True:
     s.frame_count += 1 
 
 
-    elapsed = time.perf_counter() - start
-    sleep_time = frame_duration - elapsed
-    if sleep_time > 0:
-        time.sleep(sleep_time)
-    
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
     stats_manager.update_window()
 
