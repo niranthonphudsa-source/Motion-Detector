@@ -35,6 +35,7 @@ class Check_direction_of_Movement():
             self.reverse_y = self.reverse_point[1] if self.reverse_point is not None else None
             self.reverse_x = self.reverse_point[0] if self.reverse_point is not None else None
 
+            
             # last_x = w
             # cv2.line(frame, (0, self.reverse_y), (last_x, self.reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
             # ตรวจสอบว่าทั้งคู่มีค่าพิกัดอยู่จริง ก่อนทำเงื่อนไขเปรียบเทียบ

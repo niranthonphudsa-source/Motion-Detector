@@ -67,7 +67,7 @@ while True:
         
     # print(last_flip)
     frame = cv2.resize(frame, (640, 420))
-    frame = cv2.flip(frame, last_flip)
+    # frame = cv2.flip(frame, 1)
     h, w = frame.shape[:2]
     results = model.predict(source=frame, conf=0.8, verbose=False)
 

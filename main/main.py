@@ -275,6 +275,8 @@ while True:
         )
         person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
 
+        # print(len(w))
+        cv2.line(frame, (0, foot_y), (640, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
         # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
         if person_dir['is_reverse']:
             continue
