@@ -76,18 +76,18 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 184
-      - 411
+    - - 185
+      - 409
     - - 367
-      - 407
-    - - 387
-      - 478
-    - - 192
-      - 481
-    - - 192
-      - 463
+      - 405
+    - - 383
+      - 476
+    - - 194
+      - 482
+    - - 194
+      - 461
     - - 180
-      - 459
+      - 457
     person_limit: 5
     point_zoom: null
     record_video: false
@@ -153,18 +153,18 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 182
-      - 409
-    - - 367
-      - 403
-    - - 387
-      - 481
+    - - 184
+      - 410
+    - - 365
+      - 406
+    - - 385
+      - 479
+    - - 195
+      - 485
     - - 193
-      - 486
-    - - 194
-      - 470
+      - 467
     - - 182
-      - 460
+      - 462
     person_limit: 5
     point_zoom: null
     record_video: true

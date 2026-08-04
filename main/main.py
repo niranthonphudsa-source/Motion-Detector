@@ -87,17 +87,14 @@ SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 def check_source_type(type):
     print(f"Type Main {type}")     
     if type == "Video":
-        fps = 15
+        fps = 0.05
     elif type == "LIVE_STREAM":
-        fps = 30
+        fps = 0.005
 
     return fps 
 
+frame_duration = check_source_type(type)
 
-target_fps = check_source_type(type)
-frame_duration = 1.0 / target_fps
-
-print(target_fps, frame_duration)
 
 cap = RTSPVideoGrabber(source, frame_duration)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
@@ -276,7 +273,7 @@ while True:
         person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
 
         # print(len(w))
-        cv2.line(frame, (0, foot_y), (640, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
+        cv2.line(frame, (0, foot_y), (w, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
         # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
         if person_dir['is_reverse']:
             continue

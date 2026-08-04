@@ -42,8 +42,8 @@ class Check_direction_of_Movement():
             if self.person_dir['first_touch'] is None and self.start_y is not None and self.reverse_y is not None:
 
                 # (reverse_x0 - reverse_x1) * (reverse_y0 - reverse_y1) - (reverse_y0 - reverse_y1) * (reverse_x2 - reverse_x1)
-                
-                if dist_to_reverse < 50 or self.foot_y  >= self.reverse_y:
+                # print(self.foot_y, self.reverse_y)
+                if dist_to_reverse < 50 or self.foot_y  >= (self.reverse_y - 50) :
                     self.person_dir['first_touch'] = 'REVERSE'
                     self.person_dir['is_reverse'] = True
                     print(f"🚫 ID {self.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")

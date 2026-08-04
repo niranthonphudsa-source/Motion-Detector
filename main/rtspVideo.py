@@ -9,7 +9,7 @@ class RTSPVideoGrabber:
         # self.cap = cv2.resize(self.cap, (640, 420))
         self.ret, self.frame = self.cap.read()
         self.running = True
-        # self.delay = delay
+        self.delay = frame_duration
         
         # เริ่ม Thread อ่านกล้องเบื้องหลัง
         self.thread = threading.Thread(target=self._update, daemon=True)
@@ -19,19 +19,13 @@ class RTSPVideoGrabber:
             
     def _update(self):
         while self.running:
-            start = time.perf_counter()
             if self.cap.isOpened():
                 ret, frame = self.cap.read()
                 if ret:
                     self.ret = ret
                     self.frame = frame # อัปเดตทับเป็นเฟรมล่าสุดเสมอ (ทิ้งเฟรมเก่า)
 
-            elapsed = time.perf_counter() - start
-            sleep_time = self.frame_duration - elapsed
-
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-
+            
     def read(self):
         return self.ret, self.frame
 
