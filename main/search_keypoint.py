@@ -22,15 +22,16 @@ class SearchKeypoint():
 
         
         if self.frame_count % self.skip_frame == 0:
-            t=time.perf_counter()
+            # count process
+            # t=time.perf_counter()
             predict_frame = self.model.track(source=self.frame,
-                                        conf=0.5, 
+                                        conf=0.3, 
                                         persist=True, 
                                         verbose=False, 
                                         tracker="bytetrack.yaml")
             predict.update_pose_history(predict_frame)   
 
-            print(time.perf_counter()-t) 
+            # print(time.perf_counter()-t) 
         else:
             predict.predicted_people_kp = []
             predict.predicted_people_ids = []

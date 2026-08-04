@@ -25,7 +25,7 @@ if not os.path.exists(csv_filename):
 model = YOLO('yolo26n-pose.pt') 
 # cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
 # cap = cv2.VideoCapture("videoTrain1.mp4")
-cap = cv2.VideoCapture(r"../../recordings/video_20260731_125252.mp4")
+cap = cv2.VideoCapture(r"../recordings/VideoTrain_20260804_132908.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
@@ -45,12 +45,29 @@ print("- กดเลข '3' ค้างไว้เพื่อบันทึ
 print("- กดเลข '4' ค้างไว้เพื่อบันทึกท่าที่ 4 (เช่น 'Nomal')")
 print("- กด 'q' เพื่อออกจากโปรแกรม")
 
+flipframe = 2
+last_flip = 2
 while True:
     ret, frame = cap.read()
     if not ret:
-        break
-    
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        ret, frame = cap.read()
+        if not ret:            
+            print("file video not found")
+            break
+
+    key = cv2.waitKey(25) & 0xFF
+    # if key == ord('f'):
+    #     flipframe = 1
+    #     last_flip = flipframe
+    #     key = cv2.waitKey(1) & 0xFF
+    #     if key == ord('f') and flipframe == 1:
+    #         flipframe = 2
+    #         last_flip = flipframe
+        
+    # print(last_flip)
     frame = cv2.resize(frame, (640, 420))
+    frame = cv2.flip(frame, last_flip)
     h, w = frame.shape[:2]
     results = model.predict(source=frame, conf=0.8, verbose=False)
 
@@ -94,11 +111,12 @@ while True:
     cv2.imshow("Skeleton Tracking & Data Collector", frame)
 
     # 3. ส่วนของการตรวจจับการกดปุ่มเพื่อบันทึกพิกัดลง CSV
-    key = cv2.waitKey(1) & 0xFF
+
     
     if key == ord('q'):
         break
-    
+
+        frame = cv2.resize(frame, (640, 420))
     # ตรวจสอบการกดเลข 1, 2, 3 เพื่อเลือกป้ายกำกับ (Label)
     elif key in [ord('1'), ord('2'), ord('3'), ord('4')] and features_to_save is not None:
         label = ""
@@ -113,7 +131,6 @@ while True:
             label = "Front"
         elif key == ord('4'):
             label = "Nomal"
-
         # แปลง features เป็น list และต่อท้ายด้วยชื่อท่าทาง
         row_data = list(features_to_save)
         row_data.append(label)

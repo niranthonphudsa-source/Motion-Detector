@@ -14,7 +14,7 @@ import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
 
 
-from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle
+from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
@@ -87,9 +87,9 @@ SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 def check_source_type(type):
     print(f"Type Main {type}")     
     if type == "Video":
-        fps = 30
-    elif type == "LIVE_STREAM":
         fps = 15
+    elif type == "LIVE_STREAM":
+        fps = 30
 
     return fps 
 
@@ -284,12 +284,18 @@ while True:
         people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
 
 
-        # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
-        if state["writer"] is None:
-            current_time_str = int(time.time())
-            state["video_filename"] = f"video_center/violation_{s.p_id}_{current_time_str}.avi"
-            state["writer"] = cv2.VideoWriter(state["video_filename"], fourcc, 20.0, (w, h))
-            print(f"[Record] ID {s.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {state['video_filename']}")
+        if people_in_rectangle: 
+            recordVideo = RecordVedioDetect(
+                state["writer"],
+                state["video_filename"],
+                s.p_id,
+                fourcc,
+                w,
+                h
+                
+            )
+            state["writer"], state["video_filename"] = recordVideo.recordingVideo()
+
 
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
         cw_inRectangle = Check_where_inRectangle(                            

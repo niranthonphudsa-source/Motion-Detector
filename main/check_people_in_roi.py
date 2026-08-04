@@ -109,3 +109,30 @@ class Check_where_inRectangle():
                         self.state_ok_start_time = time.time()
 
         return self.confidence, self.state_is_terminating, self.state_termination_start_time, self.state_is_ok_holding, self.state_confirm, self.state_valaus_last, self.state_ok_start_time 
+
+class RecordVedioDetect():
+
+    def __init__(self, 
+                 state_writer, 
+                 state_video_farme, 
+                 id, 
+                 fourcc,
+                 w, 
+                 h
+        ):
+        self.state_writer = state_writer
+        self.state_videoFrame = state_video_farme
+        self.p_id = id
+        self.fourcc = fourcc
+        self.w = w
+        self.h = h
+
+    def recordingVideo(self):
+            # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
+        if self.state_writer is None:
+            current_time_str = int(time.time())
+            self.state_videoFrame = f"video_center/violation_{self.p_id}_{current_time_str}.avi"
+            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, 20.0, (self.w, self.h))
+            print(f"[Record] ID {self.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {self.state_videoFrame}")
+
+        return self.state_writer, self.state_videoFrame
