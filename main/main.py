@@ -83,6 +83,7 @@ any_people_inside = df.any_people_inside
 fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 lastID = df.lastID
+# lastID = int(lastID)
 
 # def check_source_type(type):
 #     print(f"Type Main {type}")     
