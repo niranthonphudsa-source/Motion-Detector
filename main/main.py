@@ -26,7 +26,6 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
-from app.data_viewer_gui import SSTableViewerGUI
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -40,11 +39,7 @@ save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
-root = tk.Tk()
-data_view = SSTableViewerGUI(root)
-root.mainloop()
-lastID = data_view.lastID
-print(lastID)
+
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
@@ -87,7 +82,7 @@ confidence = df.confidence
 any_people_inside = df.any_people_inside
 fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
-
+lastID = df.lastID
 
 # def check_source_type(type):
 #     print(f"Type Main {type}")     
@@ -196,7 +191,7 @@ new_frame_time = 0
 type = camera["Type"]
 cam_reverse = camera["reverse_point"]
 
-
+# s.p_id = s.p_id = lastID
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:

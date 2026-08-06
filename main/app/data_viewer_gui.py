@@ -210,7 +210,12 @@ class SSTableViewerGUI:
             self.lastID = id
         return self.lastID
         
-        
+
+def checklastID():
+    getlastID = SSTableViewerGUI._getLastID
+    lastID = getlastID
+    print(lastID)
+    return lastID 
 # ==========================================
 # RUN
 # ==========================================

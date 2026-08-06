@@ -3,6 +3,7 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
+import run_start.default_config_var as df
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)
@@ -175,7 +176,7 @@ class TableViewerWindow(tk.Toplevel):
 
             query = """INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose) VALUES (?, ?, ?)"""
 
-            user_id = int(user_id)
+            user_id = int(user_id + df.lastID)
             # camera_id = int(camera_id)
             data = (user_id, camera_id, status_pose)
             

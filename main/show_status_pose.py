@@ -1,4 +1,8 @@
 import cv2
+import tkinter as tk
+import run_start.default_config_var as df
+
+lastID = df.lastID
 
 class ShowStatusPose():
     def __init__(self, p_id, 
@@ -31,7 +35,7 @@ class ShowStatusPose():
         color_state3 = (0, 255, 0) if len(state) >= 3 else (255, 255, 255)
         
         display_lines = [
-            f"ID: {self.id}",
+            f"ID: {self.id + lastID}",
             f"Pose: {self.predic_label} ({self.confidence:.1f}%)" if self.people_in_rectangle else "Pose: Outside ROI",
             # f"Progress Test: {len(state['valaus_last'])}/{len(check_pose)} {state['valaus_last']}",
             f"State Right",

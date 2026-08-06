@@ -6,6 +6,9 @@ import numpy as np
 from app.app import TableViewerWindow, ConfigManager
 import json
 import threading
+import run_start.default_config_var as df
+
+lastID = df.lastID
 
 def load_data():
     if os.path.exists('db_config.json'):
@@ -86,7 +89,7 @@ class UserStateManager:
         """
         🎬 ฟังก์ชันจัดการการเขียนวิดีโอ (ให้เรียกใช้งานทุกๆ เฟรมในลูปหลัก)
         """
-        state = self.user_states.get(user_id)
+        state = self.user_states.get(user_id + lastID)
         if not state:
             return
 
