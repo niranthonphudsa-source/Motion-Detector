@@ -28,7 +28,7 @@ class SSTableViewerGUI:
         self.root = root
         self.root.title("📊 SQL Server Data Viewer")
         self.root.geometry("900x600")
-
+        self.lastID = 0
         # กำหนดธีมสี
         self.BG_COLOR = "#F8FAFC"
         self.PANEL_COLOR = "#FFFFFF"
@@ -45,7 +45,9 @@ class SSTableViewerGUI:
             return
 
         self._build_ui()
-        self._load_tables_list() # ดึงรายชื่อตารางทันทีที่เปิดหน้าต่าง
+        self._getLastID()
+        self._fetch_table_data()
+        # self._load_tables_list() # ดึงรายชื่อตารางทันทีที่เปิดหน้าต่าง
 
     def _get_connection(self):
         """สร้าง Connection วัตถุ pyodbc จาก Config"""
@@ -80,7 +82,7 @@ class SSTableViewerGUI:
         ).pack(side="left", padx=(15, 5), pady=10)
 
         # Dropdown เลือก Table
-        self.cmb_tables = ttk.Combobox(top_frame, state="readonly", width=30, font=("Segoe UI", 9))
+        self.cmb_tables = ttk.Combobox(top_frame, state="readonly", width=30, font=("Segoe UI", 9),values="Tb_Check_Pose")
         self.cmb_tables.pack(side="left", padx=5, pady=10)
 
         # ปุ่มโหลดข้อมูล
@@ -142,7 +144,7 @@ class SSTableViewerGUI:
 
     def _fetch_table_data(self):
         """ดึงข้อมูลจากตารางที่เลือกมาแสดงผลใน Treeview"""
-        selected_table = self.cmb_tables.get()
+        selected_table = 'Tb_Check_Pose' #self.cmb_tables.get()
         if not selected_table:
             messagebox.showwarning("แจ้งเตือน", "กรุณาเลือกตารางก่อนครับ")
             return
@@ -183,7 +185,32 @@ class SSTableViewerGUI:
         except Exception as e:
             messagebox.showerror("Error", f"ไม่สามารถดึงข้อมูลตารางได้:\n{str(e)}")
 
+    def _getLastID(self):
+        selected_table = 'Tb_Check_Pose'
+        conn = self._get_connection()
+        cursor = conn.cursor()
 
+        # query = f"SELECT TOP 500 * FROM [{selected_table}]"
+        query = f"SELECT MAX(user_id) FROM [{selected_table}]"
+        cursor.execute(query)
+
+        # ดึงชื่อคอลัมน์ (Column Headers)
+        columns = [column[0] for column in cursor.description]
+        rows = cursor.fetchone()
+        conn.close()
+
+                # --- ตั้งค่า คอลัมน์ ใหม่ ---
+        self.tree["columns"] = columns
+        self.tree["show"] = "headings" # ซ่อนคอลัมน์แรกสุดที่เป็นไอคอน default
+
+        for id in rows:
+            # id.rstrip(",")
+            # print(f"laseID: {id}")
+
+            self.lastID = id
+        return self.lastID
+        
+        
 # ==========================================
 # RUN
 # ==========================================

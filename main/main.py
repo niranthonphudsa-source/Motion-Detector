@@ -26,7 +26,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
-
+from app.data_viewer_gui import SSTableViewerGUI
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -40,6 +40,11 @@ save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
+root = tk.Tk()
+data_view = SSTableViewerGUI(root)
+root.mainloop()
+lastID = data_view.lastID
+print(lastID)
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
@@ -84,19 +89,22 @@ fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 
 
-def check_source_type(type):
-    print(f"Type Main {type}")     
-    if type == "Video":
-        fps = 0.05
-    elif type == "LIVE_STREAM":
-        fps = 0.005
+# def check_source_type(type):
+#     print(f"Type Main {type}")     
+#     if type == "Video":
+#         cap = cv2.VideoCapture(source)
+#     elif type == "LIVE_STREAM":
+#         cap = RTSPVideoGrabber(source, frame_duration)
 
-    return fps 
+#     return fps 
 
-frame_duration = check_source_type(type)
+# frame_duration = check_source_type(type)
 
 
-cap = RTSPVideoGrabber(source, frame_duration)
+if type == "Video":
+    cap = cv2.VideoCapture(source)
+elif type == "LIVE_STREAM":
+    cap = RTSPVideoGrabber(source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -139,11 +147,11 @@ def reload_config_callback(new_camera_id, updated_config=None):
         type = camera["Type"]
         cam_reverse = camera["reverse_point"]
         
-        fps = check_source_type(type)
+        # fps = check_source_type(type)
         print(f"Type Main {type}  fps_limit={fps}")
         print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
-        cap = RTSPVideoGrabber(new_source, frame_duration)
+        cap = RTSPVideoGrabber(new_source)
 
    
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
@@ -187,6 +195,9 @@ new_frame_time = 0
 
 type = camera["Type"]
 cam_reverse = camera["reverse_point"]
+
+
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()

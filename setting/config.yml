@@ -62,7 +62,7 @@ cameras:
     - 308
     - 623
     save_ng: false
-    save_ok: true
+    save_ok: false
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 281

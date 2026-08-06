@@ -1,3 +1,4 @@
+
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 3.0
 SKIP_FRAMES = 1
@@ -8,7 +9,7 @@ fps = 15
 strat_y = 0
 start_y = 0
 reverse_point = None
-
+# lastID = SSTableViewerGUI._getLastID()
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),
