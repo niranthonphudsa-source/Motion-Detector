@@ -89,7 +89,7 @@ class UserStateManager:
         """
         🎬 ฟังก์ชันจัดการการเขียนวิดีโอ (ให้เรียกใช้งานทุกๆ เฟรมในลูปหลัก)
         """
-        state = self.user_states.get(user_id + lastID)
+        state = self.user_states.get(user_id)
         if not state:
             return
 

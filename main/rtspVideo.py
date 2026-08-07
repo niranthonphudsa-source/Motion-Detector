@@ -18,11 +18,11 @@ class RTSPVideoGrabber:
         while self.running:
             if self.cap.isOpened():
                 self.ret, self.frame = self.cap.read()
-                self.frame = cv2.resize(self.frame, (640, 420))
+                # self.frame = cv2.resize(self.frame, (640, 420))
                 if self.ret:
                     self.ret = self.ret
                     self.frame = self.frame # อัปเดตทับเป็นเฟรมล่าสุดเสมอ (ทิ้งเฟรมเก่า)
-
+            time.sleep(0.01)
             
     def read(self):
         return self.ret, self.frame

@@ -85,13 +85,7 @@ fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 lastID = df.lastID
 
-
-
-
-if type == "Video":
-    cap = cv2.VideoCapture(source)
-elif type == "LIVE_STREAM":
-    cap = RTSPVideoGrabber(source)
+cap = RTSPVideoGrabber(source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -100,6 +94,8 @@ manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_tim
 
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
+
+#new_camera_id=None, updated_config=None
 
 def reload_config_callback(new_camera_id, updated_config=None):
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
@@ -169,7 +165,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
 
-
+# cam_data, save_ok_flag, save_ng_flag = reload_config_callback(new_camera_id=None, updated_config=None)
 stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 
@@ -229,6 +225,7 @@ while True:
     current_frame_active_ids = set(s.current_frame_ids)
 
     for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
+        s.p_id += df.lastID
         if len(point_pose) < 17: 
             continue
         

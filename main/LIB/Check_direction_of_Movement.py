@@ -1,5 +1,6 @@
 import get_distance 
 import cv2
+import run_start.default_config_var as df
 
 class Check_direction_of_Movement():
     def __init__(self,
