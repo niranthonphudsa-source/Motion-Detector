@@ -14,7 +14,7 @@ def open_train_window():
     app = TrainGUI(train_window)
     
 
-with open(r"setting\config.yaml", "r", encoding="utf-8") as f:
+with open(r"..\setting\config.yaml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)   
 
 # dataset = config["global"]["dataset_path"]

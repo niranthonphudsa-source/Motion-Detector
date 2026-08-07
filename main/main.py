@@ -75,22 +75,23 @@ if len(roi.mark_points) > 0:
                                             )
 model = YOLO('yolo26n-pose.pt')
 
-check_pose = df.check_pose
-ok_display_time = df.ok_display_time
-SKIP_FRAMES = df.SKIP_FRAMES
-predicted_label = df.predicted_label
-confidence = df.confidence
-any_people_inside = df.any_people_inside
-fps = df.fps
-SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
-lastID = df.lastID
+# check_pose = df.check_pose
+# ok_display_time = df.ok_display_time
+# SKIP_FRAMES = df.SKIP_FRAMES
+# predicted_label = df.predicted_label
+# confidence = df.confidence
+# any_people_inside = df.any_people_inside
+
+# fps = df.fps
+# SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
+# lastID = df.lastID
 
 cap = RTSPVideoGrabber(source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-manager = UserStateManager(check_pose, fourcc, ok_display_time=5.0, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
+manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
@@ -131,7 +132,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
         cam_reverse = camera["reverse_point"]
         
         # fps = check_source_type(type)
-        print(f"Type Main {type}  fps_limit={fps}")
+        print(f"Type Main {type}  fps_limit={df.fps}")
         print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
         cap = RTSPVideoGrabber(new_source)
@@ -186,7 +187,7 @@ while True:
     if not ret:     
         break
         # continue
-    frame = cv2.resize(frame, (640, 640))
+    # frame = cv2.resize(frame, (640, 640))
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
@@ -200,8 +201,8 @@ while True:
 
     
     # --- ส่วนที่ 3: UI กล่อง ROI รวม และวาด Marker Indicators ---
-    check_people = "People in Rectangle" if any_people_inside else "None People"
-    box_color = (0, 0, 255) if any_people_inside else (0, 255, 0)
+    check_people = "People in Rectangle" if df.any_people_inside else "None People"
+    box_color = (0, 0, 255) if df.any_people_inside else (0, 255, 0)
 
 
     # # วาดจุดมาร์กและเส้นตาราง ROI Polygon
@@ -217,11 +218,11 @@ while True:
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
 
-    search_key = SearchKeypoint(SKIP_FRAMES, frame, model, s.frame_count)
+    search_key = SearchKeypoint(df.SKIP_FRAMES, frame, model, s.frame_count)
     s.current_frame_poses, s.current_frame_ids =  search_key.searchKeypoint()
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
-    any_people_inside = False
+    df.any_people_inside = False
     current_frame_active_ids = set(s.current_frame_ids)
 
     for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
@@ -246,7 +247,7 @@ while True:
 
         # วาดเส้นกระดูก Skeleton
         point_skel = point_pose.astype(int)
-        for start_idx, end_idx in SKELETON_CONNECTIONS:
+        for start_idx, end_idx in df.SKELETON_CONNECTIONS:
             if (point_skel[start_idx, 0] == 0 and point_skel[start_idx, 1] == 0) or \
                (point_skel[end_idx, 0] == 0 and point_skel[end_idx, 1] == 0):
                 continue
@@ -274,7 +275,7 @@ while True:
 
         # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
         checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, any_people_inside = checkInRoi.checkPeopleInRoi()
+        people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
 
 
         if people_in_rectangle: 
@@ -302,7 +303,7 @@ while True:
                                                 point_pose,
                                                 s.p_id,
                                                 pose_classifier,
-                                                check_pose,
+                                                df.check_pose,
                                         )
 
         (confidence, state["is_terminating"], 
@@ -333,7 +334,7 @@ while True:
         status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
 
         status_show = ShowStatusPose(s.p_id,
-                                        predicted_label, 
+                                        df.predicted_label, 
                                         confidence,
                                         people_in_rectangle, 
                                         line_height,
@@ -366,6 +367,7 @@ while True:
 
     last_x = w
     reverse_y = cam_reverse[1]
+    # print(reverse_y)
     cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
 
     # show fps
@@ -374,12 +376,12 @@ while True:
     prev_frame_time = new_frame_time
 
     fps_per_sec = int(fps_per_sec)
-    show_m.showModeDisplay(frame, roi.current_mode, fps, fps_per_sec)
+    show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
 
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
-
+    # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
     stats_manager.update_window()
@@ -436,7 +438,7 @@ while True:
         config_manager.save_config()
         print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
             
-    elif key == ord('c'):  # ล้างพิกัดหน้าจอ
+    elif key == 'c':  # ล้างพิกัดหน้าจอ
         roi.clear()
         
     elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ

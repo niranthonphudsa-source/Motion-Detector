@@ -45,7 +45,7 @@ try:
       print("❌ ไม่สามารถดึงสัญญาณภาพจากกล้องได้")
       break
 
-    frame = cv2.resize(frame, (640, 420))
+    # frame = cv2.resize(frame, (640, 420))
     # สร้าง Frame สำหรับแสดงผล (เพื่อไม่ให้ข้อความสัญลักษณ์ไปโผล่ในวิดีโอจริง)
     display_frame = frame.copy()
 

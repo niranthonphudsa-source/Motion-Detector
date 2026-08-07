@@ -3,7 +3,7 @@ import threading
 import time
 
 class RTSPVideoGrabber:
-    def __init__(self, src=0, target_fps=60):
+    def __init__(self, src=0, target_fps=8):
         self.src = src
         self.target_fps = target_fps
         # คำนวณช่วงเวลาห่างระหว่างเฟรม (เช่น 15 FPS = 0.066 วินาที/เฟรม)

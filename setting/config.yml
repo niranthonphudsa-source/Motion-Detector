@@ -8,28 +8,28 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 282
-      - 264
-    - - 348
-      - 265
-    - - 349
-      - 323
-    - - 266
-      - 311
+    - - 545
+      - 292
+    - - 676
+      - 298
+    - - 694
+      - 361
+    - - 511
+      - 357
     person_limit: 5
     point_zoom:
-    - 306
-    - 217
+    - 620
+    - 244
     record_video: true
     reverse_point:
-    - 278
-    - 622
+    - 458
+    - 698
     save_ng: false
     save_ok: false
     source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
     start_point:
-    - 309
-    - 291
+    - 602
+    - 324
   Camera_2:
     Display:
       Position_x: 0
@@ -63,28 +63,30 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 189
-      - 407
-    - - 363
-      - 402
-    - - 387
-      - 482
-    - - 200
-      - 484
-    - - 190
-      - 459
+    - - 373
+      - 617
+    - - 740
+      - 630
+    - - 776
+      - 731
+    - - 389
+      - 728
+    - - 392
+      - 704
+    - - 364
+      - 686
     person_limit: 5
     point_zoom: null
     record_video: false
     reverse_point:
-    - 308
-    - 623
+    - 593
+    - 924
     save_ng: false
     save_ok: false
     source: ../video_model/videoTrain3.mp4
     start_point:
-    - 281
-    - 445
+    - 560
+    - 675
   Camera_4:
     Display:
       Position_x: 0
@@ -153,30 +155,30 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 184
-      - 410
-    - - 365
-      - 406
-    - - 385
-      - 479
-    - - 195
-      - 485
-    - - 193
-      - 467
-    - - 182
-      - 462
+    - - 372
+      - 616
+    - - 734
+      - 618
+    - - 777
+      - 722
+    - - 382
+      - 735
+    - - 396
+      - 702
+    - - 377
+      - 688
     person_limit: 5
     point_zoom: null
     record_video: true
     reverse_point:
-    - 310
-    - 617
+    - 597
+    - 941
     save_ng: true
     save_ok: true
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
-    - 279
-    - 445
+    - 552
+    - 682
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
@@ -190,7 +192,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_04-08-2026-14-01-27.pkl
+    source: model\pose_classifier_07-08-2026-15-28-07.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:

@@ -55,8 +55,10 @@ class ROIHandler:
         self.mark_points = []
         self.current_mode = 0
         self.is_confirmed = False
+
     # 3. ล้างค่าพิกัดทั้งหมด
     def clear(self):
+        self.mark_points = []
         self.start_point = None
         self.reverse_point = None
         self.is_confirmed = False
