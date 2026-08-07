@@ -132,7 +132,7 @@ class RecordVedioDetect():
         if self.state_writer is None:
             current_time_str = int(time.time())
             self.state_videoFrame = f"video_center/violation_{self.p_id}_{current_time_str}.avi"
-            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, 20.0, (self.w, self.h))
+            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, 10, (self.w, self.h))
             print(f"[Record] ID {self.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {self.state_videoFrame}")
 
         return self.state_writer, self.state_videoFrame

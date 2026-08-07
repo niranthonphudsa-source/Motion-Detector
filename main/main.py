@@ -278,7 +278,7 @@ while True:
         people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
 
 
-        if people_in_rectangle: 
+        if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
                 state["writer"],
                 state["video_filename"],
