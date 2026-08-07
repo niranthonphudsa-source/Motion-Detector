@@ -71,7 +71,7 @@ class HelpGUI:
     def _trigger_key(self, char_val):
         """ส่งรหัสอักขระไปยัง main.py (ถ้ามี)"""
         if self.key_callback:
-            self.key_callback(ord(char_val))
+            self.key_callback(char_val)
             print(f"👉 [Help GUI] Triggered Key: '{char_val}'")
         else:
             print(f"ℹ️ [Help GUI Standalone] Clicked: '{char_val}' (ไม่ได้เชื่อมต่อกับ main.py)")
