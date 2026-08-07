@@ -45,7 +45,6 @@ class SSTableViewerGUI:
             return
 
         self._build_ui()
-        self._getLastID()
         self._fetch_table_data()
         # self._load_tables_list() # ดึงรายชื่อตารางทันทีที่เปิดหน้าต่าง
 
@@ -185,6 +184,35 @@ class SSTableViewerGUI:
         except Exception as e:
             messagebox.showerror("Error", f"ไม่สามารถดึงข้อมูลตารางได้:\n{str(e)}")
 
+    
+        
+class CheckLastID():
+    def __init__(self):
+        self.lastID = 0
+        self.config_mgr = ConfigManager()
+        self.config_data = self.config_mgr.load_config()
+
+        self._getLastID()
+
+    def _get_connection(self):
+        """สร้าง Connection วัตถุ pyodbc จาก Config"""
+        server = self.config_data.get("server")
+        database = self.config_data.get("database")
+        driver = self.config_data.get("driver", "ODBC Driver 17 for SQL Server")
+        auth_type = self.config_data.get("auth_type")
+
+        if auth_type == "Windows Authentication":
+            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
+        else:
+            user = self.config_data.get("username")
+            pwd = self.config_data.get("password")
+            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={user};PWD={pwd};"
+
+        if "18" in driver:
+            conn_str += "TrustServerCertificate=yes;"
+
+        return pyodbc.connect(conn_str, timeout=5)
+    
     def _getLastID(self):
         selected_table = 'Tb_Check_Pose'
         conn = self._get_connection()
@@ -194,32 +222,19 @@ class SSTableViewerGUI:
         query = f"SELECT MAX(user_id) FROM [{selected_table}]"
         cursor.execute(query)
 
-        # ดึงชื่อคอลัมน์ (Column Headers)
-        columns = [column[0] for column in cursor.description]
         rows = cursor.fetchone()
         conn.close()
 
-                # --- ตั้งค่า คอลัมน์ ใหม่ ---
-        self.tree["columns"] = columns
-        self.tree["show"] = "headings" # ซ่อนคอลัมน์แรกสุดที่เป็นไอคอน default
-
         for id in rows:
-            # id.rstrip(",")
-            # print(f"laseID: {id}")
-
             self.lastID = id
-        return self.lastID
-        
+        # print(self.lastID)
+        return self.lastID 
 
-def checklastID():
-    getlastID = SSTableViewerGUI._getLastID
-    lastID = getlastID
-    print(lastID)
-    return lastID 
 # ==========================================
 # RUN
 # ==========================================
 if __name__ == "__main__":
     root = tk.Tk()
     app = SSTableViewerGUI(root)
+    app1 = CheckLastID()
     root.mainloop()

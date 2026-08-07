@@ -1,14 +1,14 @@
 import tkinter as tk
-from app.data_viewer_gui import SSTableViewerGUI, checklastID
+from app.data_viewer_gui import SSTableViewerGUI, CheckLastID
 
 # root = tk.Tk()
 # data_view = SSTableViewerGUI(root)
 # root.mainloop()
 
 
-
-lastID = checklastID
-print(lastID)
+check = CheckLastID()
+lastID = check._getLastID()
+# print(lastID)
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 3.0
 SKIP_FRAMES = 1

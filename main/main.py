@@ -12,7 +12,7 @@ import mark_roi_polygon as mark_roi
 import run_start.default_config_var as df
 import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
-
+from app.data_viewer_gui import CheckLastID
 
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
 from search_keypoint import SearchKeypoint
@@ -26,6 +26,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -83,18 +84,8 @@ any_people_inside = df.any_people_inside
 fps = df.fps
 SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 lastID = df.lastID
-# lastID = int(lastID)
 
-# def check_source_type(type):
-#     print(f"Type Main {type}")     
-#     if type == "Video":
-#         cap = cv2.VideoCapture(source)
-#     elif type == "LIVE_STREAM":
-#         cap = RTSPVideoGrabber(source, frame_duration)
 
-#     return fps 
-
-# frame_duration = check_source_type(type)
 
 
 if type == "Video":
@@ -189,10 +180,9 @@ latest_frame = None
 prev_frame_time = 0
 new_frame_time = 0
 
-type = camera["Type"]
-cam_reverse = camera["reverse_point"]
+type = camera.get("Type", None)
+cam_reverse = camera.get("reverse_point", (0, 0))
 
-# s.p_id = s.p_id = lastID
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
@@ -378,8 +368,6 @@ while True:
             del direction_tracker[tid]
 
     last_x = w
-    # - 310
-    # - 628
     reverse_y = cam_reverse[1]
     cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
 

@@ -5,13 +5,31 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: Video
-    enabled: false
+    Type: LIVE_STREAM
+    enabled: true
+    mark_points:
+    - - 282
+      - 264
+    - - 348
+      - 265
+    - - 349
+      - 323
+    - - 266
+      - 311
     person_limit: 5
-    record_video: false
+    point_zoom:
+    - 306
+    - 217
+    record_video: true
+    reverse_point:
+    - 278
+    - 622
     save_ng: false
     save_ok: false
-    source: ../video_model/videoTrain1.mp4
+    source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
+    start_point:
+    - 309
+    - 291
   Camera_2:
     Display:
       Position_x: 0
@@ -106,31 +124,13 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: LIVE_STREAM
-    enabled: true
-    mark_points:
-    - - 282
-      - 264
-    - - 348
-      - 265
-    - - 349
-      - 323
-    - - 266
-      - 311
+    Type: Video
+    enabled: false
     person_limit: 5
-    point_zoom:
-    - 306
-    - 217
-    record_video: true
-    reverse_point:
-    - 278
-    - 622
+    record_video: false
     save_ng: false
     save_ok: false
-    source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
-    start_point:
-    - 309
-    - 291
+    source: ../video_model/videoTrain1.mp4
   Camera_6:
     Display:
       Position_x: 0
