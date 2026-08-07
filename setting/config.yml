@@ -18,8 +18,8 @@ cameras:
       - 357
     person_limit: 5
     point_zoom:
-    - 620
-    - 244
+    - 614
+    - 245
     record_video: true
     reverse_point:
     - 458
@@ -174,7 +174,7 @@ cameras:
     - 597
     - 941
     save_ng: false
-    save_ok: true
+    save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
     - 564
