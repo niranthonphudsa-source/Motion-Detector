@@ -176,13 +176,13 @@ class TableViewerWindow(tk.Toplevel):
 
             query = """INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose) VALUES (?, ?, ?)"""
 
-            user_id = int(user_id + df.lastID)
+            user_id = int(user_id)
             # camera_id = int(camera_id)
             data = (user_id, camera_id, status_pose)
             
             cursor.execute(query, data)
             conn.commit()
-            print("✅ Insert Data Successfully!")
+            print(f"✅{user_id} Insert Data Successfully!")
 
 
         except Exception as e:
