@@ -3,7 +3,7 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
-import run_start.default_config_var as df
+# import run_start.default_config_var as df
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)

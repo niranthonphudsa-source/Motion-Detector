@@ -31,6 +31,8 @@ class RTSPVideoGrabber:
                     with self.lock:
                         self.ret = ret
                         self.frame = frame
+                else:
+                    break
             # ให้ CPU ได้พักเล็กน้อย ไม่ให้รัน 100%
             time.sleep(0.005)
 

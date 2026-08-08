@@ -5,31 +5,33 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: LIVE_STREAM
-    enabled: true
+    Type: Video
+    enabled: false
     mark_points:
-    - - 545
-      - 292
-    - - 676
-      - 298
-    - - 694
-      - 361
-    - - 511
-      - 357
+    - - 373
+      - 617
+    - - 740
+      - 630
+    - - 776
+      - 731
+    - - 389
+      - 728
+    - - 392
+      - 704
+    - - 364
+      - 686
     person_limit: 5
-    point_zoom:
-    - 614
-    - 245
-    record_video: true
+    point_zoom: null
+    record_video: false
     reverse_point:
-    - 458
-    - 698
+    - 593
+    - 924
     save_ng: false
     save_ok: false
-    source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
+    source: ../video_model/videoTrain3.mp4
     start_point:
-    - 602
-    - 324
+    - 560
+    - 675
   Camera_2:
     Display:
       Position_x: 0
@@ -60,33 +62,31 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: Video
-    enabled: false
+    Type: LIVE_STREAM
+    enabled: true
     mark_points:
-    - - 373
-      - 617
-    - - 740
-      - 630
-    - - 776
-      - 731
-    - - 389
-      - 728
-    - - 392
-      - 704
-    - - 364
-      - 686
+    - - 545
+      - 292
+    - - 676
+      - 298
+    - - 694
+      - 361
+    - - 511
+      - 357
     person_limit: 5
-    point_zoom: null
-    record_video: false
+    point_zoom:
+    - 614
+    - 245
+    record_video: true
     reverse_point:
-    - 593
-    - 924
+    - 458
+    - 698
     save_ng: false
     save_ok: false
-    source: ../video_model/videoTrain3.mp4
+    source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
     start_point:
-    - 560
-    - 675
+    - 602
+    - 324
   Camera_4:
     Display:
       Position_x: 0
@@ -126,19 +126,6 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: Video
-    enabled: false
-    person_limit: 5
-    record_video: false
-    save_ng: false
-    save_ok: false
-    source: ../video_model/videoTrain1.mp4
-  Camera_6:
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
     Type: LIVE_STREAM
     enabled: true
     person_limit: 5
@@ -146,7 +133,7 @@ cameras:
     save_ng: false
     save_ok: false
     source: 1
-  Camera_7:
+  Camera_6:
     Display:
       Position_x: 0
       Position_y: 0
