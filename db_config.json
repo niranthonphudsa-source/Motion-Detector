@@ -1,0 +1,8 @@
+{
+    "server": "localhost\\SQLEXPRESS",
+    "database": "rtrack_data",
+    "auth_type": "Windows Authentication",
+    "username": "atc",
+    "password": "atc",
+    "driver": "ODBC Driver 18 for SQL Server"
+}

@@ -1,0 +1,192 @@
+cameras:
+  Camera_1:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: Video
+    enabled: false
+    mark_points:
+    - - 373
+      - 617
+    - - 740
+      - 630
+    - - 776
+      - 731
+    - - 389
+      - 728
+    - - 392
+      - 704
+    - - 364
+      - 686
+    person_limit: 5
+    point_zoom: null
+    record_video: false
+    reverse_point:
+    - 593
+    - 924
+    save_ng: false
+    save_ok: false
+    source: ../video_model/videoTrain3.mp4
+    start_point:
+    - 560
+    - 675
+  Camera_2:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: Video
+    enabled: false
+    mark_points:
+    - - 114
+      - 518
+    - - 481
+      - 481
+    - - 474
+      - 622
+    - - 146
+      - 611
+    person_limit: 5
+    record_video: false
+    reverse_point: null
+    save_ng: false
+    save_ok: false
+    source: ../video_model/videoTrain2.mp4
+    start_point: null
+  Camera_3:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    mark_points:
+    - - 545
+      - 292
+    - - 676
+      - 298
+    - - 694
+      - 361
+    - - 511
+      - 357
+    person_limit: 5
+    point_zoom:
+    - 614
+    - 245
+    record_video: true
+    reverse_point:
+    - 458
+    - 698
+    save_ng: false
+    save_ok: false
+    source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
+    start_point:
+    - 602
+    - 324
+  Camera_4:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: Video
+    enabled: false
+    mark_points:
+    - - 185
+      - 409
+    - - 367
+      - 405
+    - - 383
+      - 476
+    - - 194
+      - 482
+    - - 194
+      - 461
+    - - 180
+      - 457
+    person_limit: 5
+    point_zoom: null
+    record_video: false
+    reverse_point:
+    - 310
+    - 628
+    save_ng: false
+    save_ok: false
+    source: ../video_model/videoTrain4.mp4
+    start_point:
+    - 282
+    - 448
+  Camera_5:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    person_limit: 5
+    record_video: true
+    save_ng: false
+    save_ok: false
+    source: 1
+  Camera_6:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STREAM
+    enabled: true
+    mark_points:
+    - - 372
+      - 616
+    - - 734
+      - 618
+    - - 777
+      - 722
+    - - 382
+      - 735
+    - - 396
+      - 702
+    - - 377
+      - 688
+    person_limit: 5
+    point_zoom: null
+    record_video: true
+    reverse_point:
+    - 597
+    - 941
+    save_ng: false
+    save_ok: false
+    source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
+    start_point:
+    - 564
+    - 676
+global:
+  active_model: model\pose_classifier_1 copy.pkl
+  dataset_path: ..\..\dataset\pose_dataset copy 2.csv
+  default_person_limit: 3
+  detection_confidence: 0.9
+  model_type: full
+  presence_confidence: 0.9
+  record_height: 300
+  record_width: 100
+  tracking_confidence: 0.9
+  video_path: video_model
+model:
+  Model_path_1:
+    source: model\pose_classifier_07-08-2026-15-54-32.pkl
+  Model_path_2:
+    source: model\pose_classifier_1.pkl
+  Model_path_3:
+    source: model\pose_classifier.pkl
+  Model_path_4:
+    source: model\pose_classifier_10_55-31-07-2026.pkl
+  Model_path_5:
+    source: model\pose_classifier_11_25-31-07-26.pkl
+  Model_path_6:
+    source: model\pose_classifier_13_15-31-7-26.pkl
