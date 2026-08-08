@@ -8,18 +8,20 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 373
+    - - 367
       - 617
-    - - 740
-      - 630
-    - - 776
-      - 731
-    - - 389
-      - 728
+    - - 367
+      - 600
+    - - 734
+      - 609
+    - - 768
+      - 721
     - - 392
-      - 704
-    - - 364
-      - 686
+      - 726
+    - - 390
+      - 706
+    - - 363
+      - 692
     person_limit: 5
     point_zoom: null
     record_video: false
