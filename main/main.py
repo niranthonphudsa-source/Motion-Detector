@@ -97,7 +97,7 @@ new_frame_time = 0
 
 type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
-
+reverse_y = 0
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
@@ -284,9 +284,10 @@ while True:
             del direction_tracker[tid]
 
     last_x = w
-    reverse_y = cam_reverse[1]
-    # print(reverse_y)
-    cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
+    if reverse_y:
+        reverse_y = cam_reverse[1]
+        # print(reverse_y)
+        cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
 
     # show fps
     new_frame_time = time.time()
@@ -313,6 +314,9 @@ while True:
         clb.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
 
     key = chr(key_input).lower()
+    # roi.current_mode =  clb.checkKey(key)
+    # if roi.current_mode == False:
+    #     break
     if key == 'q':
         break
     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
@@ -324,11 +328,11 @@ while True:
         roi.current_mode = 1
         print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
 
-    elif key == '3':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
+    elif key == '2':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
         roi.current_mode = 2
         print("🟢 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 1: Start Check Point]")
 
-    elif key == '4':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+    elif key == '3':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
         roi.current_mode = 3
         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
 
@@ -341,7 +345,7 @@ while True:
         print("🔴[Cancle Mark Point Zoom]")
 
 
-    elif key == '2':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
+    elif key == '0':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
         roi.is_confirmed = True
         roi.current_mode = 0
         

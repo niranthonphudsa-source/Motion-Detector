@@ -163,6 +163,7 @@ def open_pin_config_window():
 
 
 # def checkKey(key):
+#     global config_manager
 #     if key == 'q':
 #         return False
 #     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
@@ -172,25 +173,25 @@ def open_pin_config_window():
 #         roi.clear_roi()
 #         roi.current_mode = 1
 #         print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
-#         return roi.current_mode
-#     elif key == '3':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
+#         # return roi.current_mode
+#     elif key == '2':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
 #         roi.current_mode = 2
 #         print("🟢 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 1: Start Check Point]")
-#         return roi.current_mode
-#     elif key == '4':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
+#         # return roi.current_mode
+#     elif key == '3':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
 #         roi.current_mode = 3
 #         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
-#         return roi.current_mode
+#         # return roi.current_mode
 #     elif key == '5':  # 🌟 โหมดมาร์กจุด Zoom
 #         roi.current_mode = 5
 #         print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
-#         return roi.current_mode
+#         # return roi.current_mode
 #     elif key == '6':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
 #         roi.clear_point_zoom()
 #         print("🔴[Cancle Mark Point Zoom]")
-#         return roi.current_mode
+#         # return roi.current_mode
 
-#     elif key == '2':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
+#     elif key == '0':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
 #         roi.is_confirmed = True
 #         roi.current_mode = 0
         
@@ -204,7 +205,7 @@ def open_pin_config_window():
         
 #         config_manager.save_config()
 #         print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
-#         return roi.current_mode    
+#         # return roi.current_mode    
 #     elif key == 'c':  # ล้างพิกัดหน้าจอ
 #         roi.clear()
         
@@ -229,3 +230,5 @@ def open_pin_config_window():
 #     elif key == 'o':
 #         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
 #         open_ssms_gui()
+
+#     return roi.current_mode
