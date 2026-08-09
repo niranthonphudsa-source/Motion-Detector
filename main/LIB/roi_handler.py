@@ -20,7 +20,6 @@ class ROIHandler:
         self.reverse_point = None  # พิกัดจุดที่ 2: Reverse Check (x, y)
         
         self.is_confirmed = False  # สถานะยืนยัน Polygon ROI
-
     # 1. Callback ฟังก์ชันดักจับเมาส์
     def click_event(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
