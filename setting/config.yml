@@ -21,13 +21,13 @@ cameras:
     record_video: false
     reverse_point:
     - 603
-    - 941
+    - 949
     save_ng: false
     save_ok: false
     source: ../video_model/videoTrain3.mp4
     start_point:
-    - 561
-    - 671
+    - 550
+    - 673
   Camera_2:
     Display:
       Position_x: 0

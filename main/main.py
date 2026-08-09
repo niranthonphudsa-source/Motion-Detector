@@ -284,7 +284,7 @@ while True:
             del direction_tracker[tid]
 
     last_x = w
-    if reverse_y:
+    if reverse_y is not None:
         reverse_y = cam_reverse[1]
         # print(reverse_y)
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
