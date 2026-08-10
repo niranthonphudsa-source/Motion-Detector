@@ -182,7 +182,7 @@ class UserStateManager:
         self.save_ok = save_ok
         self.save_ng = save_ng
         current_time = time.time()
-
+        
         for active_id, active_state in list(self.user_states.items()):
 
             # ตรวจสอบคนที่อยู่ในช่วงนับถอยหลังปิดไฟล์
@@ -212,29 +212,30 @@ class UserStateManager:
                             f"🛑 [Stop Recording] บันทึกแถมครบ {self.buffer_output_time} วินาทีแล้ว ปิดไฟล์วิดีโอ ID {active_id}"
                         )
 
+                    final_status = active_state["confirm"]
                     # 2. บันทึก LOG สถิติลง SQLite Database (ยังบันทึก DB ปกติแม้อาจจะไม่บันทึกวิดีโอ)
-                    if stats_db is not None:
-                        final_status = active_state["confirm"]  # "OK" หรือ "NG"
-                        stats_db.log_event(camera_id, final_status, active_id)
-                        print(
-                            f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}"
-                        )
-                        data = (active_id, camera_id, final_status)
+                    # if stats_db is not None:
+                    #     final_status = active_state["confirm"]  # "OK" หรือ "NG"
+                    #     stats_db.log_event(camera_id, final_status, active_id)
+                    #     print(
+                    #         f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}"
+                    #     )
+                    data = (active_id, camera_id, final_status)
+                    print(f"DATA: {data}")
+                    def safe_insert_data(cfg, *d_args):
+                        try:
+                            TableViewerWindow.insert_data(cfg, *d_args)
+                        except Exception as e:
+                            print(
+                                f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
+                            )
 
-                        def safe_insert_data(cfg, *d_args):
-                            try:
-                                TableViewerWindow.insert_data(cfg, *d_args)
-                            except Exception as e:
-                                print(
-                                    f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
-                                )
-
-                        db_thread = threading.Thread(
-                            target=safe_insert_data,
-                            args=(config_data, *data),
-                            daemon=True,
-                        )
-                        db_thread.start()
+                    db_thread = threading.Thread(
+                        target=safe_insert_data,
+                        args=(config_data, *data),
+                        daemon=True,
+                    )
+                    db_thread.start()
 
                     # 3. ตรวจสอบเงื่อนไขการย้าย/คัดลอกไฟล์วิดีโอ (ทำงานเฉพาะเมื่อมีไฟล์วิดีโอถูกสร้างขึ้นมาเท่านั้น)
                     is_ok = active_state["confirm"] == "OK"

@@ -40,6 +40,74 @@ save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
+def reload_config_callback(new_camera_id, updated_config=None):
+    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
+    
+    if updated_config:
+        config = updated_config
+        config_manager.config = updated_config
+    else:
+        config_manager.config = config_manager.load_config()
+        config = config_manager.config
+    
+    try:
+        model_info = config.get("model", {}).get("Model_path_1", {})
+        new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
+
+        if new_model_path and os.path.exists(new_model_path):
+            model_sklearn = new_model_path
+            pose_classifier = joblib.load(model_sklearn)
+            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
+            
+        else:
+            print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
+    except Exception as e:
+        print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
+
+    # 🔄 สลับกล้อง (Switch Camera)
+    if active_camera_id != new_camera_id:
+        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
+        old_cap = cap
+        active_camera_id = new_camera_id
+        camera = config["cameras"][active_camera_id]
+        type = camera["Type"]
+        cam_reverse = camera["reverse_point"]
+        
+        # fps = check_source_type(type)
+        print(f"Type Main {type}  fps_limit={df.fps}")
+        print(f"cam_reverse: {cam_reverse}")
+        new_source = camera["source"]
+        cap = RTSPVideoGrabber(new_source)
+
+   
+        # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
+        if old_cap:
+            if hasattr(old_cap, 'stop'):
+                old_cap.stop()
+            elif hasattr(old_cap, 'release'):
+                old_cap.release()
+
+        roi.clear()
+        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
+        point_zoom = camera.get("point_zoom", None)
+        (roi.mark_points, 
+         roi.start_point, 
+         roi.reverse_point, 
+         roi.point_zoom, 
+         roi.is_confirmed
+         ) = roi.update_roi_start_check(cam_mark,
+                                        cam_start,
+                                        cam_reverse, 
+                                        point_zoom
+                                        )
+
+
+    cam_data = config["cameras"].get(active_camera_id, {})
+    save_ok_flag = cam_data.get("save_ok", True)
+    save_ng_flag = cam_data.get("save_ng", True)
+    
+    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
+    return cam_data, save_ok_flag, save_ng_flag
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
@@ -84,11 +152,11 @@ direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
 
 
-cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
-stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
+# cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
+# stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 
-config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=clb.reload_config_callback)  
+config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
 
 # ตัวแปรคำนวณ fps
@@ -273,7 +341,7 @@ while True:
         current_frame_active_ids, 
         save_ok=save_ok_flag, 
         save_ng=save_ng_flag,
-        stats_db=stats_db,                # 👈 ส่งตัวบันทึกข้อมูลลง DB
+        # stats_db=stats_db,                # 👈 ส่งตัวบันทึกข้อมูลลง DB
         camera_id=active_camera_id        # 👈 ระบุ ID กล้อง
     )
 
@@ -369,16 +437,16 @@ while True:
             target=config_manager.open_settings,
             kwargs={
                 "current_cam_id": active_camera_id, 
-                "on_close_callback": clb.reload_config_callback
+                "on_close_callback": reload_config_callback
             },
             daemon=True
         )
         gui_thread.start()
     # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
-    elif key == 'd':
-        print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
-        stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
+    # elif key == 'd':
+    #     print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
+    #     stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
  
     elif key == 'o':
         print("📊 กำลังเปิดหน้าต่าง Connect Database...")

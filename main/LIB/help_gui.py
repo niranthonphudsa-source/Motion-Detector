@@ -34,12 +34,11 @@ class HelpGUI:
         # รายการปุ่มกด (Text ปุ่ม, คำอธิบาย, Char Code)
         buttons_info = [
             ("1", "✏️ วาด Polygon ROI", '1'),
-            ("3", "🟢 กำหนดจุด Start Point", '3'),
-            ("4", "🔴 กำหนดจุด Reverse Point", '4'),
-            ("2", "💾 บันทึก Config (Save)", '2'),
+            ("3", "🟢 กำหนดจุด Start Point", '2'),
+            ("4", "🔴 กำหนดจุด Reverse Point", '3'),
+            ("2", "💾 บันทึก Config (Save)", '0'),
             ("C", "🧹 ล้างพิกัดบนหน้าจอ", 'c'),
             ("S", "⚙️ เปิดหน้าต่างตั้งค่า (Settings)", 's'),
-            ("D", "📊 เปิดหน้า Dashboard", 'd'),
             ("O", "📈 เปิดหน้า SSMS GUI", 'o'),
             ("Q", "❌ ปิดโปรแกรม (Quit)", 'q'),
         ]

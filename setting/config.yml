@@ -22,8 +22,8 @@ cameras:
     reverse_point:
     - 603
     - 949
-    save_ng: false
-    save_ok: false
+    save_ng: true
+    save_ok: true
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 550
