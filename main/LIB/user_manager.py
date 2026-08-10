@@ -220,7 +220,6 @@ class UserStateManager:
                     final_status = active_state["confirm"]
 
                     data = (active_id, camera_id, final_status)
-                    print(f"DATA: {data}")
                     def safe_insert_data(cfg, *d_args):
                         try:
                             TableViewerWindow.insert_data(cfg, *d_args)
@@ -258,7 +257,7 @@ class UserStateManager:
                                 print(f"📁 [SUCCESS] ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
 
                                 # ─── บันทึก Log ลงไฟล์ Excel (.xlsx) ───
-                                log_file = "logs/video_history.xlsx"
+                                log_file = "video_history.xlsx"
                                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 cam_id = active_state.get("cam_id", camera_id)
 

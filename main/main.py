@@ -148,7 +148,7 @@ cap = RTSPVideoGrabber(df.fps, source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
-fourcc = cv2.VideoWriter_fourcc(*'VP09')
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
