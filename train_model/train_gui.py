@@ -162,7 +162,7 @@ class TrainGUI:
         date_time = datetime.now()
         formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
     
-        self.var_model_name = tk.StringVar(value=f"pose_classifier_{formath_time}.pkl")
+        self.var_model_name = tk.StringVar(value=f"model/pose_classifier_{formath_time}.pkl")
         entry_model = tk.Entry(grid_cfg, textvariable=self.var_model_name, font=("Segoe UI", 9), bg="#F8FAFC", bd=1, relief="solid")
         entry_model.grid(row=1, column=1, columnspan=2, padx=(10, 0), pady=5, sticky="ew")
 

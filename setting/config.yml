@@ -8,18 +8,18 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 372
-      - 616
-    - - 734
-      - 618
-    - - 777
+    - - 364
+      - 608
+    - - 736
+      - 608
+    - - 772
       - 722
-    - - 382
-      - 735
-    - - 396
-      - 702
-    - - 377
-      - 688
+    - - 385
+      - 731
+    - - 387
+      - 701
+    - - 366
+      - 689
     person_limit: 5
     point_zoom: null
     record_video: true

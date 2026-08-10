@@ -100,7 +100,7 @@ class VideoFolderManagerWindow:
         if not os.path.exists(self.folder_path):
             return
 
-        valid_extensions = ('.avi', '.mp4', '.mkv', '.mov')
+        valid_extensions = ('.avi', '.mp4', '.mkv', '.mov', '.webm')
         files = [f for f in os.listdir(self.folder_path) if f.lower().endswith(valid_extensions)]
 
         for f in sorted(files, reverse=True):  # เรียงไฟล์ใหม่สุดขึ้นก่อน
@@ -169,7 +169,7 @@ class VideoFolderManagerWindow:
         if not os.path.exists(self.folder_path):
             return 0
 
-        valid_extensions = ('.avi', '.mp4', '.mkv', '.mov')
+        valid_extensions = ('.avi', '.mp4', '.mkv', '.mov', '.webm')
         now = datetime.datetime.now().timestamp()
         max_age_seconds = max_days * 86400  # 30 วัน
 

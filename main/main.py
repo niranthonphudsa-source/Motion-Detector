@@ -80,7 +80,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
         print(f"Type Main {type}  fps_limit={df.fps}")
         print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
-        cap = RTSPVideoGrabber(new_source)
+        cap = RTSPVideoGrabber(df.fps, new_source)
 
    
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
@@ -144,11 +144,11 @@ if len(roi.mark_points) > 0:
                                             )
 model = YOLO('yolo26n-pose.pt')
 
-cap = RTSPVideoGrabber(source)
+cap = RTSPVideoGrabber(df.fps, source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
