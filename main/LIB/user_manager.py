@@ -257,7 +257,7 @@ class UserStateManager:
                                 print(f"📁 [SUCCESS] ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
 
                                 # ─── บันทึก Log ลงไฟล์ Excel (.xlsx) ───
-                                log_file = "video_history.xlsx"
+                                log_file = "logs/video_history.xlsx"#..\logs\video_history.xlsx
                                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 cam_id = active_state.get("cam_id", camera_id)
 
