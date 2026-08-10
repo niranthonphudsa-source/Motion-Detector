@@ -6,7 +6,8 @@ import joblib
 import run_start.default_config_var as df
 
 from rtspVideo import RTSPVideoGrabber
-from app.app import SSMSConnectGUI
+from app.app import SSMSConnectGUI, TableViewerWindow
+# from app.data_viewer_gui import SSTableViewerGUI
 from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 from setting_esp32 import esp32_pin_config_gui
@@ -43,76 +44,6 @@ direction_tracker = {}
 pose_classifier = joblib.load(model_sklearn) 
 
 
-def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
-    
-    if updated_config:
-        config = updated_config
-        config_manager.config = updated_config
-    else:
-        config_manager.config = config_manager.load_config()
-        config = config_manager.config
-    
-    try:
-        model_info = config.get("model", {}).get("Model_path_1", {})
-        new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
-
-        if new_model_path and os.path.exists(new_model_path):
-            model_sklearn = new_model_path
-            pose_classifier = joblib.load(model_sklearn)
-            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
-            
-        else:
-            print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
-    except Exception as e:
-        print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
-
-    # 🔄 สลับกล้อง (Switch Camera)
-    if active_camera_id != new_camera_id:
-        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
-        old_cap = cap
-        active_camera_id = new_camera_id
-        camera = config["cameras"][active_camera_id]
-        type = camera["Type"]
-        cam_reverse = camera["reverse_point"]
-        
-        # fps = check_source_type(type)
-        print(f"Type Main {type}  fps_limit={fps}")
-        print(f"cam_reverse: {cam_reverse}")
-        new_source = camera["source"]
-        cap = RTSPVideoGrabber(new_source)
-
-   
-        # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
-        if old_cap:
-            if hasattr(old_cap, 'stop'):
-                old_cap.stop()
-            elif hasattr(old_cap, 'release'):
-                old_cap.release()
-
-        roi.clear()
-        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
-        point_zoom = camera.get("point_zoom", None)
-        (roi.mark_points, 
-         roi.start_point, 
-         roi.reverse_point, 
-         roi.point_zoom, 
-         roi.is_confirmed
-         ) = roi.update_roi_start_check(cam_mark,
-                                        cam_start,
-                                        cam_reverse, 
-                                        point_zoom
-                                        )
-
-
-    cam_data = config["cameras"].get(active_camera_id, {})
-    save_ok_flag = cam_data.get("save_ok", True)
-    save_ng_flag = cam_data.get("save_ng", True)
-    
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
-    return cam_data, save_ok_flag, save_ng_flag
-
-
 def open_ssms_gui():
     def run_gui():
         db_root = tk.Tk()
@@ -128,11 +59,10 @@ def set_esp32_pin():
         app = esp32_pin_config_gui(esp_root)
         esp_root.mainloop()
         
-simulated_key = -1
+df.simulated_key = -1
 def trigger_key_from_gui(key_code):
-    global simulated_key
-    simulated_key = key_code
-    return simulated_key
+    df.simulated_key = key_code
+    return df.simulated_key
 
 help_gui = HelpGUI(key_callback=trigger_key_from_gui)
 

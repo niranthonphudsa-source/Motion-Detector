@@ -3,7 +3,13 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
-# import run_start.default_config_var as df
+import sys
+# เพิ่มโฟลเดอร์ปัจจุบันของ app.py เข้า sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import data_viewer_gui as dt_view
+import time
+import datetime
+
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)
@@ -147,50 +153,56 @@ class TableViewerWindow(tk.Toplevel):
         except Exception as e:
             messagebox.showerror("Error", f"ไม่สามารถดึงรายชื่อตารางได้:\n{str(e)}", parent=self)
 
-    @classmethod
-    def insert_data(self, config_data, user_id, camera_id, status_pose):
+    @staticmethod
+    def insert_data(config_data, user_id, camera_id, status_pose):
+        print(
+            f"📥 [Inserting] User ID: {user_id} | Camera ID: {camera_id} | Status: {status_pose}"
+        )
         conn = None
 
         try:
-            # 2. แก้จุดที่เคยเขียนผิด: ดึงค่าจาก Dictionary ให้ใช้ .get('key') ไม่ใช้จุด (.)
-            server = config_data.get('server')
-            database = config_data.get('database')
-            username = config_data.get('username')
-            password = config_data.get('password')
-            driver = config_data.get('driver', 'ODBC Driver 18 for SQL Server')
-            auth_type = config_data.get('auth_type')
+            server = config_data.get("server")
+            database = config_data.get("database")
+            username = config_data.get("username")
+            password = config_data.get("password")
+            driver = config_data.get("driver", "ODBC Driver 18 for SQL Server")
+            auth_type = config_data.get("auth_type")
 
-            
-            # สร้าง Connection String
-            if auth_type == 'SQL Server Authentication':
-                conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
-            else:
+            # สร้าง Connection String ให้รองรับทั่งสองแบบ
+            if auth_type == "Windows Authentication":
                 conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
+            else:
+                conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
 
-            # ODBC Driver 18 ต้องใส่ TrustServerCertificate ถ้าไม่ได้ใช้ Certificate จริง
             if "18" in driver:
                 conn_str += "TrustServerCertificate=yes;"
 
             conn = pyodbc.connect(conn_str, timeout=5)
             cursor = conn.cursor()
 
-            query = """INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose) VALUES (?, ?, ?)"""
+            # ⚠️ หมายเหตุ: หากคอลัมน์ใน DB ชื่อ 'status' ให้เปลี่ยน status_pose ใน Query ด้านล่างเป็น status
+            query = """
+                INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose, date_time) 
+                VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))
+            """
 
-            user_id = int(user_id)
-            # camera_id = int(camera_id)
-            data = (user_id, camera_id, status_pose)
-            
+            # แปลง Type อย่างปลอดภัย
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                pass
+
+            data = (user_id, str(camera_id), str(status_pose))
+
             cursor.execute(query, data)
             conn.commit()
-            print(f"✅{user_id} Insert Data Successfully!")
-
+            print(f"✅ [DB Success] User ID: {user_id} Inserted successfully!")
 
         except Exception as e:
             print(f"⚠️ [DB Error] insert_data ล้มเหลว: {e}")
         finally:
             if conn:
                 conn.close()
-
     def _fetch_table_data(self):
         selected_table = self.cmb_tables.get()
         if not selected_table:
@@ -336,42 +348,33 @@ class SSMSConnectGUI:
             "driver": self.cmb_driver.get()
         }
 
-    def _connect_and_open_viewer(self):
-        """ทดสอบการเชื่อมต่อ หากผ่านจะเปิดหน้าแสดงตารางทันที"""
-        current_config = self._get_current_config()
-        
-        server = current_config["server"]
-        database = current_config["database"]
-        driver = current_config["driver"]
-
-        if current_config["auth_type"] == "Windows Authentication":
-            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
-        else:
-            user = current_config["username"]
-            pwd = current_config["password"]
-            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={user};PWD={pwd};"
-
-        if "18" in driver:
-            conn_str += "TrustServerCertificate=yes;"
-
-        try:
-            # ทดสอบเชื่อมต่อ
-            conn = pyodbc.connect(conn_str, timeout=5)
-            conn.close()
-
-            # บันทึก Config ล่าสุดไว้ก่อน
-            self.config_mgr.save_config(current_config)
-
-            # 🌟 เปิดหน้าต่างแสดงตารางข้อมูลขึ้นมาอีกหน้า
-            TableViewerWindow(self.root, current_config)
-
-        except Exception as e:
-            messagebox.showerror("ล้มเหลว", f"❌ ไม่สามารถเชื่อมต่อได้:\n\n{str(e)}")
-
     def _save_config(self):
         current_config = self._get_current_config()
         if self.config_mgr.save_config(current_config):
             messagebox.showinfo("บันทึกข้อมูล", "💾 บันทึกการตั้งค่าลง db_config.json เรียบร้อยแล้ว")
+
+    def _connect_and_open_viewer(self):
+        """บันทึก Config และเปิดหน้า GUI แยกเป็นป๊อปอัปหน้าต่างใหม่"""
+        current_config = self._get_current_config()
+        self.config_mgr.save_config(current_config)
+
+        # 1. สร้างหน้าต่างใหม่เด้งแยกออกมา (Popup Window)
+        popup_win = tk.Toplevel(self.root)
+        popup_win.title("📊 SQL Server Data Viewer & Dashboard")
+        popup_win.geometry("1000x650")
+
+        try:
+            if hasattr(dt_view, 'SSTableViewerGUI'):
+                dt_view.SSTableViewerGUI(popup_win)
+            elif hasattr(dt_view, 'TableViewerWindow'):
+                dt_view.TableViewerWindow(popup_win)
+            else:
+                # กรณีใช้ชื่อ Class อื่น หรือเรียกผ่าน ฟังก์ชัน
+                dt_view.open_viewer(popup_win)
+
+        except Exception as e:
+            popup_win.destroy() # ปิดหน้าต่างป๊อปอัปหากเกิด Error
+            messagebox.showerror("Error", f"ไม่สามารถเปิดหน้า Data Viewer ได้:\n{str(e)}", parent=self.root)
 
 
 if __name__ == "__main__":

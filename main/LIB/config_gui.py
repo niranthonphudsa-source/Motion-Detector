@@ -11,6 +11,12 @@ import shutil
 import pandas as pd
 import joblib
 import time
+import os
+import platform
+import subprocess
+from tkinter import messagebox
+
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -675,19 +681,42 @@ class ConfigGUI:
         def open_folder_manager(folder_path, title):
             VideoFolderManagerWindow(self.root, folder_path, title)
 
+        def open_excel_file(self, file_path="logs\\video_history.xlsx"):
+            """เปิดไฟล์ Excel ด้วยโปรแกรมหลักของระบบปฏิบัติการ"""
+            if not os.path.exists(file_path):
+                messagebox.showerror(
+                    "Error", f"ไม่พบไฟล์ Excel ที่ตำแหน่ง:\n{os.path.abspath(file_path)}"
+                )
+                return
+
+            try:
+                if platform.system() == "Windows":
+                    os.startfile(file_path)  # สำหรับ Windows
+                elif platform.system() == "Darwin":  # macOS
+                    subprocess.call(["open", file_path])
+                else:  # Linux
+                    subprocess.call(["xdg-open", file_path])
+            except Exception as e:
+                messagebox.showerror("Error", f"ไม่สามารถเปิดไฟล์ Excel ได้:\n{str(e)}")
+
         btn_box = tk.Frame(c_vm, bg=PANEL_COLOR)
         btn_box.pack(fill="x", pady=2)
         for i in range(3): 
             btn_box.columnconfigure(i, weight=1)
 
+        btn_log = ttk.Button(btn_box, text="📂 log_file_name", style="Action.TButton", command=lambda: open_excel_file("logs"))
+        btn_log.grid(row=0, column=0, padx=3, sticky="ew")
+
         btn_center = ttk.Button(btn_box, text="📂 video_center", style="Action.TButton", command=lambda: open_folder_manager("video_center", "วิดีโอระหว่างการตรวจ"))
-        btn_center.grid(row=0, column=0, padx=3, sticky="ew")
+        btn_center.grid(row=0, column=1, padx=3, sticky="ew")
 
         btn_ok = ttk.Button(btn_box, text="✅ video_ok", style="Action.TButton", command=lambda: open_folder_manager("video_ok", "วิดีโอผ่านเกณฑ์ (OK)"))
-        btn_ok.grid(row=0, column=1, padx=3, sticky="ew")
+        btn_ok.grid(row=0, column=2, padx=3, sticky="ew")
 
         btn_ng = ttk.Button(btn_box, text="❌ video_ng", style="Action.TButton", command=lambda: open_folder_manager("video_ng", "วิดีโอไม่ผ่านเกณฑ์ (NG)"))
-        btn_ng.grid(row=0, column=2, padx=3, sticky="ew")
+        btn_ng.grid(row=0, column=3, padx=3, sticky="ew")
+
+
 
         # ─── ตรรกะปิดหน้าต่าง ───
         def on_window_close():

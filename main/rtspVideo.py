@@ -8,7 +8,6 @@ class RTSPVideoGrabber:
         self.target_fps = target_fps
         # คำนวณช่วงเวลาห่างระหว่างเฟรม (เช่น 15 FPS = 0.066 วินาที/เฟรม)
         self.frame_interval = 1.0 / target_fps if target_fps > 0 else 0
-        
         self.cap = cv2.VideoCapture(src)
         # ตั้งค่า Buffer Size ให้เล็กที่สุดเพื่อลด Latency
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
