@@ -2,6 +2,7 @@ import numpy as np
 import time
 import cv2
 import pandas as pd
+import run_start.default_config_var as df
 
 class CheckPeopleInRoi():
     def __init__(self, frame, mark_points, point_pose):
@@ -132,7 +133,7 @@ class RecordVedioDetect():
         if self.state_writer is None:
             current_time_str = int(time.time())
             self.state_videoFrame = f"video_center/violation_{self.p_id}_{current_time_str}.avi"
-            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, 10, (self.w, self.h))
+            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, df.save_video_per_frame, (self.w, self.h))
             print(f"[Record] ID {self.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {self.state_videoFrame}")
 
         return self.state_writer, self.state_videoFrame

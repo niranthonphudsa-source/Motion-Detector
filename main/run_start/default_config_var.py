@@ -37,7 +37,8 @@ start_y = 0
 reverse_point = None
 
 simulated_key = -1 
-print(simulated_key)
+
+save_video_per_frame = 9.0
 # lastID = SSTableViewerGUI._getLastID()
 
 SKELETON_CONNECTIONS = [
