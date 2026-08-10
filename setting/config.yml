@@ -8,18 +8,18 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 372
-      - 616
-    - - 734
-      - 618
-    - - 777
+    - - 364
+      - 608
+    - - 736
+      - 608
+    - - 772
       - 722
-    - - 382
-      - 735
-    - - 396
-      - 702
-    - - 377
-      - 688
+    - - 385
+      - 731
+    - - 387
+      - 701
+    - - 366
+      - 689
     person_limit: 5
     point_zoom: null
     record_video: true
@@ -179,7 +179,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_07-08-2026-15-54-32.pkl
+    source: model\pose_classifier_10-08-2026-14-13-47.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:
