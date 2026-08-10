@@ -128,7 +128,7 @@ class RecordVedioDetect():
         self.h = h
 
     def recordingVideo(self):
-            # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
+         # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
         if self.state_writer is None:
             current_time_str = int(time.time())
             self.state_videoFrame = f"video_center/violation_{self.p_id}_{current_time_str}.avi"

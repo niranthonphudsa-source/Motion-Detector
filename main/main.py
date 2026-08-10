@@ -12,8 +12,10 @@ import mark_roi_polygon as mark_roi
 import run_start.default_config_var as df
 import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
-from app.data_viewer_gui import CheckLastID
+import csv
+import datetime
 
+from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
 from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
@@ -40,6 +42,7 @@ save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
+df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
     
@@ -156,7 +159,7 @@ pose_classifier = joblib.load(model_sklearn)
 # stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
 
-config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
+# config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
 
 # ตัวแปรคำนวณ fps
@@ -375,13 +378,18 @@ while True:
 
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
     key_input = cv2.waitKey(1) & 0xFF
-
+    key = None
         # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
-    if clb.simulated_key != -1:
-        key_input = clb.simulated_key
-        clb.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
+    if df.simulated_key != -1:
+    # รองรับทั้งการส่งค่ามาเป็น String ('s') หรือ Integer (ord('s'))
+        if isinstance(df.simulated_key, str):
+            key = df.simulated_key.lower()
+        else:
+            key = chr(df.simulated_key).lower()
 
-    key = chr(key_input).lower()
+        df.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
+    elif key_input != 255:
+        key = chr(key_input).lower()
     # roi.current_mode =  clb.checkKey(key)
     # if roi.current_mode == False:
     #     break
@@ -412,27 +420,15 @@ while True:
         roi.clear_point_zoom()
         print("🔴[Cancle Mark Point Zoom]")
 
-
-    elif key == '0':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
-        roi.is_confirmed = True
-        roi.current_mode = 0
-        
-        if "cameras" not in config_manager.config: config_manager.config["cameras"] = {}
-        if active_camera_id not in config_manager.config["cameras"]: config_manager.config["cameras"][active_camera_id] = {}
-        
-        config_manager.config["cameras"][active_camera_id]["mark_points"] = roi.mark_points
-        config_manager.config["cameras"][active_camera_id]["start_point"] = roi.start_point
-        config_manager.config["cameras"][active_camera_id]["reverse_point"] = roi.reverse_point
-        config_manager.config["cameras"][active_camera_id]["point_zoom"] = roi.point_zoom 
-        
-        config_manager.save_config()
-        print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
-            
     elif key == 'c':  # ล้างพิกัดหน้าจอ
         roi.clear()
         
     elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
+        # 🔍 เช็กค่า active_camera_id ก่อนเปิดหน้าต่าง
+        # ป้องกันกรณี active_camera_id เป็น None
+        cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
+        
         gui_thread = threading.Thread(
             target=config_manager.open_settings,
             kwargs={
@@ -451,6 +447,22 @@ while True:
     elif key == 'o':
         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
         clb.open_ssms_gui()
+    
+    elif key == '0':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
+        roi.is_confirmed = True
+        roi.current_mode = 0
+        
+        if "cameras" not in config_manager.config: config_manager.config["cameras"] = {}
+        if active_camera_id not in config_manager.config["cameras"]: config_manager.config["cameras"][active_camera_id] = {}
+        
+        config_manager.config["cameras"][active_camera_id]["mark_points"] = roi.mark_points
+        config_manager.config["cameras"][active_camera_id]["start_point"] = roi.start_point
+        config_manager.config["cameras"][active_camera_id]["reverse_point"] = roi.reverse_point
+        config_manager.config["cameras"][active_camera_id]["point_zoom"] = roi.point_zoom 
+        
+        config_manager.save_config()
+        print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
+            
 
 manager.close_all_writers()
 cap.release()

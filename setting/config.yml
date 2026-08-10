@@ -5,29 +5,33 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: Video
-    enabled: false
+    Type: LIVE_STREAM
+    enabled: true
     mark_points:
-    - - 371
-      - 609
-    - - 736
-      - 615
-    - - 765
-      - 714
-    - - 384
-      - 734
+    - - 372
+      - 616
+    - - 734
+      - 618
+    - - 777
+      - 722
+    - - 382
+      - 735
+    - - 396
+      - 702
+    - - 377
+      - 688
     person_limit: 5
     point_zoom: null
-    record_video: false
+    record_video: true
     reverse_point:
-    - 603
-    - 949
+    - 597
+    - 941
     save_ng: true
     save_ok: true
-    source: ../video_model/videoTrain3.mp4
+    source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
-    - 550
-    - 673
+    - 564
+    - 676
   Camera_2:
     Display:
       Position_x: 0
@@ -135,33 +139,33 @@ cameras:
       Position_y: 0
       Size_x: 1920
       Size_y: 1080
-    Type: LIVE_STREAM
-    enabled: true
+    Type: Video
+    enabled: false
     mark_points:
-    - - 372
-      - 616
-    - - 734
-      - 618
-    - - 777
-      - 722
-    - - 382
-      - 735
-    - - 396
-      - 702
-    - - 377
-      - 688
+    - - 370
+      - 617
+    - - 728
+      - 612
+    - - 772
+      - 726
+    - - 385
+      - 728
+    - - 387
+      - 707
+    - - 370
+      - 694
     person_limit: 5
     point_zoom: null
-    record_video: true
+    record_video: false
     reverse_point:
-    - 597
-    - 941
-    save_ng: false
-    save_ok: false
-    source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
+    - 603
+    - 949
+    save_ng: true
+    save_ok: true
+    source: ../video_model/videoTrain3.mp4
     start_point:
-    - 564
-    - 676
+    - 550
+    - 673
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv

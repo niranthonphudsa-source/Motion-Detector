@@ -6,8 +6,8 @@ import joblib
 import run_start.default_config_var as df
 
 from rtspVideo import RTSPVideoGrabber
-from app.app import SSMSConnectGUI
-from app.data_viewer_gui import SSTableViewerGUI
+from app.app import SSMSConnectGUI, TableViewerWindow
+# from app.data_viewer_gui import SSTableViewerGUI
 from LIB.help_gui import HelpGUI
 from setting_esp32.setting_esp32 import PinConfigGUI
 from setting_esp32 import esp32_pin_config_gui
@@ -47,7 +47,7 @@ pose_classifier = joblib.load(model_sklearn)
 def open_ssms_gui():
     def run_gui():
         db_root = tk.Tk()
-        app = SSTableViewerGUI(db_root)
+        app = SSMSConnectGUI(db_root)
         db_root.mainloop()
 
     gui_thread = threading.Thread(target=run_gui, daemon=True)
@@ -59,11 +59,10 @@ def set_esp32_pin():
         app = esp32_pin_config_gui(esp_root)
         esp_root.mainloop()
         
-simulated_key = -1
+df.simulated_key = -1
 def trigger_key_from_gui(key_code):
-    global simulated_key
-    simulated_key = key_code
-    return simulated_key
+    df.simulated_key = key_code
+    return df.simulated_key
 
 help_gui = HelpGUI(key_callback=trigger_key_from_gui)
 

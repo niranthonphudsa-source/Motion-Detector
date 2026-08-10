@@ -348,7 +348,7 @@ class SSTableViewerGUI:
                 query += " AND date_time >= ?"
                 params.append(f"{start_date} 00:00:00")
             if end_date:
-                query += " AND date_ime <= ?"
+                query += " AND date_time <= ?"
                 params.append(f"{end_date} 23:59:59")
 
             query += " ORDER BY user_id DESC"

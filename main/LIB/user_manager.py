@@ -7,8 +7,13 @@ from app.app import TableViewerWindow, ConfigManager
 import json
 import threading
 import run_start.default_config_var as df
+import csv
+import shutil
+from datetime import datetime
+from openpyxl import Workbook, load_workbook
 
-lastID = df.lastID
+from datetime import datetime
+
 
 def load_data():
     if os.path.exists('db_config.json'):
@@ -182,7 +187,7 @@ class UserStateManager:
         self.save_ok = save_ok
         self.save_ng = save_ng
         current_time = time.time()
-        
+
         for active_id, active_state in list(self.user_states.items()):
 
             # ตรวจสอบคนที่อยู่ในช่วงนับถอยหลังปิดไฟล์
@@ -213,13 +218,7 @@ class UserStateManager:
                         )
 
                     final_status = active_state["confirm"]
-                    # 2. บันทึก LOG สถิติลง SQLite Database (ยังบันทึก DB ปกติแม้อาจจะไม่บันทึกวิดีโอ)
-                    # if stats_db is not None:
-                    #     final_status = active_state["confirm"]  # "OK" หรือ "NG"
-                    #     stats_db.log_event(camera_id, final_status, active_id)
-                    #     print(
-                    #         f"📊 [Stats Logged] Cam: {camera_id} | ID: {active_id} | Status: {final_status}"
-                    #     )
+
                     data = (active_id, camera_id, final_status)
                     print(f"DATA: {data}")
                     def safe_insert_data(cfg, *d_args):
@@ -237,6 +236,9 @@ class UserStateManager:
                     )
                     db_thread.start()
 
+                    # ตัวอย่างการใช้งานตอนบันทึกไฟล์วิดีโอเสร็จ
+                    # log_video_csv(active_camera_id, "OK", "video_ok/cam1_20260810_113000.mp4")
+
                     # 3. ตรวจสอบเงื่อนไขการย้าย/คัดลอกไฟล์วิดีโอ (ทำงานเฉพาะเมื่อมีไฟล์วิดีโอถูกสร้างขึ้นมาเท่านั้น)
                     is_ok = active_state["confirm"] == "OK"
                     should_save = self.save_ok if is_ok else self.save_ng
@@ -244,20 +246,41 @@ class UserStateManager:
 
                     if temp_file and os.path.exists(temp_file):
                         base_filename = os.path.basename(temp_file)
+                        status = "OK" if is_ok else "NG"
                         dest_folder = "video_ok" if is_ok else "video_ng"
+
                         os.makedirs(dest_folder, exist_ok=True)
                         dest_path = os.path.join(dest_folder, base_filename)
 
                         if should_save:
                             try:
                                 shutil.move(temp_file, dest_path)
-                                print(
-                                    f"📁 [SUCCESS] ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}"
-                                )
+                                print(f"📁 [SUCCESS] ย้ายไฟล์วิดีโอสำเร็จไปที่: {dest_path}")
+
+                                # ─── บันทึก Log ลงไฟล์ Excel (.xlsx) ───
+                                log_file = "video_history.xlsx"
+                                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                cam_id = active_state.get("cam_id", camera_id)
+
+                                # ตรวจสอบว่ามีไฟล์ Excel อยู่แล้วหรือไม่
+                                if not os.path.exists(log_file):
+                                    wb = Workbook()
+                                    ws = wb.active
+                                    ws.title = "Video Log"
+                                    # สร้าง Header สำหรับไฟล์ใหม่
+                                    ws.append(["Timestamp", "Camera_ID", "Status", "Video_Path"])
+                                else:
+                                    wb = load_workbook(log_file)
+                                    ws = wb.active
+
+                                # เพิ่มข้อมูลแถวใหม่ต่อท้ายไฟล์
+                                ws.append([timestamp, cam_id, status, dest_path])
+                                
+                                # บันทึกไฟล์ Excel
+                                wb.save(log_file)
+
                             except Exception as e:
-                                print(
-                                    f"❌ [ERROR] ไม่สามารถย้ายไฟล์ได้: {e}"
-                                )
+                                print(f"❌ [ERROR] ไม่สามารถย้ายไฟล์หรือบันทึก Log ได้: {e}")
                         else:
                             try:
                                 os.remove(temp_file)
