@@ -3,6 +3,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 import pyodbc
+from tkcalendar import DateEntry
 
 
 # ==========================================
@@ -22,6 +23,7 @@ class ConfigManager:
                 return None
         return None
 
+
 # ==========================================
 # 2. GUI DATABASE TABLE VIEWER & DASHBOARD
 # ==========================================
@@ -36,18 +38,18 @@ class SSTableViewerGUI:
         # ----------------------------------------------------
         # THEME COLORS (White & Blue Modern Light Theme)
         # ----------------------------------------------------
-        self.BG_COLOR = "#F8FAFC"        # Slate 50
-        self.PANEL_COLOR = "#FFFFFF"     # White
-        self.PRIMARY_BLUE = "#2563EB"    # Blue 600
-        self.PRIMARY_DARK = "#1E40AF"    # Blue 800
-        self.ACCENT_BG = "#EFF6FF"       # Blue 50
-        self.TEXT_MAIN = "#0F172A"       # Slate 900
-        self.TEXT_MUTED = "#64748B"      # Slate 500
-        self.BORDER_COLOR = "#E2E8F0"    # Slate 200
+        self.BG_COLOR = "#F8FAFC"
+        self.PANEL_COLOR = "#FFFFFF"
+        self.PRIMARY_BLUE = "#2563EB"
+        self.PRIMARY_DARK = "#1E40AF"
+        self.ACCENT_BG = "#EFF6FF"
+        self.TEXT_MAIN = "#0F172A"
+        self.TEXT_MUTED = "#64748B"
+        self.BORDER_COLOR = "#E2E8F0"
 
         # Status Colors
-        self.COLOR_OK = "#10B981"        # Emerald 500
-        self.COLOR_NG = "#EF4444"        # Red 500
+        self.COLOR_OK = "#10B981"
+        self.COLOR_NG = "#EF4444"
 
         self.root.configure(bg=self.BG_COLOR)
 
@@ -71,11 +73,9 @@ class SSTableViewerGUI:
         self._fetch_table_data()
 
     def _setup_custom_styles(self):
-        """ตั้งค่า TTK Styles ให้เป็นดีไซน์โมเดิร์นสีขาว-ฟ้า"""
         style = ttk.Style()
         style.theme_use("clam")
 
-        # Notebook (Tabs)
         style.configure("TNotebook", background=self.BG_COLOR, borderwidth=0)
         style.configure(
             "TNotebook.Tab",
@@ -91,7 +91,6 @@ class SSTableViewerGUI:
             foreground=[("selected", "#FFFFFF")],
         )
 
-        # Custom Buttons
         style.configure(
             "Primary.TButton",
             font=("Segoe UI", 9, "bold"),
@@ -107,7 +106,6 @@ class SSTableViewerGUI:
             foreground=[("active", "#FFFFFF")],
         )
 
-        # Combobox & Entry
         style.configure(
             "TCombobox",
             fieldbackground=self.PANEL_COLOR,
@@ -116,9 +114,13 @@ class SSTableViewerGUI:
             arrowcolor=self.PRIMARY_BLUE,
             padding=4,
         )
-        style.configure("TEntry", fieldbackground=self.PANEL_COLOR, bordercolor=self.BORDER_COLOR, padding=4)
+        style.configure(
+            "TEntry",
+            fieldbackground=self.PANEL_COLOR,
+            bordercolor=self.BORDER_COLOR,
+            padding=4,
+        )
 
-        # Treeview (Table)
         style.configure(
             "Treeview",
             background=self.PANEL_COLOR,
@@ -136,13 +138,18 @@ class SSTableViewerGUI:
             relief="flat",
             padding=[6, 6],
         )
-        style.map("Treeview", background=[("selected", self.PRIMARY_BLUE)], foreground=[("selected", "#FFFFFF")])
+        style.map(
+            "Treeview",
+            background=[("selected", self.PRIMARY_BLUE)],
+            foreground=[("selected", "#FFFFFF")],
+        )
 
     def _get_connection(self):
-        """สร้าง Connection วัตถุ pyodbc จาก Config"""
         server = self.config_data.get("server")
         database = self.config_data.get("database")
-        driver = self.config_data.get("driver", "ODBC Driver 17 for SQL Server")
+        driver = self.config_data.get(
+            "driver", "ODBC Driver 17 for SQL Server"
+        )
         auth_type = self.config_data.get("auth_type")
 
         if auth_type == "Windows Authentication":
@@ -157,8 +164,24 @@ class SSTableViewerGUI:
 
         return pyodbc.connect(conn_str, timeout=5)
 
+    def get_selected_date(self):
+        """ดึงค่าวันที่เริ่มต้นในรูปแบบ String 'YYYY-MM-DD'"""
+        return self.ent_start_date.get().strip()
+
+    def get_date_range(self):
+        """[แก้ไขจุดพัง] ดึงค่าช่วงวันที่โดยไม่เขียนทับตัวแปร Widget"""
+        start_date = self.ent_start_date.get().strip()
+        end_date = self.ent_end_date.get().strip()
+        return start_date, end_date
+
+    def _toggle_date_widgets(self):
+        """เปิด/ปิด การใช้งาน DateEntry ตามการติ๊ก Checkbox"""
+        state = "normal" if self.use_date_filter.get() else "disabled"
+        self.ent_start_date.config(state=state)
+        self.ent_end_date.config(state=state)
+        self._fetch_table_data()
+
     def _build_ui(self):
-        # สร้าง Tab Control
         self.tabControl = ttk.Notebook(self.root)
 
         self.tab_data = tk.Frame(self.tabControl, bg=self.BG_COLOR)
@@ -171,6 +194,7 @@ class SSTableViewerGUI:
         # ----------------------------------------------------
         # TAB 1: DATA VIEW & FILTERS
         # ----------------------------------------------------
+        # 1. ประกาศสร้าง top_frame ก่อนเรียกใช้งาน
         top_frame = tk.Frame(
             self.tab_data,
             bg=self.PANEL_COLOR,
@@ -179,7 +203,7 @@ class SSTableViewerGUI:
         )
         top_frame.pack(fill="x", padx=20, pady=15, ipady=5)
 
-        # Filter: เลือกกล้อง (Camera)
+        # Filter: เลือกกล้อง (Camera) - Column 0, 1
         tk.Label(
             top_frame,
             text="📷 กล้อง:",
@@ -188,10 +212,15 @@ class SSTableViewerGUI:
             fg=self.PRIMARY_DARK,
         ).grid(row=0, column=0, padx=(10, 2), pady=8, sticky="w")
 
-        self.cmb_camera = ttk.Combobox(top_frame, state="readonly", width=10, font=("Segoe UI", 9))
+        self.cmb_camera = ttk.Combobox(
+            top_frame, state="readonly", width=10, font=("Segoe UI", 9)
+        )
         self.cmb_camera.grid(row=0, column=1, padx=5, pady=8)
+        self.cmb_camera.bind(
+            "<<ComboboxSelected>>", lambda e: self._fetch_table_data()
+        )
 
-        # Filter: เลือกสถานะ (Status Radio Buttons)
+        # Filter: เลือกสถานะ - Column 2, 3
         tk.Label(
             top_frame,
             text="📌 สถานะ:",
@@ -203,7 +232,6 @@ class SSTableViewerGUI:
         status_btn_frame = tk.Frame(top_frame, bg=self.PANEL_COLOR)
         status_btn_frame.grid(row=0, column=3, padx=5, pady=8)
 
-        # ปุ่มตัวเลือก: ทั้งหมด, OK Only, NG Only
         rb_all = tk.Radiobutton(
             status_btn_frame,
             text="ทั้งหมด",
@@ -242,29 +270,53 @@ class SSTableViewerGUI:
         rb_ok.pack(side="left", padx=2)
         rb_ng.pack(side="left", padx=2)
 
-        # Filter: วันที่เริ่มต้น
-        tk.Label(
+        # Filter: Checkbox และเลือกช่วงวันที่ - Column 4, 5, 6, 7
+        self.use_date_filter = tk.BooleanVar(value=False)
+
+        chk_date = tk.Checkbutton(
             top_frame,
-            text="📅 วันที่เริ่ม:",
-            font=("Segoe UI", 9, "bold"),
+            text="📅 กรองวันที่",
+            variable=self.use_date_filter,
             bg=self.PANEL_COLOR,
             fg=self.TEXT_MAIN,
-        ).grid(row=0, column=4, padx=(10, 2), pady=8, sticky="w")
-        self.ent_start_date = ttk.Entry(top_frame, width=10)
-        self.ent_start_date.grid(row=0, column=5, padx=5, pady=8)
-
-        # Filter: ถึงวันที่
-        tk.Label(
-            top_frame,
-            text="📅 ถึงวันที่:",
             font=("Segoe UI", 9, "bold"),
-            bg=self.PANEL_COLOR,
-            fg=self.TEXT_MAIN,
-        ).grid(row=0, column=6, padx=(10, 2), pady=8, sticky="w")
-        self.ent_end_date = ttk.Entry(top_frame, width=10)
-        self.ent_end_date.grid(row=0, column=7, padx=5, pady=8)
+            command=self._toggle_date_widgets,
+        )
+        chk_date.grid(row=0, column=4, padx=(10, 2), pady=8, sticky="w")
 
-        # ปุ่มค้นหา/ดึงข้อมูล
+        self.ent_start_date = DateEntry(
+            top_frame,
+            width=10,
+            background="blue",
+            foreground="white",
+            borderwidth=2,
+            date_pattern="yyyy-mm-dd",
+            state="disabled",  # เริ่มต้นปิดใช้งานไว้
+        )
+        self.ent_start_date.grid(row=0, column=5, padx=2, pady=8)
+        self.ent_start_date.bind(
+            "<<DateEntrySelected>>", lambda e: self._fetch_table_data()
+        )
+
+        tk.Label(
+            top_frame, text="-", font=("Segoe UI", 9), bg=self.PANEL_COLOR
+        ).grid(row=0, column=6, padx=2)
+
+        self.ent_end_date = DateEntry(
+            top_frame,
+            width=10,
+            background="blue",
+            foreground="white",
+            borderwidth=2,
+            date_pattern="yyyy-mm-dd",
+            state="disabled",  # เริ่มต้นปิดใช้งานไว้
+        )
+        self.ent_end_date.grid(row=0, column=7, padx=2, pady=8)
+        self.ent_end_date.bind(
+            "<<DateEntrySelected>>", lambda e: self._fetch_table_data()
+        )
+
+        # ปุ่มค้นหา/ดึงข้อมูล - Column 8
         self.btn_load = ttk.Button(
             top_frame,
             text="🔍  กรองข้อมูล",
@@ -281,9 +333,11 @@ class SSTableViewerGUI:
             bg=self.PANEL_COLOR,
             fg=self.TEXT_MUTED,
         )
-        self.lbl_row_count.grid(row=1, column=0, columnspan=9, sticky="w", padx=10, pady=(0, 5))
+        self.lbl_row_count.grid(
+            row=1, column=0, columnspan=9, sticky="w", padx=10, pady=(0, 5)
+        )
 
-        # Data Table Area (Treeview + Scrollbars)
+        # Data Table Area
         table_frame = tk.Frame(
             self.tab_data,
             bg=self.PANEL_COLOR,
@@ -309,7 +363,6 @@ class SSTableViewerGUI:
         scroll_x.pack(side="bottom", fill="x")
         self.tree.pack(fill="both", expand=True)
 
-        # Tag สีสลับแถวในตาราง
         self.tree.tag_configure("evenrow", background="#FFFFFF")
         self.tree.tag_configure("oddrow", background="#F1F5F9")
 
@@ -355,16 +408,19 @@ class SSTableViewerGUI:
             highlightbackground=self.BORDER_COLOR,
             highlightthickness=1,
         )
-        self.detail_frame.pack(fill="both", expand=True, padx=20, pady=(10, 20))
+        self.detail_frame.pack(
+            fill="both", expand=True, padx=20, pady=(10, 20)
+        )
 
         self._load_dashboard()
 
     def _load_camera_list(self):
-        """ดึงรายชื่อ Camera ID ทั้งหมดที่มีใน DB มาใส่ใน Dropdown อัตโนมัติ"""
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT camera_id FROM [Tb_Check_Pose] WHERE camera_id IS NOT NULL")
+            cursor.execute(
+                "SELECT DISTINCT camera_id FROM [Tb_Check_Pose] WHERE camera_id IS NOT NULL"
+            )
             cams = [str(row[0]) for row in cursor.fetchall()]
             conn.close()
 
@@ -376,12 +432,10 @@ class SSTableViewerGUI:
             self.cmb_camera.current(0)
 
     def _fetch_table_data(self):
-        """ดึงข้อมูลจากตาราง Tb_Check_Pose โดยรองรับ Filter กล้อง, สถานะ (OK/NG), และ วันเวลา"""
         selected_table = "Tb_Check_Pose"
         selected_cam = self.cmb_camera.get()
         selected_status = self.status_var.get()
-        start_date = self.ent_start_date.get().strip()
-        end_date = self.ent_end_date.get().strip()
+        start_date, end_date = self.get_date_range()
 
         try:
             conn = self._get_connection()
@@ -390,37 +444,32 @@ class SSTableViewerGUI:
             query = f"SELECT TOP 500 * FROM [{selected_table}] WHERE 1=1"
             params = []
 
-            # Filter กล้อง
             if selected_cam and selected_cam != "ทั้งหมด":
                 query += " AND camera_id = ?"
                 params.append(selected_cam)
 
-            # Filter สถานะ (OK / NG / ALL)
             if selected_status == "OK":
                 query += " AND status_pose = 'OK'"
             elif selected_status == "NG":
                 query += " AND status_pose = 'NG'"
 
-            # Filter วันที่
-            if start_date:
-                query += " AND date_time >= ?"
-                params.append(f"{start_date} 00:00:00")
-            if end_date:
-                query += " AND date_time <= ?"
-                params.append(f"{end_date} 23:59:59")
+            if self.use_date_filter.get():
+                start_date, end_date = self.get_date_range()
+                if start_date:
+                    query += " AND date_time >= ?"
+                    params.append(f"{start_date} 00:00:00")
+                if end_date:
+                    query += " AND date_time <= ?"
+                    params.append(f"{end_date} 23:59:59")
 
             query += " ORDER BY user_id DESC"
 
             cursor.execute(query, params)
-
             columns = [column[0] for column in cursor.description]
             rows = cursor.fetchall()
             conn.close()
 
-            # Clear ข้อมูลเก่า
             self.tree.delete(*self.tree.get_children())
-
-            # Setup Columns
             self.tree["columns"] = columns
             self.tree["show"] = "headings"
 
@@ -428,21 +477,28 @@ class SSTableViewerGUI:
                 self.tree.heading(col, text=col)
                 self.tree.column(col, width=120, anchor="w")
 
-            # Insert Rows
             for i, row in enumerate(rows):
-                row_values = [str(item) if item is not None else "" for item in row]
+                row_values = [
+                    str(item) if item is not None else "" for item in row
+                ]
                 tag = "evenrow" if i % 2 == 0 else "oddrow"
                 self.tree.insert("", "end", values=row_values, tags=(tag,))
 
-            status_text = f" [{selected_status}]" if selected_status != "ALL" else ""
+            status_text = (
+                f" [{selected_status}]" if selected_status != "ALL" else ""
+            )
             self.lbl_row_count.config(
                 text=f"รายการทั้งหมด{status_text}: {len(rows)} แถว (แสดงสูงสุด 500)"
             )
 
         except Exception as e:
-            messagebox.showerror("Error", f"ไม่สามารถดึงข้อมูลตารางได้:\n{str(e)}")
+            messagebox.showerror(
+                "Error", f"ไม่สามารถดึงข้อมูลตารางได้:\n{str(e)}"
+            )
 
-    def _create_modern_kpi_card(self, parent, title, value, subtext, accent_color, icon_symbol):
+    def _create_modern_kpi_card(
+        self, parent, title, value, subtext, accent_color, icon_symbol
+    ):
         card = tk.Frame(
             parent,
             bg=self.PANEL_COLOR,
@@ -509,19 +565,29 @@ class SSTableViewerGUI:
             cursor.execute("SELECT COUNT(*) FROM [Tb_Check_Pose]")
             total_checks = cursor.fetchone()[0] or 0
 
-            cursor.execute("SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'OK'")
+            cursor.execute(
+                "SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'OK'"
+            )
             row_ok = cursor.fetchone()
             total_ok = row_ok[0] if row_ok else 0
 
-            cursor.execute("SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'NG'")
+            cursor.execute(
+                "SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'NG'"
+            )
             row_ng = cursor.fetchone()
             total_ng = row_ng[0] if row_ng else 0
 
             conn.close()
 
-            pass_rate = (total_ok / total_checks * 100) if total_checks > 0 else 0
-            ok_share = (total_ok / total_checks * 100) if total_checks > 0 else 0
-            ng_share = (total_ng / total_checks * 100) if total_checks > 0 else 0
+            pass_rate = (
+                (total_ok / total_checks * 100) if total_checks > 0 else 0
+            )
+            ok_share = (
+                (total_ok / total_checks * 100) if total_checks > 0 else 0
+            )
+            ng_share = (
+                (total_ng / total_checks * 100) if total_checks > 0 else 0
+            )
 
             self._create_modern_kpi_card(
                 self.cards_container,
@@ -556,7 +622,9 @@ class SSTableViewerGUI:
                 "🎯",
             )
 
-            detail_inner = tk.Frame(self.detail_frame, bg=self.PANEL_COLOR, padx=20, pady=20)
+            detail_inner = tk.Frame(
+                self.detail_frame, bg=self.PANEL_COLOR, padx=20, pady=20
+            )
             detail_inner.pack(fill="both", expand=True)
 
             tk.Label(
@@ -567,22 +635,33 @@ class SSTableViewerGUI:
                 fg=self.TEXT_MAIN,
             ).pack(anchor="w", pady=(0, 15))
 
-            progress_bg = tk.Frame(detail_inner, bg=self.BORDER_COLOR, height=20)
+            progress_bg = tk.Frame(
+                detail_inner, bg=self.BORDER_COLOR, height=20
+            )
             progress_bg.pack(fill="x", pady=5)
             progress_bg.pack_propagate(False)
 
             if total_checks > 0:
                 ok_width_ratio = total_ok / total_checks
                 ok_bar = tk.Frame(progress_bg, bg=self.COLOR_OK)
-                ok_bar.place(relx=0, rely=0, relwidth=ok_width_ratio, relheight=1.0)
+                ok_bar.place(
+                    relx=0, rely=0, relwidth=ok_width_ratio, relheight=1.0
+                )
 
                 ng_bar = tk.Frame(progress_bg, bg=self.COLOR_NG)
-                ng_bar.place(relx=ok_width_ratio, rely=0, relwidth=(1 - ok_width_ratio), relheight=1.0)
+                ng_bar.place(
+                    relx=ok_width_ratio,
+                    rely=0,
+                    relwidth=(1 - ok_width_ratio),
+                    relheight=1.0,
+                )
 
             legend_frame = tk.Frame(detail_inner, bg=self.PANEL_COLOR)
             legend_frame.pack(fill="x", pady=10)
 
-            tk.Frame(legend_frame, bg=self.COLOR_OK, width=12, height=12).pack(side="left", padx=(0, 5))
+            tk.Frame(legend_frame, bg=self.COLOR_OK, width=12, height=12).pack(
+                side="left", padx=(0, 5)
+            )
             tk.Label(
                 legend_frame,
                 text=f"OK ({ok_share:.1f}%)",
@@ -591,7 +670,9 @@ class SSTableViewerGUI:
                 fg=self.TEXT_MUTED,
             ).pack(side="left", padx=(0, 20))
 
-            tk.Frame(legend_frame, bg=self.COLOR_NG, width=12, height=12).pack(side="left", padx=(0, 5))
+            tk.Frame(legend_frame, bg=self.COLOR_NG, width=12, height=12).pack(
+                side="left", padx=(0, 5)
+            )
             tk.Label(
                 legend_frame,
                 text=f"NG ({ng_share:.1f}%)",
@@ -621,12 +702,12 @@ class CheckLastID:
         self.config_mgr = ConfigManager()
         self.config_data = self.config_mgr.load_config()
 
-        self._getLastID()
-
     def _get_connection(self):
         server = self.config_data.get("server")
         database = self.config_data.get("database")
-        driver = self.config_data.get("driver", "ODBC Driver 17 for SQL Server")
+        driver = self.config_data.get(
+            "driver", "ODBC Driver 17 for SQL Server"
+        )
         auth_type = self.config_data.get("auth_type")
 
         if auth_type == "Windows Authentication":
@@ -641,21 +722,18 @@ class CheckLastID:
 
         return pyodbc.connect(conn_str, timeout=5)
 
-    def _getLastID(self):
+    def get_last_id(self):
         selected_table = "Tb_Check_Pose"
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
-
             query = f"SELECT MAX(user_id) FROM [{selected_table}]"
             cursor.execute(query)
-
-            rows = cursor.fetchone()
+            row = cursor.fetchone()
             conn.close()
 
-            if rows and rows[0] is not None:
-                self.lastID = rows[0]
-
+            if row and row[0] is not None:
+                self.lastID = row[0]
             return self.lastID
         except Exception as e:
             print(f"Error fetching last ID: {e}")
@@ -668,5 +746,4 @@ class CheckLastID:
 if __name__ == "__main__":
     root = tk.Tk()
     app = SSTableViewerGUI(root)
-    app1 = CheckLastID()
     root.mainloop()
