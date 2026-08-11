@@ -13,3 +13,4 @@ file_work/ProjectDetection/recordings/video_VideoTrain_20260731_135356.mp4
 setting/inspection_stats.db
 setting/inspection_stats.db
 setting/inspection_stats.db
+*.pyc
