@@ -120,6 +120,7 @@ window_name = f"Mode Control ROI - {active_camera_id}"
 s = ShowPredict()
 # movement = Check_direction_of_Movement()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
+cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 cv2.setMouseCallback(window_name, roi.click_event)
 
 
