@@ -10,7 +10,7 @@ import pyodbc
 # ==========================================
 class ConfigManager:
 
-    def __init__(self, filename="db_config.json"):
+    def __init__(self, filename="../db_config.json"):
         self.filename = filename
 
     def load_config(self):
