@@ -23,7 +23,7 @@ type = app_config.type
 
 
 check = CheckLastID()
-lastID = check._getLastID()
+lastID = check.get_last_id()
 # print(lastID)
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 3.0
