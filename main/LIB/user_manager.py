@@ -16,9 +16,9 @@ from datetime import datetime
 
 
 def load_data():
-    if os.path.exists('../db_config.json'):
+    if os.path.exists('db_config.json'):
         try:
-            with open('../db_config.json', "r", encoding="utf-8") as f:
+            with open('db_config.json', "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return None

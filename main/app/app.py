@@ -16,7 +16,7 @@ import datetime
 # ==========================================
 
 class ConfigManager:
-    def __init__(self, filename="../db_config.json"):
+    def __init__(self, filename="db_config.json"):
         self.filename = filename
         self.default_config = {
             "server": "localhost",
