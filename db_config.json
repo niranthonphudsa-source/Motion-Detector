@@ -1,8 +1,0 @@
-{
-    "server": "10.17.2.33",
-    "database": "rtrack_data",
-    "auth_type": "SQL Server Authentication",
-    "username": "atc",
-    "password": "atc",
-    "driver": "ODBC Driver 18 for SQL Server"
-}
