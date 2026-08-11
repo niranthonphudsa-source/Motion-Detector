@@ -26,7 +26,7 @@ cameras:
     reverse_point:
     - 597
     - 941
-    save_ng: true
+    save_ng: false
     save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
