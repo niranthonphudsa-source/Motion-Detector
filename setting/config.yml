@@ -65,18 +65,18 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 545
-      - 292
-    - - 676
-      - 298
-    - - 694
-      - 361
-    - - 511
-      - 357
+    - - 496
+      - 424
+    - - 635
+      - 425
+    - - 634
+      - 491
+    - - 466
+      - 482
     person_limit: 5
     point_zoom:
-    - 614
-    - 245
+    - 647
+    - 129
     record_video: true
     reverse_point:
     - 458
@@ -85,8 +85,8 @@ cameras:
     save_ok: false
     source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
     start_point:
-    - 602
-    - 324
+    - 550
+    - 455
   Camera_4:
     Display:
       Position_x: 0
