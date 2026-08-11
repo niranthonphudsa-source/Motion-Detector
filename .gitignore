@@ -1,3 +1,4 @@
+.mp4
 .csv
 .json
 recordings
@@ -11,3 +12,10 @@ file_work/ProjectDetection/recordings/video_VideoTrain_20260731_135356.mp4
 *.csv
 setting/inspection_stats.db
 setting/inspection_stats.db
+setting/inspection_stats.db
+*.pyc
+*.pyo
+*.pyd
+/main/__pycache__
+*.pyc
+*db_config.json
