@@ -39,8 +39,12 @@ class AppConfig:
                 }
             }
         else:
-            # ดึงกล้องตัวแรกที่มีอยู่ใน config.yml
-            self.active_camera_id = list(cameras_dict.keys())[0]
+            configured_camera_id = self.config.get("global", {}).get("default_camera_id")
+            if configured_camera_id in cameras_dict:
+                self.active_camera_id = configured_camera_id
+            else:
+                # รองรับ config เก่าที่ยังไม่มี default_camera_id
+                self.active_camera_id = list(cameras_dict.keys())[0]
 
         self.camera = self.config["cameras"][self.active_camera_id]
         self.source = self.camera.get("source", 0)

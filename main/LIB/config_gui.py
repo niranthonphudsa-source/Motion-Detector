@@ -544,13 +544,46 @@ class ConfigGUI:
         
         camera_list = list(self.config.get("cameras", {}).keys())
         self.cam_var = tk.StringVar()
-        self.cb_camera = ttk.Combobox(c_cam, textvariable=self.cam_var, values=camera_list, state="readonly")
-        self.cb_camera.pack(fill="x", pady=2)
+        camera_select_frame = tk.Frame(c_cam, bg=PANEL_COLOR)
+        camera_select_frame.pack(fill="x", pady=2)
+
+        self.cb_camera = ttk.Combobox(camera_select_frame, textvariable=self.cam_var, values=camera_list, state="readonly")
+        self.cb_camera.pack(side="left", fill="x", expand=True, padx=(0, 5))
+
+        default_camera_id = self.config.get("global", {}).get("default_camera_id")
+        self.default_camera_var = tk.StringVar(value=default_camera_id or "ยังไม่ได้ตั้งค่า")
+
+        def set_default_camera():
+            selected_camera = self.cam_var.get()
+            if not selected_camera:
+                messagebox.showwarning("แจ้งเตือน", "กรุณาเลือกกล้องก่อนตั้งเป็นกล้องเริ่มต้น")
+                return
+
+            self.default_camera_var.set(selected_camera)
+            default_camera_status.config(text=f"กล้องเริ่มต้น: {selected_camera}", fg="#059669")
+
+        btn_default_camera = ttk.Button(
+            camera_select_frame,
+            text="ตั้งเป็นกล้องเริ่มต้น",
+            style="Action.TButton",
+            command=set_default_camera
+        )
+        btn_default_camera.pack(side="right")
+
+        default_camera_status = tk.Label(
+            c_cam,
+            text=f"กล้องเริ่มต้น: {self.default_camera_var.get()}",
+            fg=TEXT_MUTED,
+            bg=PANEL_COLOR,
+            font=("Segoe UI", 8)
+        )
+        default_camera_status.pack(anchor="w", pady=(2, 0))
         
         if camera_list:
-            if current_cam_id in camera_list:
-                idx = camera_list.index(current_cam_id)
-                self.cb_camera.current(idx)
+            configured_camera_id = self.config.get("global", {}).get("default_camera_id")
+            initial_camera_id = current_cam_id if current_cam_id in camera_list else configured_camera_id
+            if initial_camera_id in camera_list:
+                self.cb_camera.current(camera_list.index(initial_camera_id))
             else:
                 self.cb_camera.current(0)
 
@@ -780,6 +813,11 @@ class ConfigGUI:
                 
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
+
+                if "global" not in self.config or not isinstance(self.config["global"], dict):
+                    self.config["global"] = {}
+                if self.default_camera_var.get() in camera_list:
+                    self.config["global"]["default_camera_id"] = self.default_camera_var.get()
                 
             # 4. บันทึกลงไฟล์ YAML และส่ง Callback
             if self.save_config():
