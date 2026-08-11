@@ -727,6 +727,16 @@ class ConfigGUI:
             if on_close_callback and current_cam_id:
                 on_close_callback(current_cam_id)
 
+        # 1. ฟังก์ชันสำหรับปุ่ม "X": ปิดทันทีโดยไม่เซฟค่าใหม่
+        def on_close_without_save():
+            if self.root:
+                self.root.destroy()
+            self.root = None
+            # หากมี callback เมื่อปิดหน้าต่าง สามารถส่งค่ากลับไปได้โดยไม่อัปเดต self.config
+            if on_close_callback and current_cam_id:
+                on_close_callback(current_cam_id)
+
+
         self.root.protocol("WM_DELETE_WINDOW", on_window_close)
 
         # ─── ปุ่มบันทึกข้อมูลหลัก ───
@@ -763,8 +773,10 @@ class ConfigGUI:
 
             # 3. บันทึกการตั้งค่ากล้อง (Save OK / Save NG)
             if cam_id:
-                if "cameras" not in self.config: self.config["cameras"] = {}
-                if cam_id not in self.config["cameras"]: self.config["cameras"][cam_id] = {}
+                if "cameras" not in self.config: 
+                    self.config["cameras"] = {}
+                if cam_id not in self.config["cameras"]: 
+                    self.config["cameras"][cam_id] = {}
                 
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
@@ -779,6 +791,7 @@ class ConfigGUI:
                 if on_close_callback:
                     on_close_callback(cam_id, self.config)
 
+                    
         btn_save = tk.Button(
             scrollable_frame, 
             text="💾 บันทึกและปิดหน้าต่าง (Save & Close)", 
