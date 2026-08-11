@@ -14,3 +14,5 @@ setting/inspection_stats.db
 setting/inspection_stats.db
 setting/inspection_stats.db
 *.pyc
+*.pyo
+*.pyd
