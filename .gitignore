@@ -16,3 +16,5 @@ setting/inspection_stats.db
 *.pyc
 *.pyo
 *.pyd
+/main/__pycache__
+*.pyc
