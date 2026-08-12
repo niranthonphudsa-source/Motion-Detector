@@ -166,10 +166,37 @@ cameras:
     start_point:
     - 550
     - 673
+  Camera_8:
+    Display:
+      Position_x: 0
+      Position_y: 0
+      Size_x: 1920
+      Size_y: 1080
+    Type: LIVE_STRAME
+    enabled: false
+    mark_points:
+    - - 64
+      - 124
+    - - 126
+      - 136
+    - - 106
+      - 227
+    - - 56
+      - 209
+    point_zoom: null
+    reverse_point:
+    - 80
+    - 290
+    save_ng: false
+    save_ok: false
+    source: 0
+    start_point:
+    - 91
+    - 168
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
-  default_camera_id: Camera_4
+  default_camera_id: Camera_8
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full
