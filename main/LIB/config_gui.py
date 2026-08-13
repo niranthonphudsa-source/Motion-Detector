@@ -34,9 +34,9 @@ class VideoFolderManagerWindow:
         os.makedirs(self.folder_path, exist_ok=True)
 
         # ทำความสะอาดไฟล์เก่าอัตโนมัติทันทีเมื่อเปิดหน้าต่าง
-        self.cleanup_old_videos(max_days=30, min_free_gb=1.0)
+        self.cleanup_old_videos(max_days=30, min_free_gb=50.0)
         # 🌟 เริ่มการทำความสะอาดเบื้องหลังอัตโนมัติ (เช็กทุกๆ 1 ชั่วโมง)
-        self.start_auto_cleanup_thread(interval_seconds=3600, max_days=30, min_free_gb=1.0)
+        self.start_auto_cleanup_thread(interval_seconds=3600, max_days=30, min_free_gb=50.0)
 
         # Header Frame
         header_frame = ttk.Frame(self.window, padding=10)
@@ -223,7 +223,7 @@ class VideoFolderManagerWindow:
 
         return deleted_count
 
-    def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=1.0):
+    def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=50.0):
         """เริ่ม Background Thread คอยตรวจเช็กไฟล์ขยะตามระยะเวลาที่กำหนด"""
         def cleanup_loop():
             self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
