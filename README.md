@@ -30,3 +30,6 @@ copy pase
     "password": "password",
     "driver": "ODBC Driver 18 for SQL Server"
 }
+
+---install OBDC for connect database
+Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2249006" -OutFile "msodbcsql18.msi"; Start-Process msiexec.exe -ArgumentList '/i msodbcsql18.msi /qn IACCEPTMSODBCSQLLICENSETERMS=YES' -Wait; Remove-Item "msodbcsql18.msi"
