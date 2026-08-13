@@ -31,6 +31,29 @@ class SearchKeypoint():
                                         tracker="bytetrack.yaml")
             predict.update_pose_history(predict_frame)   
 
+            # ตรวจสอบว่าพบคนและมี Track ID หรือไม่
+            has_detection = (
+                len(predict_frame) > 0 
+                and predict_frame[0].boxes is not None 
+                and predict_frame[0].boxes.id is not None
+            )
+
+            if has_detection:
+                active_ids = predict_frame[0].boxes.id.int().cpu().tolist()
+                
+                # *** จุดสำคัญ: ลบ ID ที่ไม่มีอยู่ในเฟรมปัจจุบันออกจาก pose_history ***
+                if hasattr(predict, 'pose_history') and isinstance(predict.pose_history, dict):
+                    stale_ids = [person_id for person_id in predict.pose_history if person_id not in active_ids]
+                    for stale_id in stale_ids:
+                        del predict.pose_history[stale_id]
+
+                predict.update_pose_history(predict_frame)
+            else:
+                # หากไม่พบใครเลยในเฟรม ให้ล้าง pose_history ทั้งหมดทันที
+                if hasattr(predict, 'pose_history') and isinstance(predict.pose_history, dict):
+                    predict.pose_history.clear()
+
+
             # print(time.perf_counter()-t) 
         else:
             predict.predicted_people_kp = []

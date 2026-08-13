@@ -27,7 +27,7 @@ lastID = check.get_last_id()
 # print(lastID)
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 3.0
-SKIP_FRAMES = 1
+SKIP_FRAMES = 2
 predicted_label = "None"
 confidence = 0.0
 any_people_inside = False
@@ -37,6 +37,7 @@ start_y = 0
 reverse_point = None
 simulated_key = -1 
 fps = 15
+frame_count = 0
 save_video_per_frame = 9.0
 # lastID = SSTableViewerGUI._getLastID()
 
