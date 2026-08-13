@@ -5,7 +5,11 @@ install SQL Server Manager Studio
 install project
 ---setting---
 1. install python  3.10.x -> now
-
+-------------------------------
+New Folder in folder project 
+1.folder video_center
+2.folder video_ok
+3.folder video_ng
 OPEN CMD
 1.build venv
 ----cd "path floder project"
