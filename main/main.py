@@ -81,8 +81,8 @@ def reload_config_callback(new_camera_id, updated_config=None):
         print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
         cap = RTSPVideoGrabber(df.fps, new_source)
+        print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 
-   
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
             if hasattr(old_cap, 'stop'):
@@ -146,6 +146,7 @@ if len(roi.mark_points) > 0:
 model = YOLO('yolo26n-pose.pt')
 
 cap = RTSPVideoGrabber(df.fps, source)
+print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -188,6 +189,7 @@ while True:
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
+    inside_roi_ids = []
 
     
     # --- ส่วนที่ 3: UI กล่อง ROI รวม และวาด Marker Indicators ---
@@ -265,8 +267,9 @@ while True:
 
         # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
         checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
-
+        people_in_rectangle = checkInRoi.checkPeopleInRoi()
+        if people_in_rectangle and s.p_id not in inside_roi_ids:
+            inside_roi_ids.append(s.p_id)
 
         if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
@@ -339,6 +342,11 @@ while True:
 
         if state["writer"] is not None:
             state["writer"].write(frame)
+
+    df.any_people_inside = len(inside_roi_ids) > 0
+    check_people = "People in Rectangle" if df.any_people_inside else "None People"
+    box_color = (0, 0, 255) if df.any_people_inside else (0, 255, 0)
+    mark_roi.mark_roi_polygon(num_pts, frame, roi.mark_points, check_people, box_color, roi.is_confirmed)
 
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
