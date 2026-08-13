@@ -164,7 +164,7 @@ class VideoFolderManagerWindow:
         else:
             subprocess.call(["xdg-open", self.folder_path])
 
-    def cleanup_old_videos(self, max_days=30, min_free_gb=1.0):
+    def cleanup_old_videos(self, max_days=30, min_free_gb=50.0):
         """ฟังก์ชันลบไฟล์อัตโนมัติ (อายุเกิน 30 วัน หรือพื้นที่เหลือน้อยกว่า 1GB)"""
         if not os.path.exists(self.folder_path):
             return 0
