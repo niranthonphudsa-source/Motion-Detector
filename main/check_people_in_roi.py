@@ -83,7 +83,7 @@ class Check_where_inRectangle():
 
             if len(features) == 34:
                 features_df = pd.DataFrame([features], columns=feature_names)
-                predicted_label = self.pose_classifier.predict(features_df)[0]
+                df.predicted_label = self.pose_classifier.predict(features_df)[0]
                 probabilities = self.pose_classifier.predict_proba(features_df)[0]
                 self.confidence = np.max(probabilities) * 100
 
@@ -100,9 +100,9 @@ class Check_where_inRectangle():
                     expected_pose_idx = len(self.state_valaus_last)
                     if expected_pose_idx < len(self.check_pose):
                         expected_pose = self.check_pose[expected_pose_idx]
-                        if predicted_label == expected_pose:
-                            if not self.state_valaus_last or predicted_label != self.state_valaus_last[-1]:
-                                self.state_valaus_last.append(predicted_label)
+                        if df.predicted_label == expected_pose:
+                            if not self.state_valaus_last or df.predicted_label != self.state_valaus_last[-1]:
+                                self.state_valaus_last.append(df.predicted_label)
                 
                     if self.state_valaus_last == self.check_pose:
                         self.state_confirm = "OK"

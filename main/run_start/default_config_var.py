@@ -27,7 +27,7 @@ lastID = check.get_last_id()
 # print(lastID)
 check_pose = ["Right", "Left", "Front"]
 ok_display_time = 3.0
-SKIP_FRAMES = 2
+SKIP_FRAMES = 1
 predicted_label = "None"
 confidence = 0.0
 any_people_inside = False

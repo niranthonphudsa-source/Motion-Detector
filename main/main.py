@@ -189,7 +189,6 @@ while True:
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
-    inside_roi_ids = []
 
     
     # --- ส่วนที่ 3: UI กล่อง ROI รวม และวาด Marker Indicators ---
@@ -267,9 +266,8 @@ while True:
 
         # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
         checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle = checkInRoi.checkPeopleInRoi()
-        if people_in_rectangle and s.p_id not in inside_roi_ids:
-            inside_roi_ids.append(s.p_id)
+        people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
+
 
         if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
@@ -342,11 +340,6 @@ while True:
 
         if state["writer"] is not None:
             state["writer"].write(frame)
-
-    df.any_people_inside = len(inside_roi_ids) > 0
-    check_people = "People in Rectangle" if df.any_people_inside else "None People"
-    box_color = (0, 0, 255) if df.any_people_inside else (0, 255, 0)
-    mark_roi.mark_roi_polygon(num_pts, frame, roi.mark_points, check_people, box_color, roi.is_confirmed)
 
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
