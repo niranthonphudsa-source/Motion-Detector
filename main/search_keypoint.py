@@ -25,7 +25,7 @@ class SearchKeypoint():
             # count process
             # t=time.perf_counter()
             predict_frame = self.model.track(source=self.frame,
-                                        conf=0.7, 
+                                        conf=0.5, 
                                         persist=True, 
                                         verbose=False, 
                                         tracker="bytetrack.yaml")
