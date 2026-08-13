@@ -5,9 +5,9 @@ install SQL Server Manager Studio
 install project
 ---setting---
 1. install python  3.10.x -> now
-2. new floder project
-3. make venv
-----open command promt
+
+OPEN CMD
+1.build venv
 ----cd "path floder project"
 ----run python -m venv venv
 -----run venv\Scripts\activate.bat
