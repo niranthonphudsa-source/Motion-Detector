@@ -18,12 +18,15 @@ OPEN CMD
 -----install library----
 pip install opencv-python Pillow PyYAML pyodbc 
 pip install ultralytics pandas joblib pyserial 
-pip install joblib scikit-learn 
+pip install tkcalendar 
+pip install shutil
+
 
 
 -----make file .json in cmd-----
-(venv) C:\(path project)\type nul > db_config.json
-(venv) C:\(path project)\notepad db_config.json
+(venv) C:\(path project)deactivate
+C:\(path project)\type nul > db_config.json
+C:\(path project)\notepad db_config.json
 
 copy pase
 {
