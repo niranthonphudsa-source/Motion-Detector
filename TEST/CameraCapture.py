@@ -4,28 +4,23 @@ import csv
 import os
 from ultralytics import YOLO
 
-# 1. ตั้งค่าไฟล์ CSV สำหรับบันทึกข้อมูล
+# 1. ตั้งค่าไฟล์ CSV
 csv_filename = "pose_dataset.csv"
 
-# สร้าง Header ของ CSV (มีทั้งหมด 34 พิกัด + 1 คอลัมน์สำหรับชื่อท่าทาง)
-# x0, y0, x1, y1, ..., x16, y16, label
 headers = []
 for i in range(17):
     headers.append(f"x_{i}")
     headers.append(f"y_{i}")
 headers.append("label")
 
-# หากยังไม่มีไฟล์ ให้สร้างและเขียน Header ลงไปก่อน
 if not os.path.exists(csv_filename):
     with open(csv_filename, mode='w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(headers)
 
-# 2. โหลดโมเดล YOLO Pose
+# 2. โหลดโมเดล
 model = YOLO('yolo26n-pose.pt') 
-# cap = cv2.VideoCapture("Screen Recording 2026-07-14 111101.mp4")
-# cap = cv2.VideoCapture("videoTrain1.mp4")
-cap = cv2.VideoCapture(r"../recordings/VideoTrain_20260810_135100.mp4")
+cap = cv2.VideoCapture(r"../../ProjectDetection/recordings/VideoTrain_20260814_160923.mp4")
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
@@ -36,49 +31,38 @@ SKELETON_CONNECTIONS = [
     (11, 13), (13, 15), (12, 14), (14, 16) # ขา
 ]
 
-print("=== เริ่มการบันทึกข้อมูล ===")
-print("วิธีใช้งาน:")
-print("- ทำท่าทางหน้ากล้อง")
-print("- กดเลข '1' ค้างไว้เพื่อบันทึกท่าที่ 1 (เช่น 'Righht')")
-print("- กดเลข '2' ค้างไว้เพื่อบันทึกท่าที่ 2 (เช่น 'Left')")
-print("- กดเลข '3' ค้างไว้เพื่อบันทึกท่าที่ 3 (เช่น 'Front')")
-print("- กดเลข '4' ค้างไว้เพื่อบันทึกท่าที่ 4 (เช่น 'Nomal')")
-print("- กด 'q' เพื่อออกจากโปรแกรม")
+print("=== เริ่มการบันทึกข้อมูลแบบแยก ID ===")
+print("- กดเลข '1': บันทึก Right")
+print("- กดเลข '2': บันทึก Left")
+print("- กดเลข '3': บันทึก Front")
+print("- กดเลข '4': บันทึก Nomal")
+print("- กด 'q': ออกจากโปรแกรม")
 
-flipframe = 2
-last_flip = 2
 while True:
     ret, frame = cap.read()
     if not ret:
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         ret, frame = cap.read()
-        if not ret:            
+        if not ret:
             print("file video not found")
             break
 
-    key = cv2.waitKey(25) & 0xFF
-    # if key == ord('f'):
-    #     flipframe = 1
-    #     last_flip = flipframe
-    #     key = cv2.waitKey(1) & 0xFF
-    #     if key == ord('f') and flipframe == 1:
-    #         flipframe = 2
-    #         last_flip = flipframe
-        
-    # print(last_flip)
     frame = cv2.resize(frame, (640, 420))
-    # frame = cv2.flip(frame, 1)
     h, w = frame.shape[:2]
-    results = model.predict(source=frame, conf=0.8, verbose=False)
+    
+    # 🟢 เปลี่ยนใช้ track เพื่อดึง ID ของแต่ละคน
+    results = model.track(source=frame, conf=0.5, persist=True, verbose=False, tracker="bytetrack.yaml")
 
-    features_to_save = None  # ตัวแปรชั่วคราวเก็บพิกัดในเฟรมนี้
+    # ใช้ Dictionary เก็บพิกัดแยกตาม ID -> {track_id: features_34_values}
+    current_frame_people = {} 
 
     for result in results:
-        if result.keypoints is not None:
+        if result.keypoints is not None and result.boxes is not None and result.boxes.id is not None:
             keypoints_list = result.keypoints.xy.cpu().numpy()
-            
-            for keypoints in keypoints_list:
-                if len(keypoints) < 17: 
+            track_ids = result.boxes.id.int().cpu().numpy()
+
+            for keypoints, track_id in zip(keypoints_list, track_ids):
+                if len(keypoints) < 17:
                     continue
                 
                 pts = keypoints.astype(int)
@@ -90,11 +74,10 @@ while True:
                         continue
                     cv2.line(frame, tuple(pts[start_idx]), tuple(pts[end_idx]), (0, 255, 0), 2)
 
-                # ทำ Normalize พิกัด
+                # Normalize พิกัด
                 normalized_points = []
                 for kp in keypoints:
                     kpx, kpy = int(kp[0]), int(kp[1])
-                    
                     if kpx == 0 and kpy == 0:
                         normalized_points.append((0.0, 0.0))
                         continue
@@ -102,45 +85,37 @@ while True:
                     x_norm = kpx / w
                     y_norm = kpy / h
                     normalized_points.append((x_norm, y_norm))
-                    
-                    cv2.circle(frame, (kpx, kpy), 5, (0, 0, 255), cv2.FILLED)
+                    cv2.circle(frame, (kpx, kpy), 4, (0, 0, 255), cv2.FILLED)
 
-                # แปลงเป็น 1D Array ขนาด 34 ค่า
-                features_to_save = np.array(normalized_points).flatten()
+                # แสดง ID บนตัวคนในภาพ
+                cv2.putText(frame, f"ID: {track_id}", (pts[0, 0], pts[0, 1] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+
+                # บันทึกลง Dict โดยใช้ ID เป็น Key
+                current_frame_people[track_id] = np.array(normalized_points).flatten()
 
     cv2.imshow("Skeleton Tracking & Data Collector", frame)
+    key = cv2.waitKey(25) & 0xFF
 
-    # 3. ส่วนของการตรวจจับการกดปุ่มเพื่อบันทึกพิกัดลง CSV
-
-    
     if key == ord('q'):
         break
 
-        frame = cv2.resize(frame, (640, 420))
-    # ตรวจสอบการกดเลข 1, 2, 3 เพื่อเลือกป้ายกำกับ (Label)
-    elif key in [ord('1'), ord('2'), ord('3'), ord('4')] and features_to_save is not None:
+    # 🟢 กดเซฟเมื่อมีคนที่ถูกตรวจจับอยู่ใน Dict
+    elif key in [ord('1'), ord('2'), ord('3'), ord('4')] and len(current_frame_people) > 0:
         label = ""
-        if key == ord('1'):
-            # key = '1'
-            label = "Right"
-        elif key == ord('2'):
-            # key = '2'
-            label = "Left"
-        elif key == ord('3'):
-            # key = '3'
-            label = "Front"
-        elif key == ord('4'):
-            label = "Nomal"
-        # แปลง features เป็น list และต่อท้ายด้วยชื่อท่าทาง
-        row_data = list(features_to_save)
-        row_data.append(label)
+        if key == ord('1'): label = "Right"
+        elif key == ord('2'): label = "Left"
+        elif key == ord('3'): label = "Front"
+        elif key == ord('4'): label = "Nomal"
 
-        # บันทึกข้อมูลลง CSV ทันที
+        # วนลูปบันทึกพิกัดของทุกคนในเฟรมนั้นลง CSV
         with open(csv_filename, mode='a', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(row_data)
-            
-        print(f"บันทึกข้อมูลท่าทาง '{label}' สำเร็จ! (แถวข้อมูลสะสม)")
+            for p_id, features in current_frame_people.items():
+                row_data = list(features)
+                row_data.append(label)
+                writer.writerow(row_data)
+                print(f"บันทึกข้อมูล ID {p_id} ท่าทาง '{label}' สำเร็จ!")
 
 cap.release()
 cv2.destroyAllWindows()

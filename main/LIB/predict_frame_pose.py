@@ -81,7 +81,8 @@ class ShowPredict():
                 conf=0.4,
                 persist=True,
                 verbose=False,
-                device='cpu',           # 👈 OpenVINO จะดึง Intel Iris Xe ไปใช้อัตโนมัติ
+                device='cpu',
+                iou=0.6,           
                 tracker="bytetrack.yaml"
             )
             self.update_pose_history(predict_frame)   

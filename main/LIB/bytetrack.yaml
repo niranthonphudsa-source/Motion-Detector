@@ -1,0 +1,9 @@
+# Ultralytics ByteTrack settings
+tracker_type: bytetrack # กำหนดชนิด tracker
+
+# ค่า Threshold ต่างๆ (ปรับจูนสำหรับเคสคนยืนเรียงหน้ากระดาน/โดนบัง)
+track_high_thresh: 0.3 # ค่า Confidence ขั้นต่ำของ Bounding Box รอบแรก (ลดลงจาก 0.5 เพื่อให้จับคนที่เห็นไม่ชัด)
+track_low_thresh: 0.1 # ค่า Confidence ขั้นต่ำรอบสอง สำหรับดึงคนที่โดนบังบางส่วนกลับมา
+new_track_thresh: 0.4 # ค่า Confidence ขั้นต่ำในการเปิด Tracker ID ใหม่ให้คน
+track_buffer: 30 # จำนวนเฟรมที่จะจำ ID ไว้หลังจากคนหายไปจากกล้อง (30 เฟรม = ประมาณ 1-2 วินาที)
+match_thresh: 0.7 # ค่าความเคี่ยวในการจับคู่ ID ข้ามเฟรม (0.7-0.8 กำลังดี)
