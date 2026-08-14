@@ -1,9 +1,9 @@
 import cv2
 import time
 
-
 class RTSPVideoGrabber:
-    def __init__(self, target_fps=30, src=0):
+    
+    def __init__(self, target_fps, src=0):
         self.src = src
         self.cap = cv2.VideoCapture(src)
         if not self.cap.isOpened():
