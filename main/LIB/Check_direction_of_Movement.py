@@ -48,12 +48,16 @@ class Check_direction_of_Movement():
                     self.person_dir['first_touch'] = 'REVERSE'
                     self.person_dir['is_reverse'] = True
                     print(f"🚫 ID {self.p_id}: เดินสวนทาง! (เข้าจุดที่ 2 ก่อน) -> ไม่ตรวจจับท่าทาง")
+                    # if self.person_dir['is_reverse'] and dist_to_start < 50 or self.foot_y >= self.start_y:
+                    #     self.person_dir['first_touch'] = 'START'
+                    #     self.person_dir['is_reverse'] = False
+                    #     print(f"✅ ID {self.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")
                 elif dist_to_start < 50 or self.foot_y >= self.start_y:
                     self.person_dir['first_touch'] = 'START'
                     self.person_dir['is_reverse'] = False
                     print(f"✅ ID {self.p_id}: เดินถูกทิศทาง! (เข้าจุดที่ 1 ก่อน) -> เริ่มระบบตรวจจับ")
 
-
+                
         # 🛑 หากเป็นคนที่เดินสวนทางมา ให้ข้ามตรรกะการตรวจท่าทางและการบันทึกไฟล์ไปเลย
         if self.person_dir['is_reverse']:
             cv2.putText(frame, f"ID: {self.p_id} [REVERSE - IGNORED]", (self.foot_x - 30, self.foot_y - 20),

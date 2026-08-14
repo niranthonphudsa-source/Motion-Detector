@@ -33,7 +33,7 @@ class RTSPVideoGrabber:
                 else:
                     break
             # ให้ CPU ได้พักเล็กน้อย ไม่ให้รัน 100%
-            time.sleep(0.005)
+            time.sleep(0.001)
 
     def read(self):
         """Main Thread: ดึงเฟรมไป Detect โดยคุมความเร็ว FPS ตาม target_fps"""

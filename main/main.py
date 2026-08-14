@@ -14,10 +14,14 @@ import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
 import csv
 import datetime
+import videoWrite
+import queue
+import torch
+
 
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
-from search_keypoint import SearchKeypoint
+# from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.user_manager import UserStateManager  
@@ -117,7 +121,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
 roi = ROIHandler()
 # show_status = ShowStatusPose()
 window_name = f"Mode Control ROI - {active_camera_id}"
-s = ShowPredict()
+
 # movement = Check_direction_of_Movement()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
 cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -143,7 +147,10 @@ if len(roi.mark_points) > 0:
                                                 cam_reverse, 
                                                 point_zoom
                                             )
-model = YOLO('yolo26n-pose.pt')
+model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+
+s = ShowPredict(df.SKIP_FRAMES, model)
+
 
 cap = RTSPVideoGrabber(df.fps, source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
@@ -185,6 +192,7 @@ while True:
         zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
         frame = zoomed_frame
 
+    s.searchKeypoint(frame)
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
@@ -208,8 +216,8 @@ while True:
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
 
-    search_key = SearchKeypoint(df.SKIP_FRAMES, frame, model, s.frame_count)
-    s.current_frame_poses, s.current_frame_ids =  search_key.searchKeypoint()
+    # search_key = s.searchKeypoint()
+    s.current_frame_poses, s.current_frame_ids =  s.searchKeypoint(frame)
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
     df.any_people_inside = False
@@ -354,6 +362,11 @@ while True:
     for tid in active_ids_list:
         if tid not in current_frame_active_ids and tid not in manager.user_states:
             del direction_tracker[tid]
+
+    active_ids_list_history = list(s.pose_history.keys())
+    for tid in active_ids_list_history:
+        if tid not in current_frame_active_ids and tid not in manager.user_states:
+            del s.pose_history[tid]
 
     last_x = w
     if reverse_y is not None:

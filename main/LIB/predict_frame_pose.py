@@ -1,8 +1,12 @@
 import numpy as np
+import torch
 from sklearn.linear_model import LinearRegression
 
 class ShowPredict():
-    def __init__(self):
+    def __init__(self, SKIP_FRAMES, model):
+        self.frame = None
+        self.model = model
+        self.skip_frame = SKIP_FRAMES
         self.pose_history = {}
         self.frame_count = 0
         self.p_id = 0
@@ -62,20 +66,33 @@ class ShowPredict():
                     self.predicted_people_kp.append(history[-1][1])
                     self.predicted_people_ids.append(self.p_id)
 
-    def searchKeypoint(self, result, predict_frame):
-        for results in predict_frame:
-            if results.keypoints is not None and results.boxes.id is not None:
-                point_list = results.keypoints.xy.cpu().numpy()  # (N, 17, 2)
-                track_ids = results.boxes.id.cpu().numpy().astype(int)  # [1, 2]
-                
-                for idx, p_id in enumerate(track_ids):
-                    person_kp = point_list[idx]
-                    if p_id not in self.pose_history:
-                        self.pose_history[p_id] = []
-                    self.pose_history[p_id].append([self.frame_count, person_kp])
-                    
-                    if len(self.pose_history[p_id]) > 4:
-                        self.pose_history[p_id].pop(0)
-                
-                self.current_frame_poses = point_list
-                self.current_frame_ids = track_ids
+    def searchKeypoint(self, frame):
+        self.frame = frame
+        self.current_frame_poses = []
+        self.current_frame_ids = []
+
+        
+        if self.frame_count % self.skip_frame == 0:
+            # count process
+            # t=time.perf_counter()
+            # Option A: ใช้ 'GPU' (กรณีรันผ่าน OpenVINO Directory)
+            predict_frame = self.model.track(
+                source=self.frame,
+                conf=0.4,
+                persist=True,
+                verbose=False,
+                device='cpu',           # 👈 OpenVINO จะดึง Intel Iris Xe ไปใช้อัตโนมัติ
+                tracker="bytetrack.yaml"
+            )
+            self.update_pose_history(predict_frame)   
+
+            # print(time.perf_counter()-t) 
+        else:
+            self.predicted_people_kp = []
+            self.predicted_people_ids = []
+            self.predict_keypoints_from_history(self.pose_history, self.frame_count, self.skip_frame)
+            if len(self.predicted_people_kp) > 0:
+                self.current_frame_poses = np.array(self.predicted_people_kp)
+                self.current_frame_ids = np.array(self.predicted_people_ids)
+
+        return self.current_frame_poses, self.current_frame_ids

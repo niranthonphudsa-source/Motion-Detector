@@ -30,8 +30,8 @@ cameras:
     save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
-    - 564
-    - 676
+    - 561
+    - 668
   Camera_2:
     Display:
       Position_x: 0
