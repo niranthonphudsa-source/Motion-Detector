@@ -37,7 +37,7 @@ start_y = 0
 reverse_point = None
 simulated_key = -1 
 fps = 15
-save_video_per_frame = 9.0
+save_video_per_frame = float(fps)
 # lastID = SSTableViewerGUI._getLastID()
 
 SKELETON_CONNECTIONS = [

@@ -220,7 +220,8 @@ while True:
     s.current_frame_poses, s.current_frame_ids =  s.searchKeypoint(frame)
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
-    df.any_people_inside = False
+    # ใช้ set ของ ID แทน boolean ทั่วทั้งเฟรม เพื่อรองรับหลายคนที่อยู่ใน ROI พร้อมกัน
+    inside_roi_ids = set()
     current_frame_active_ids = set(s.current_frame_ids)
 
     for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
@@ -273,8 +274,9 @@ while True:
 
         # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
         checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
-
+        people_in_rectangle, _ = checkInRoi.checkPeopleInRoi()
+        if people_in_rectangle:
+            inside_roi_ids.add(s.p_id)
 
         if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
@@ -347,6 +349,8 @@ while True:
 
         if state["writer"] is not None:
             state["writer"].write(frame)
+
+    df.any_people_inside = bool(inside_roi_ids)
 
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
