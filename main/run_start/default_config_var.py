@@ -36,7 +36,7 @@ strat_y = 0
 start_y = 0
 reverse_point = None
 simulated_key = -1 
-fps = 15
+fps = 30
 save_video_per_frame = float(fps)
 # lastID = SSTableViewerGUI._getLastID()
 

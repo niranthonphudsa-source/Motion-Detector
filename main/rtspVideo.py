@@ -13,6 +13,7 @@ class RTSPVideoGrabber:
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         
         self.ret, self.frame = self.cap.read()
+        self.frame = cv2.resize(self.frame, (2560, 1440))
         self.running = True
         self.lock = threading.Lock() # ป้องกัน Race Condition
         self.last_read_time = 0
@@ -64,7 +65,7 @@ class RTSPVideoGrabber:
 if __name__ == "__main__":
     # กำหนด target_fps=15 เพื่อจำกัดการดึงภาพไป Detect ที่ 15 FPS
     rtsp_url = 0  # หรือใส่ "rtsp://admin:password@192.168.1.xxx:554/..."
-    app = RTSPVideoGrabber(src=rtsp_url, target_fps=15)
+    app = RTSPVideoGrabber(src=rtsp_url, target_fps=60)
 
     try:
         while True:

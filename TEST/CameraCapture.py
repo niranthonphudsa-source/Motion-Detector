@@ -20,8 +20,8 @@ if not os.path.exists(csv_filename):
 
 # 2. โหลดโมเดล
 model = YOLO('yolo26n-pose.pt') 
-# cap = cv2.VideoCapture(r"../../ProjectDetection/recordings/VideoTrain_20260814_160923.mp4")
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(r"../../ProjectDetection/recordings/VideoTrain_20260817_153543.mp4")
+# cap = cv2.VideoCapture(0)
 
 SKELETON_CONNECTIONS = [
     (0, 1), (0, 2), (1, 3), (2, 4),      # หัว
@@ -39,6 +39,10 @@ print("- กดเลข '3': บันทึก Front")
 print("- กดเลข '4': บันทึก Nomal")
 print("- กด 'q': ออกจากโปรแกรม")
 
+window = "Label Pose"
+cv2.namedWindow(window, cv2.WINDOW_NORMAL)
+cv2.setWindowProperty(window, cv2.WINDOW_FULLSCREEN, cv2.WND_PROP_FULLSCREEN)
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -48,7 +52,7 @@ while True:
             print("file video not found")
             break
 
-    frame = cv2.resize(frame, (640, 420))
+    # frame = cv2.resize(frame, cv2.Full)
     h, w = frame.shape[:2]
     
     # 🟢 เปลี่ยนใช้ track เพื่อดึง ID ของแต่ละคน
@@ -95,7 +99,7 @@ while True:
                 # บันทึกลง Dict โดยใช้ ID เป็น Key
                 current_frame_people[track_id] = np.array(normalized_points).flatten()
 
-    cv2.imshow("Skeleton Tracking & Data Collector", frame)
+    cv2.imshow(window, frame)
     key = cv2.waitKey(25) & 0xFF
 
     if key == ord('q'):
