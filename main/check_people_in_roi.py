@@ -1,129 +1,799 @@
 import numpy as np
 import time
 import cv2
-import pandas as pd
 import run_start.default_config_var as df
 
+
+# ============================================================
+# Global Configuration
+# ============================================================
+
+KEYPOINT_CONF_THRESHOLD = 0.30
+
+
+# ============================================================
+# Pose Normalization
+# ============================================================
+
+def normalize_pose(keypoints, keypoint_conf=None):
+    """
+    Normalize Pose ให้ไม่ขึ้นกับตำแหน่งของคนในภาพ
+
+    วิธี:
+        1. ใช้จุดกึ่งกลาง Hip เป็นจุดอ้างอิง (0, 0)
+        2. ใช้ความสูงของคนเป็น Scale
+        3. แปลง Keypoint ทั้ง 17 จุดเป็น Relative Coordinate
+
+    Output:
+        34 Features
+        x0, y0, x1, y1, ..., x16, y16
+    """
+
+    # --------------------------------------------------------
+    # ตรวจ Keypoints
+    # --------------------------------------------------------
+
+    if keypoints is None:
+        return None
+
+    keypoints = np.asarray(
+        keypoints,
+        dtype=np.float32
+    )
+
+    if len(keypoints) < 17:
+        return None
+
+    keypoints = keypoints[:17]
+
+    # --------------------------------------------------------
+    # สร้าง Valid Mask
+    # --------------------------------------------------------
+
+    valid_mask = np.ones(
+        17,
+        dtype=bool
+    )
+
+    # --------------------------------------------------------
+    # ตรวจ Confidence ของ Keypoints
+    # --------------------------------------------------------
+
+    if keypoint_conf is not None:
+
+        keypoint_conf = np.asarray(
+            keypoint_conf,
+            dtype=np.float32
+        )
+
+        if len(keypoint_conf) >= 34:
+
+            valid_mask = (
+                keypoint_conf[:17]
+                >= KEYPOINT_CONF_THRESHOLD
+            )
+
+    # --------------------------------------------------------
+    # ตรวจ Hip
+    #
+    # COCO:
+    # 11 = Left Hip
+    # 12 = Right Hip
+    # --------------------------------------------------------
+
+    left_hip_valid = valid_mask[11]
+    right_hip_valid = valid_mask[12]
+
+    left_hip = keypoints[11]
+    right_hip = keypoints[12]
+
+    # --------------------------------------------------------
+    # มี Hip ทั้งสองข้าง
+    # --------------------------------------------------------
+
+    if (
+        left_hip_valid
+        and right_hip_valid
+    ):
+
+        hip_x = (
+            left_hip[0]
+            + right_hip[0]
+        ) / 2.0
+
+        hip_y = (
+            left_hip[1]
+            + right_hip[1]
+        ) / 2.0
+
+    # --------------------------------------------------------
+    # มีเฉพาะ Left Hip
+    # --------------------------------------------------------
+
+    elif left_hip_valid:
+
+        hip_x = left_hip[0]
+        hip_y = left_hip[1]
+
+    # --------------------------------------------------------
+    # มีเฉพาะ Right Hip
+    # --------------------------------------------------------
+
+    elif right_hip_valid:
+
+        hip_x = right_hip[0]
+        hip_y = right_hip[1]
+
+    else:
+
+        return None
+
+    # --------------------------------------------------------
+    # หาจุดที่ใช้ได้
+    # --------------------------------------------------------
+
+    valid_points = keypoints[
+        valid_mask
+    ]
+
+    if len(valid_points) < 5:
+        return None
+
+    # --------------------------------------------------------
+    # หาความสูงของคน
+    # --------------------------------------------------------
+
+    min_y = np.min(
+        valid_points[:, 1]
+    )
+
+    max_y = np.max(
+        valid_points[:, 1]
+    )
+
+    person_height = (
+        max_y - min_y
+    )
+
+    # --------------------------------------------------------
+    # ป้องกันหารด้วย 0
+    # --------------------------------------------------------
+
+    if person_height <= 1:
+        return None
+
+    # --------------------------------------------------------
+    # Normalize
+    # --------------------------------------------------------
+
+    normalized_points = []
+
+    for i, kp in enumerate(keypoints):
+
+        # ----------------------------------------------------
+        # ถ้า Keypoint Confidence ต่ำ
+        # ----------------------------------------------------
+
+        if not valid_mask[i]:
+
+            normalized_points.extend([
+                0.0,
+                0.0
+            ])
+
+            continue
+
+        # ----------------------------------------------------
+        # Relative Coordinate
+        # ----------------------------------------------------
+
+        x_norm = (
+            kp[0] - hip_x
+        ) / person_height
+
+        y_norm = (
+            kp[1] - hip_y
+        ) / person_height
+
+        normalized_points.extend([
+            x_norm,
+            y_norm
+        ])
+
+    # --------------------------------------------------------
+    # ตรวจจำนวน Feature
+    # --------------------------------------------------------
+
+    if len(normalized_points) != 34:
+        return None
+
+    return np.array(
+        normalized_points,
+        dtype=np.float32
+    )
+
+
+# ============================================================
+# Check People In ROI
+# ============================================================
+
 class CheckPeopleInRoi:
-    def __init__(self, frame, mark_points, point_pose):
+
+    def __init__(
+        self,
+        frame,
+        mark_points,
+        point_pose
+    ):
+
         self.frame = frame
         self.mark_points = mark_points
         self.point_pose = point_pose
 
     def checkPeopleInRoi(self):
+
         people_in_rectangle = False
-        
-        if self.mark_points and len(self.mark_points) >= 2:
-            contour = np.array(self.mark_points, dtype=np.int32).reshape((-1, 1, 2))
-            
-            # เช็กข้อเท้าซ้าย/ขวา (15, 16)
+
+        # ----------------------------------------------------
+        # ตรวจ ROI
+        # ----------------------------------------------------
+
+        if (
+            self.mark_points
+            and len(self.mark_points) >= 2
+        ):
+
+            contour = np.array(
+                self.mark_points,
+                dtype=np.int32
+            ).reshape(
+                (-1, 1, 2)
+            )
+
+            # ------------------------------------------------
+            # ตรวจข้อเท้าซ้าย/ขวา
+            #
+            # 15 = Left Ankle
+            # 16 = Right Ankle
+            # ------------------------------------------------
+
             foot_inside_count = 0
+
             for idx in (15, 16):
-                hpx, hpy = int(self.point_pose[idx][0]), int(self.point_pose[idx][1])
-                if cv2.pointPolygonTest(contour, (hpx, hpy), False) >= 0:
+
+                # --------------------------------------------
+                # ตรวจว่ามี Keypoint
+                # --------------------------------------------
+
+                if idx >= len(
+                    self.point_pose
+                ):
+                    continue
+
+                hpx = int(
+                    self.point_pose[idx][0]
+                )
+
+                hpy = int(
+                    self.point_pose[idx][1]
+                )
+
+                # --------------------------------------------
+                # Keypoint ไม่ถูกต้อง
+                # --------------------------------------------
+
+                if hpx <= 0 or hpy <= 0:
+                    continue
+
+                # --------------------------------------------
+                # ตรวจว่าเท้าอยู่ใน ROI หรือไม่
+                # --------------------------------------------
+
+                if cv2.pointPolygonTest(
+                    contour,
+                    (hpx, hpy),
+                    False
+                ) >= 0:
+
                     foot_inside_count += 1
-            
+
+            # ------------------------------------------------
+            # ถ้ามีเท้าอย่างน้อย 1 ข้างอยู่ใน ROI
+            # ------------------------------------------------
+
             if foot_inside_count > 0:
+
                 people_in_rectangle = True
 
-            # วาด Keypoint บนภาพ
-            for idx in range(17):
-                hpx, hpy = int(self.point_pose[idx][0]), int(self.point_pose[idx][1])
-                if hpx > 0 and hpy > 0:
-                    cv2.circle(self.frame, (hpx, hpy), 3, (0, 255, 255), cv2.FILLED)
+            # ------------------------------------------------
+            # วาด Keypoints
+            # ------------------------------------------------
 
-        return people_in_rectangle, people_in_rectangle
+            for idx in range(
+                min(
+                    17,
+                    len(self.point_pose)
+                )
+            ):
 
+                hpx = int(
+                    self.point_pose[idx][0]
+                )
+
+                hpy = int(
+                    self.point_pose[idx][1]
+                )
+
+                if (
+                    hpx > 0
+                    and hpy > 0
+                ):
+
+                    cv2.circle(
+                        self.frame,
+                        (hpx, hpy),
+                        3,
+                        (0, 255, 255),
+                        cv2.FILLED
+                    )
+
+        return (
+            people_in_rectangle,
+            people_in_rectangle
+        )
+
+
+# ============================================================
+# Check Pose / Classification
+# ============================================================
 
 class Check_where_inRectangle:
-    def __init__(self, people_in_rectangle, is_terminating, termination_start_time,
-                 is_ok_holding, confirm, valaus_last, ok_start_time, point_pose,
-                 p_id, pose_classifier, check_pose):
-        
-        self.people_in_rectangle = people_in_rectangle
-        self.state_is_terminating = is_terminating
-        self.state_termination_start_time = termination_start_time
-        self.state_is_ok_holding = is_ok_holding
-        self.state_confirm = confirm
-        self.state_valaus_last = valaus_last
-        self.state_ok_start_time = ok_start_time
+
+    def __init__(
+        self,
+        people_in_rectangle,
+        is_terminating,
+        termination_start_time,
+        is_ok_holding,
+        confirm,
+        valaus_last,
+        ok_start_time,
+        point_pose,
+        p_id,
+        pose_classifier,
+        check_pose,
+        keypoint_conf=None
+    ):
+
+        self.people_in_rectangle = (
+            people_in_rectangle
+        )
+
+        self.state_is_terminating = (
+            is_terminating
+        )
+
+        self.state_termination_start_time = (
+            termination_start_time
+        )
+
+        self.state_is_ok_holding = (
+            is_ok_holding
+        )
+
+        self.state_confirm = (
+            confirm
+        )
+
+        self.state_valaus_last = (
+            valaus_last
+        )
+
+        self.state_ok_start_time = (
+            ok_start_time
+        )
+
         self.point_pose = point_pose
+
         self.p_id = p_id
-        self.pose_classifier = pose_classifier
+
+        self.pose_classifier = (
+            pose_classifier
+        )
+
         self.confidence = None
+
         self.check_pose = check_pose
 
-    def check_where_inRectangle(self, frame, w, h, manager):
-        if self.people_in_rectangle:
-            if self.state_is_terminating:
-                self.state_is_terminating = False
-                self.state_termination_start_time = None
+        self.keypoint_conf = (
+            keypoint_conf
+        )
 
-            # 1. Normalize พิกัด
-            normalized_points = []
-            for kp in self.point_pose:
-                kpx, kpy = int(kp[0]), int(kp[1])
-                if kpx == 0 and kpy == 0:
-                    normalized_points.extend([0.0, 0.0])
-                else:
-                    normalized_points.extend([kpx / w, kpy / h])
-                    cv2.circle(frame, (kpx, kpy), 5, (0, 0, 255), cv2.FILLED)
+    # ========================================================
+    # Classification
+    # ========================================================
 
-            features = np.array([normalized_points], dtype=np.float32)
+    def check_where_inRectangle(
+        self,
+        frame,
+        w,
+        h,
+        manager
+    ):
 
-            # 2. ทำนายผลผ่าน NumPy โดยตรง (ไม่ใช้ Pandas และไม่ใช้ Global Variable)
-            if features.shape[1] == 34:
-                predicted_label = self.pose_classifier.predict(features)[0] # 👈 ใช้ตัวแปร Local
-                probabilities = self.pose_classifier.predict_proba(features)[0]
-                self.confidence = float(np.max(probabilities) * 100)
+        # ----------------------------------------------------
+        # ถ้าไม่มีคนใน ROI
+        # ----------------------------------------------------
 
-                # 3. ล็อกแสดงผล OK
-                if self.state_is_ok_holding:
-                    if time.time() - self.state_ok_start_time < manager.ok_display_time:
-                        self.state_confirm = "OK"
-                    else:
-                        self.state_is_ok_holding = False
-                        self.state_confirm = "NG"
-                        self.state_valaus_last = []
-                else:
-                    expected_pose_idx = len(self.state_valaus_last)
-                    if expected_pose_idx < len(self.check_pose):
-                        expected_pose = self.check_pose[expected_pose_idx]
-                        if predicted_label == expected_pose:
-                            if not self.state_valaus_last or predicted_label != self.state_valaus_last[-1]:
-                                self.state_valaus_last.append(predicted_label)
-                
-                    if self.state_valaus_last == self.check_pose:
-                        self.state_confirm = "OK"
-                        self.state_is_ok_holding = True
-                        self.state_ok_start_time = time.time()
+        if not self.people_in_rectangle:
 
-        return (self.confidence, self.state_is_terminating, 
-                self.state_termination_start_time, self.state_is_ok_holding, 
-                self.state_confirm, self.state_valaus_last, self.state_ok_start_time)
-class RecordVedioDetect():
+            return (
+                self.confidence,
+                self.state_is_terminating,
+                self.state_termination_start_time,
+                self.state_is_ok_holding,
+                self.state_confirm,
+                self.state_valaus_last,
+                self.state_ok_start_time
+            )
 
-    def __init__(self, 
-                 state_writer, 
-                 state_video_farme, 
-                 id, 
-                 fourcc,
-                 w, 
-                 h
+        # ====================================================
+        # ยกเลิกสถานะ Terminating
+        # ====================================================
+
+        if self.state_is_terminating:
+
+            self.state_is_terminating = False
+
+            self.state_termination_start_time = (
+                None
+            )
+
+        # ====================================================
+        # Normalize Pose
+        # ====================================================
+
+        normalized_points = normalize_pose(
+            self.point_pose,
+            self.keypoint_conf
+        )
+
+        # ----------------------------------------------------
+        # Normalize ไม่สำเร็จ
+        # ----------------------------------------------------
+
+        if normalized_points is None:
+
+            self.confidence = None
+
+            return (
+                self.confidence,
+                self.state_is_terminating,
+                self.state_termination_start_time,
+                self.state_is_ok_holding,
+                self.state_confirm,
+                self.state_valaus_last,
+                self.state_ok_start_time
+            )
+
+        # ====================================================
+        # เตรียม Feature
+        # ====================================================
+
+        features = normalized_points.reshape(
+            1,
+            -1
+        ).astype(
+            np.float32
+        )
+
+        # ----------------------------------------------------
+        # ตรวจ Feature ต้องมี 34 ค่า
+        # ----------------------------------------------------
+
+        if features.shape[1] != 34:
+
+            print(
+                f"[Pose] Feature ผิดปกติ "
+                f"ID={self.p_id} "
+                f"shape={features.shape}"
+            )
+
+            return (
+                self.confidence,
+                self.state_is_terminating,
+                self.state_termination_start_time,
+                self.state_is_ok_holding,
+                self.state_confirm,
+                self.state_valaus_last,
+                self.state_ok_start_time
+            )
+
+        # ====================================================
+        # วาด Keypoints บนภาพ
+        # ====================================================
+
+        for idx in range(
+            min(
+                17,
+                len(self.point_pose)
+            )
         ):
+
+            kpx = int(
+                self.point_pose[idx][0]
+            )
+
+            kpy = int(
+                self.point_pose[idx][1]
+            )
+
+            if (
+                kpx > 0
+                and kpy > 0
+            ):
+
+                cv2.circle(
+                    frame,
+                    (kpx, kpy),
+                    5,
+                    (0, 0, 255),
+                    cv2.FILLED
+                )
+
+        # ====================================================
+        # Classification
+        # ====================================================
+
+        try:
+
+            predicted_label = (
+                self.pose_classifier
+                .predict(features)[0]
+            )
+
+            probabilities = (
+                self.pose_classifier
+                .predict_proba(features)[0]
+            )
+
+            self.confidence = float(
+                np.max(probabilities)
+                * 100
+            )
+
+        except Exception as e:
+
+            print(
+                f"[Pose Classifier Error] "
+                f"ID={self.p_id}: {e}"
+            )
+
+            self.confidence = None
+
+            return (
+                self.confidence,
+                self.state_is_terminating,
+                self.state_termination_start_time,
+                self.state_is_ok_holding,
+                self.state_confirm,
+                self.state_valaus_last,
+                self.state_ok_start_time
+            )
+
+        # ====================================================
+        # แสดงผล Classification
+        # ====================================================
+
+        try:
+
+            cv2.putText(
+                frame,
+                f"ID: {self.p_id}",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"Pose: {predicted_label}",
+                (20, 70),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 0),
+                2
+            )
+
+            cv2.putText(
+                frame,
+                f"Confidence: {self.confidence:.1f}%",
+                (20, 100),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (0, 255, 255),
+                2
+            )
+
+        except Exception:
+            pass
+
+        # ====================================================
+        # State OK Holding
+        # ====================================================
+
+        if self.state_is_ok_holding:
+
+            if (
+                time.time()
+                - self.state_ok_start_time
+                < manager.ok_display_time
+            ):
+
+                self.state_confirm = "OK"
+
+            else:
+
+                self.state_is_ok_holding = False
+
+                self.state_confirm = "NG"
+
+                self.state_valaus_last = []
+
+        # ====================================================
+        # ตรวจลำดับ Pose
+        # ====================================================
+
+        else:
+
+            expected_pose_idx = len(
+                self.state_valaus_last
+            )
+
+            if (
+                expected_pose_idx
+                < len(self.check_pose)
+            ):
+
+                expected_pose = (
+                    self.check_pose[
+                        expected_pose_idx
+                    ]
+                )
+
+                # ------------------------------------------------
+                # ตรวจ Label
+                # ------------------------------------------------
+
+                if predicted_label == expected_pose:
+
+                    # --------------------------------------------
+                    # ป้องกัน Label ซ้ำ
+                    # --------------------------------------------
+
+                    if (
+                        not self.state_valaus_last
+                        or predicted_label
+                        != self.state_valaus_last[-1]
+                    ):
+
+                        self.state_valaus_last.append(
+                            predicted_label
+                        )
+
+                        print(
+                            f"[Pose] "
+                            f"ID={self.p_id} "
+                            f"พบ {predicted_label} "
+                            f"Confidence="
+                            f"{self.confidence:.1f}%"
+                        )
+
+            # ====================================================
+            # ตรวจครบทุก Pose
+            # ====================================================
+
+            if (
+                self.state_valaus_last
+                == self.check_pose
+            ):
+
+                self.state_confirm = "OK"
+
+                self.state_is_ok_holding = True
+
+                self.state_ok_start_time = (
+                    time.time()
+                )
+
+        # ====================================================
+        # Return State
+        # ====================================================
+
+        return (
+            self.confidence,
+            self.state_is_terminating,
+            self.state_termination_start_time,
+            self.state_is_ok_holding,
+            self.state_confirm,
+            self.state_valaus_last,
+            self.state_ok_start_time
+        )
+
+
+# ============================================================
+# Record Video
+# ============================================================
+
+class RecordVedioDetect:
+
+    def __init__(
+        self,
+        state_writer,
+        state_video_farme,
+        id,
+        fourcc,
+        w,
+        h
+    ):
+
         self.state_writer = state_writer
-        self.state_videoFrame = state_video_farme
+
+        self.state_videoFrame = (
+            state_video_farme
+        )
+
         self.p_id = id
+
         self.fourcc = fourcc
+
         self.w = w
+
         self.h = h
 
-    def recordingVideo(self):
-         # เริมอัดวิดีโอตั้งแต่จุดเช็คทิศทาง
-        if self.state_writer is None:
-            current_time_str = int(time.time())
-            self.state_videoFrame = f"video_center/violation_{self.p_id}_{current_time_str}.mp4"
-            self.state_writer = cv2.VideoWriter(self.state_videoFrame, self.fourcc, df.save_video_per_frame, (self.w, self.h))
-            print(f"[Record] ID {self.p_id} เข้าจุด -> เริ่มบันทึกวิดีโอ: {self.state_videoFrame}")
+    # ========================================================
+    # Start Recording
+    # ========================================================
 
-        return self.state_writer, self.state_videoFrame
+    def recordingVideo(self):
+
+        # ----------------------------------------------------
+        # ถ้ายังไม่มี VideoWriter
+        # ----------------------------------------------------
+
+        if self.state_writer is None:
+
+            current_time_str = int(
+                time.time()
+            )
+
+            self.state_videoFrame = (
+                f"video_center/"
+                f"violation_"
+                f"{self.p_id}_"
+                f"{current_time_str}.mp4"
+            )
+
+            self.state_writer = (
+                cv2.VideoWriter(
+                    self.state_videoFrame,
+                    self.fourcc,
+                    df.save_video_per_frame,
+                    (self.w, self.h)
+                )
+            )
+
+            print(
+                f"[Record] "
+                f"ID {self.p_id} "
+                f"เข้าจุด -> "
+                f"เริ่มบันทึกวิดีโอ: "
+                f"{self.state_videoFrame}"
+            )
+
+        return (
+            self.state_writer,
+            self.state_videoFrame
+        )

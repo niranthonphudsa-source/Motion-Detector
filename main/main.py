@@ -292,20 +292,20 @@ while True:
 
 
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
-        cw_inRectangle = Check_where_inRectangle(                            
-                                                people_in_rectangle,
-                                                state["is_terminating"], 
-                                                state["termination_start_time"], 
-                                                state["is_ok_holding"], 
-                                                state["confirm"],
-                                                state["valaus_last"], 
-                                                state["ok_start_time"],
-                                                point_pose,
-                                                s.p_id,
-                                                pose_classifier,
-                                                df.check_pose,
-                                        )
-
+        cw_inRectangle = Check_where_inRectangle(
+                                    people_in_rectangle,
+                                    state["is_terminating"],
+                                    state["termination_start_time"],
+                                    state["is_ok_holding"],
+                                    state["confirm"],
+                                    state["valaus_last"],
+                                    state["ok_start_time"],
+                                    point_pose,
+                                    s.p_id,
+                                    pose_classifier,
+                                    df.check_pose,
+                                    df.keypoint_conf
+                                    )
         (confidence, state["is_terminating"], 
             state["termination_start_time"], 
             state["is_ok_holding"], 
