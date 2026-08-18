@@ -179,7 +179,7 @@ type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
 
-count = 0
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
 
@@ -392,9 +392,7 @@ while True:
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
-    count += 1
-    if count == 50:
-        time.sleep(20)
+
     # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง

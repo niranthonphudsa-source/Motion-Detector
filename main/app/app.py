@@ -4,13 +4,16 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
 import sys
-# เพิ่มโฟลเดอร์ปัจจุบันของ app.py เข้า sys.path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# บังคับให้ค้นหาโฟลเดอร์ปัจจุบันก่อนลำดับแรกสุด
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
 import data_viewer_gui as dt_view
 import time
 import datetime
 
-import run_start.default_config_var as df
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)
@@ -156,12 +159,12 @@ class TableViewerWindow(tk.Toplevel):
             messagebox.showerror("Error", f"ไม่สามารถดึงรายชื่อตารางได้:\n{str(e)}", parent=self)
 
     @staticmethod
-    def insert_data(config_data, user_id, camera_id, status_pose):
+    def insert_data(config_data, user_id, camera_id, status_pose, save_data):
         print(
             f"📥 [Inserting] User ID: {user_id} | Camera ID: {camera_id} | Status: {status_pose}"
         )
         conn = None
-        if df.save_data_flag:
+        if save_data:
             try:
                 server = config_data.get("server")
                 database = config_data.get("database")

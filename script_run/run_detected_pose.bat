@@ -21,7 +21,7 @@ python main\main.py
 :: เมื่อปิด main.py ให้ปิดหน้าต่าง logger.py ตามไปด้วยอัตโนมัติ
 taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1
 
-@REM pause
+pause
 
 
 @REM @echo off

@@ -11,7 +11,6 @@ import csv
 import shutil
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
-
 from datetime import datetime
 
 
@@ -220,9 +219,11 @@ class UserStateManager:
                     final_status = active_state["confirm"]
 
                     data = (active_id, camera_id, final_status)
+                    
                     def safe_insert_data(cfg, *d_args):
                         try:
-                            TableViewerWindow.insert_data(cfg, *d_args)
+                            save_data = df.save_data_flag
+                            TableViewerWindow.insert_data(cfg, *d_args, save_data)
                         except Exception as e:
                             print(
                                 f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
