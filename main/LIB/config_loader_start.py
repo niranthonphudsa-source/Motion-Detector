@@ -15,6 +15,7 @@ class AppConfig:
         self.source = 0
         self.save_ok_flag = False
         self.save_ng_flag = False
+        self.save_data_flag = False
         self.model_sklearn = ""
         self.type = None
         self.reverse_point = None
@@ -32,6 +33,7 @@ class AppConfig:
                     "source": 0, 
                     "save_ok": False, 
                     "save_ng": False, 
+                    "save_data": False,
                     "mark_points": [],
                     "start_point": None,
                     "reverse_point": None,
@@ -54,7 +56,7 @@ class AppConfig:
         # อ่านค่าการบันทึกวิดีโอ
         self.save_ok_flag = self.camera.get("save_ok", False)
         self.save_ng_flag = self.camera.get("save_ng", False)
-
+        self.save_data_flag = self.camera.get("save_data", False)
         # โหลดโมเดล AI
         model_path = self.config.get("model", {}).get("Model_path_1", {})
         self.model_sklearn = model_path.get("source", "")
@@ -68,7 +70,7 @@ class AppConfig:
         print("=" * 50)
         print(f"🚀 [System Starting] กำลังเปิดกล้อง: {self.active_camera_id}")
         print(f"📹 Source: {self.source}")
-        print(f"⚙️ สเตตัสการบันทึก: Save OK={self.save_ok_flag}, Save NG={self.save_ng_flag}")
+        print(f"⚙️ สเตตัสการบันทึก: Save OK={self.save_ok_flag}, Save NG={self.save_ng_flag}, Save Data={self.save_data_flag}")
         print(f"🤖 Model Path: {self.model_sklearn}")
         print(f"🤖 Type Camera: {self.type}")
         print(f"🤖 Reverse Camera: {self.reverse_point}")

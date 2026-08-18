@@ -18,30 +18,18 @@ KEYPOINT_CONF_THRESHOLD = 0.30
 def normalize_pose(keypoints, keypoint_conf=None):
     """
     Normalize Pose ให้ไม่ขึ้นกับตำแหน่งของคนในภาพ
-
-    วิธี:
-        1. ใช้จุดกึ่งกลาง Hip เป็นจุดอ้างอิง (0, 0)
-        2. ใช้ความสูงของคนเป็น Scale
-        3. แปลง Keypoint ทั้ง 17 จุดเป็น Relative Coordinate
-
-    Output:
-        34 Features
-        x0, y0, x1, y1, ..., x16, y16
     """
 
     # --------------------------------------------------------
     # ตรวจ Keypoints
     # --------------------------------------------------------
-
     if keypoints is None:
         return None
 
-    keypoints = np.asarray(
-        keypoints,
-        dtype=np.float32
-    )
+    keypoints = np.asarray(keypoints, dtype=np.float32)
 
-    if len(keypoints) < 17:
+    # ป้องกัน Array มิติมั่ว หรือจุดไม่ครบ 17 จุด
+    if keypoints.ndim < 2 or keypoints.shape[0] < 17:
         return None
 
     keypoints = keypoints[:17]
@@ -49,92 +37,47 @@ def normalize_pose(keypoints, keypoint_conf=None):
     # --------------------------------------------------------
     # สร้าง Valid Mask
     # --------------------------------------------------------
-
-    valid_mask = np.ones(
-        17,
-        dtype=bool
-    )
+    valid_mask = np.ones(17, dtype=bool)
 
     # --------------------------------------------------------
-    # ตรวจ Confidence ของ Keypoints
+    # ตรวจ Confidence ของ Keypoints (แก้ไขจุดนี้)
     # --------------------------------------------------------
-
     if keypoint_conf is not None:
-
-        keypoint_conf = np.asarray(
-            keypoint_conf,
-            dtype=np.float32
-        )
-
-        if len(keypoint_conf) >= 34:
-
-            valid_mask = (
-                keypoint_conf[:17]
-                >= KEYPOINT_CONF_THRESHOLD
-            )
+        try:
+            keypoint_conf = np.asarray(keypoint_conf, dtype=np.float32).flatten()
+            
+            # ตรวจสอบว่ามีข้อมูลอย่างน้อย 17 ค่าหรือไม่
+            if keypoint_conf.ndim > 0 and len(keypoint_conf) >= 17:
+                valid_mask = keypoint_conf[:17] >= KEYPOINT_CONF_THRESHOLD
+        except Exception:
+            # หากแปลงค่าไม่สำเร็จ ให้ใช้ valid_mask เดิม (True ทั้งหมด)
+            pass
 
     # --------------------------------------------------------
     # ตรวจ Hip
-    #
-    # COCO:
-    # 11 = Left Hip
-    # 12 = Right Hip
     # --------------------------------------------------------
-
     left_hip_valid = valid_mask[11]
     right_hip_valid = valid_mask[12]
 
     left_hip = keypoints[11]
     right_hip = keypoints[12]
 
-    # --------------------------------------------------------
-    # มี Hip ทั้งสองข้าง
-    # --------------------------------------------------------
-
-    if (
-        left_hip_valid
-        and right_hip_valid
-    ):
-
-        hip_x = (
-            left_hip[0]
-            + right_hip[0]
-        ) / 2.0
-
-        hip_y = (
-            left_hip[1]
-            + right_hip[1]
-        ) / 2.0
-
-    # --------------------------------------------------------
-    # มีเฉพาะ Left Hip
-    # --------------------------------------------------------
-
+    if left_hip_valid and right_hip_valid:
+        hip_x = (left_hip[0] + right_hip[0]) / 2.0
+        hip_y = (left_hip[1] + right_hip[1]) / 2.0
     elif left_hip_valid:
-
         hip_x = left_hip[0]
         hip_y = left_hip[1]
-
-    # --------------------------------------------------------
-    # มีเฉพาะ Right Hip
-    # --------------------------------------------------------
-
     elif right_hip_valid:
-
         hip_x = right_hip[0]
         hip_y = right_hip[1]
-
     else:
-
         return None
 
     # --------------------------------------------------------
     # หาจุดที่ใช้ได้
     # --------------------------------------------------------
-
-    valid_points = keypoints[
-        valid_mask
-    ]
+    valid_points = keypoints[valid_mask]
 
     if len(valid_points) < 5:
         return None
@@ -142,22 +85,9 @@ def normalize_pose(keypoints, keypoint_conf=None):
     # --------------------------------------------------------
     # หาความสูงของคน
     # --------------------------------------------------------
-
-    min_y = np.min(
-        valid_points[:, 1]
-    )
-
-    max_y = np.max(
-        valid_points[:, 1]
-    )
-
-    person_height = (
-        max_y - min_y
-    )
-
-    # --------------------------------------------------------
-    # ป้องกันหารด้วย 0
-    # --------------------------------------------------------
+    min_y = np.min(valid_points[:, 1])
+    max_y = np.max(valid_points[:, 1])
+    person_height = max_y - min_y
 
     if person_height <= 1:
         return None
@@ -165,52 +95,22 @@ def normalize_pose(keypoints, keypoint_conf=None):
     # --------------------------------------------------------
     # Normalize
     # --------------------------------------------------------
-
     normalized_points = []
 
     for i, kp in enumerate(keypoints):
-
-        # ----------------------------------------------------
-        # ถ้า Keypoint Confidence ต่ำ
-        # ----------------------------------------------------
-
         if not valid_mask[i]:
-
-            normalized_points.extend([
-                0.0,
-                0.0
-            ])
-
+            normalized_points.extend([0.0, 0.0])
             continue
 
-        # ----------------------------------------------------
-        # Relative Coordinate
-        # ----------------------------------------------------
+        x_norm = (kp[0] - hip_x) / person_height
+        y_norm = (kp[1] - hip_y) / person_height
 
-        x_norm = (
-            kp[0] - hip_x
-        ) / person_height
-
-        y_norm = (
-            kp[1] - hip_y
-        ) / person_height
-
-        normalized_points.extend([
-            x_norm,
-            y_norm
-        ])
-
-    # --------------------------------------------------------
-    # ตรวจจำนวน Feature
-    # --------------------------------------------------------
+        normalized_points.extend([x_norm, y_norm])
 
     if len(normalized_points) != 34:
         return None
 
-    return np.array(
-        normalized_points,
-        dtype=np.float32
-    )
+    return np.array(normalized_points, dtype=np.float32)
 
 
 # ============================================================

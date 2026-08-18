@@ -588,11 +588,12 @@ class ConfigGUI:
                 self.cb_camera.current(0)
 
         # 2.2 โซนบันทึกวิดีโอ
-        _, c_save = create_card_frame(row1_frame, "📹 การบันทึกวิดีโอ (Output)", fill=False)
+        _, c_save = create_card_frame(row1_frame, "📹 ตั้งค่าการบันทึกข้อมูล", fill=False)
         c_save.master.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
         self.var_ok = tk.BooleanVar()
         self.var_ng = tk.BooleanVar()
+        self.save_database = tk.BooleanVar()
 
         self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ OK (video_ok)", variable=self.var_ok)
         self.chk_ok.pack(anchor="w", pady=2)
@@ -600,11 +601,15 @@ class ConfigGUI:
         self.chk_ng = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ NG (video_ng)", variable=self.var_ng)
         self.chk_ng.pack(anchor="w", pady=2)
 
+        self.chk_save_data = ttk.Checkbutton(c_save, text="บันทึกสถานะลง Database", variable=self.save_database)
+        self.chk_save_data.pack(anchor="w", pady=2)
+
         def on_camera_select(event=None):
             cam_id = self.cam_var.get()
             cam_data = self.config.get("cameras", {}).get(cam_id, {})
             self.var_ok.set(cam_data.get("save_ok", True))
             self.var_ng.set(cam_data.get("save_ng", True))
+            self.save_database.set(cam_data.get("save_data", True))
 
         self.cb_camera.bind("<<ComboboxSelected>>", on_camera_select)
         if camera_list: 
@@ -813,6 +818,7 @@ class ConfigGUI:
                 
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
+                self.config["cameras"][cam_id]["save_data"] = self.save_database.get()
 
                 if "global" not in self.config or not isinstance(self.config["global"], dict):
                     self.config["global"] = {}

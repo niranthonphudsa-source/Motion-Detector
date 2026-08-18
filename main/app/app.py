@@ -10,6 +10,7 @@ import data_viewer_gui as dt_view
 import time
 import datetime
 
+import run_start.default_config_var as df
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)
@@ -160,50 +161,52 @@ class TableViewerWindow(tk.Toplevel):
             f"📥 [Inserting] User ID: {user_id} | Camera ID: {camera_id} | Status: {status_pose}"
         )
         conn = None
-
-        try:
-            server = config_data.get("server")
-            database = config_data.get("database")
-            username = config_data.get("username")
-            password = config_data.get("password")
-            driver = config_data.get("driver", "ODBC Driver 18 for SQL Server")
-            auth_type = config_data.get("auth_type")
-
-            # สร้าง Connection String ให้รองรับทั่งสองแบบ
-            if auth_type == "Windows Authentication":
-                conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
-            else:
-                conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
-
-            if "18" in driver:
-                conn_str += "TrustServerCertificate=yes;"
-
-            conn = pyodbc.connect(conn_str, timeout=5)
-            cursor = conn.cursor()
-
-            # ⚠️ หมายเหตุ: หากคอลัมน์ใน DB ชื่อ 'status' ให้เปลี่ยน status_pose ใน Query ด้านล่างเป็น status
-            query = """
-                INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose, date_time) 
-                VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))
-            """
-
-            # แปลง Type อย่างปลอดภัย
+        if df.save_data_flag:
             try:
-                user_id = int(user_id)
-            except (ValueError, TypeError):
-                pass
+                server = config_data.get("server")
+                database = config_data.get("database")
+                username = config_data.get("username")
+                password = config_data.get("password")
+                driver = config_data.get("driver", "ODBC Driver 18 for SQL Server")
+                auth_type = config_data.get("auth_type")
+            
+                # สร้าง Connection String ให้รองรับทั่งสองแบบ
+                if auth_type == "Windows Authentication":
+                    conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
+                else:
+                    conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
 
-            data = (user_id, str(camera_id), str(status_pose))
+                if "18" in driver:
+                    conn_str += "TrustServerCertificate=yes;"
 
-            cursor.execute(query, data)
-            conn.commit()
-            print(f"✅ [DB Success] User ID: {user_id} Inserted successfully!")
+                conn = pyodbc.connect(conn_str, timeout=5)
+                cursor = conn.cursor()
 
-        except Exception as e:
-            print(f"⚠️ [DB Error] insert_data ล้มเหลว: {e}")
-        finally:
-            if conn:
-                conn.close()
+                # ⚠️ หมายเหตุ: หากคอลัมน์ใน DB ชื่อ 'status' ให้เปลี่ยน status_pose ใน Query ด้านล่างเป็น status
+                query = """
+                    INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose, date_time) 
+                    VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))
+                """
+
+                # แปลง Type อย่างปลอดภัย
+                try:
+                    user_id = int(user_id)
+                except (ValueError, TypeError):
+                    pass
+
+                data = (user_id, str(camera_id), str(status_pose))
+
+                cursor.execute(query, data)
+                conn.commit()
+                print(f"✅ [DB Success] User ID: {user_id} Inserted successfully!")
+
+            except Exception as e:
+                print(f"⚠️ [DB Error] insert_data ล้มเหลว: {e}")
+            finally:
+                if conn:
+                    conn.close()
+        else:
+            print(f"✅ [No Save Status To Database] User ID: {user_id}!")
     def _fetch_table_data(self):
         selected_table = self.cmb_tables.get()
         if not selected_table:
