@@ -20,6 +20,7 @@ pip install opencv-python Pillow PyYAML pyodbc
 pip install ultralytics pandas joblib pyserial 
 pip install tkcalendar 
 pip install shutil
+pip install openvino
 
 
 
