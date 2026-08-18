@@ -52,6 +52,7 @@ while True:
             print("file video not found")
             break
 
+    frame = cv2.flip(frame, 1)
     # frame = cv2.resize(frame, cv2.Full)
     h, w = frame.shape[:2]
     

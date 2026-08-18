@@ -34,37 +34,37 @@ from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
 # ─── โหลดและจัดการ CONFIG ───
-# app_config = AppConfig(r"setting\config.yml")
+app_config = AppConfig(r"setting\config.yml")
 
-# config_manager = app_config.config_manager
-# config = app_config.config
-# active_camera_id = app_config.active_camera_id
-# camera = app_config.camera
-# source = app_config.source
-# save_ok_flag = app_config.save_ok_flag
-# save_ng_flag = app_config.save_ng_flag
-# df.model_sklearn = app_config.model_sklearn
-# type = app_config.type
-
+config_manager = app_config.config_manager
+config = app_config.config
+active_camera_id = app_config.active_camera_id
+camera = app_config.camera
+source = app_config.source
+save_ok_flag = app_config.save_ok_flag
+save_ng_flag = app_config.save_ng_flag
+save_data_flag = app_config.save_data_flag
+model_sklearn = app_config.model_sklearn
+type = app_config.type
 df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
-    global cap, window_name, roi, pose_classifier, delay
+    global save_ok_flag, save_ng_flag, save_data_flag,config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
     
     if updated_config:
-        df.config = updated_config
-        df.config_manager.config = updated_config
+        config = updated_config
+        config_manager.config = updated_config
     else:
-        df.config_manager.config = df.config_manager.load_config()
-        df.config = df.config_manager.config
+        config_manager.config = config_manager.load_config()
+        config = config_manager.config
     
     try:
-        model_info = df.config.get("model", {}).get("Model_path_1", {})
+        model_info = config.get("model", {}).get("Model_path_1", {})
         new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
 
         if new_model_path and os.path.exists(new_model_path):
-            df.model_sklearn = new_model_path
-            pose_classifier = joblib.load(df.model_sklearn)
-            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {df.model_sklearn}")
+            model_sklearn = new_model_path
+            pose_classifier = joblib.load(model_sklearn)
+            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
             
         else:
             print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
@@ -72,18 +72,18 @@ def reload_config_callback(new_camera_id, updated_config=None):
         print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
 
     # 🔄 สลับกล้อง (Switch Camera)
-    if df.active_camera_id != new_camera_id:
-        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {df.active_camera_id} ➡️ {new_camera_id}")
+    if active_camera_id != new_camera_id:
+        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
         old_cap = cap
-        df.active_camera_id = new_camera_id
-        df.camera = df.config["cameras"][df.active_camera_id]
-        df.type = df.camera["Type"]
-        df.cam_reverse = df.camera["reverse_point"]
+        active_camera_id = new_camera_id
+        camera = config["cameras"][active_camera_id]
+        type = camera["Type"]
+        cam_reverse = camera["reverse_point"]
         
         # fps = check_source_type(type)
-        print(f"Type Main {df.type}  fps_limit={df.fps}")
-        print(f"cam_reverse: {df.cam_reverse}")
-        new_source = df.camera["source"]
+        print(f"Type Main {type}  fps_limit={df.fps}")
+        print(f"cam_reverse: {cam_reverse}")
+        new_source = camera["source"]
         cap = RTSPVideoGrabber(df.fps, new_source)
 
    
@@ -95,8 +95,8 @@ def reload_config_callback(new_camera_id, updated_config=None):
                 old_cap.release()
 
         roi.clear()
-        cam_mark = df.camera.get("mark_points", []); cam_start = df.camera.get("start_point", None); cam_reverse = df.camera.get("reverse_point", None)
-        point_zoom = df.camera.get("point_zoom", None)
+        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
+        point_zoom = camera.get("point_zoom", None)
         (roi.mark_points, 
          roi.start_point, 
          roi.reverse_point, 
@@ -109,18 +109,19 @@ def reload_config_callback(new_camera_id, updated_config=None):
                                         )
 
 
-    df.cam_data = df.config["cameras"].get(df.active_camera_id, {})
-    df.save_ok_flag = df.cam_data.get("save_ok", True)
-    df.save_ng_flag = df.cam_data.get("save_ng", True)
+    cam_data = config["cameras"].get(active_camera_id, {})
+    save_ok_flag = cam_data.get("save_ok", True)
+    save_ng_flag = cam_data.get("save_ng", True)
+    save_data_flag = cam_data.get("save_data", True)
     
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={df.save_ok_flag}, Save NG={df.save_ng_flag}, Save_Data={df.save_data_flag},Model={df.model_sklearn}")
-    return df.cam_data, df.save_ok_flag, df.save_ng_flag
+    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag},Model={model_sklearn}")
+    return cam_data, save_ok_flag, save_ng_flag, save_data_flag
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
 # show_status = ShowStatusPose()
-window_name = f"Mode Control ROI - {df.active_camera_id}"
+window_name = f"Mode Control ROI - {active_camera_id}"
 
 # movement = Check_direction_of_Movement()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
@@ -129,10 +130,10 @@ cv2.setMouseCallback(window_name, roi.click_event)
 
 
 # ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
-cam_mark = df.camera.get("mark_points", [])
-cam_start = df.camera.get("start_point", None)
-cam_reverse = df.camera.get("reverse_point", None)
-point_zoom = df.camera.get("point_zoom", None)
+cam_mark = camera.get("mark_points", [])
+cam_start = camera.get("start_point", None)
+cam_reverse = camera.get("reverse_point", None)
+point_zoom = camera.get("point_zoom", None)
 
 
 if len(roi.mark_points) > 0:
@@ -152,7 +153,7 @@ model = YOLO('yolo26n-pose_openvino_model/', task='pose')
 s = ShowPredict(df.SKIP_FRAMES, model)
 
 
-cap = RTSPVideoGrabber(df.fps, df.source)
+cap = RTSPVideoGrabber(df.fps, source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -160,7 +161,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
-pose_classifier = joblib.load(df.model_sklearn) 
+pose_classifier = joblib.load(model_sklearn) 
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
@@ -174,12 +175,14 @@ latest_frame = None
 prev_frame_time = 0
 new_frame_time = 0
 
-df.type = df.camera.get("Type", None)
-cam_reverse = df.camera.get("reverse_point", (0, 0))
+type = camera.get("Type", None)
+cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
 
+count = 0
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
+
     ret, frame = cap.read()
     if not ret:     
         break
@@ -278,7 +281,7 @@ while True:
         if people_in_rectangle:
             inside_roi_ids.add(s.p_id)
 
-        if people_in_rectangle and (df.save_ok_flag != False or df.save_ng_flag != False): 
+        if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
                 state["writer"],
                 state["video_filename"],
@@ -355,10 +358,10 @@ while True:
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
         current_frame_active_ids, 
-        save_ok=df.save_ok_flag, 
-        save_ng=df.save_ng_flag,
+        save_ok=save_ok_flag, 
+        save_ng=save_ng_flag,
         # stats_db=stats_db,                # 👈 ส่งตัวบันทึกข้อมูลลง DB
-        camera_id=df.active_camera_id        # 👈 ระบุ ID กล้อง
+        camera_id=active_camera_id        # 👈 ระบุ ID กล้อง
     )
 
     # ล้างข้อมูล direction_tracker สำหรับ ID ที่หลุดเฟรมไปนานแล้ว
@@ -389,6 +392,9 @@ while True:
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
+    count += 1
+    if count == 50:
+        time.sleep(20)
     # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
@@ -445,12 +451,12 @@ while True:
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
         # 🔍 เช็กค่า active_camera_id ก่อนเปิดหน้าต่าง
         # ป้องกันกรณี active_camera_id เป็น None
-        cam_id_to_pass = df.active_camera_id if df.active_camera_id else "Camera_1"
+        cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
         
         gui_thread = threading.Thread(
-            target=df.config_manager.open_settings,
+            target=config_manager.open_settings,
             kwargs={
-                "current_cam_id": df.active_camera_id, 
+                "current_cam_id": active_camera_id, 
                 "on_close_callback": reload_config_callback
             },
             daemon=True
@@ -470,16 +476,16 @@ while True:
         roi.is_confirmed = True
         roi.current_mode = 0
         
-        if "cameras" not in df.config_manager.config: df.config_manager.config["cameras"] = {}
-        if df.active_camera_id not in df.config_manager.config["cameras"]: df.config_manager.config["cameras"][df.active_camera_id] = {}
+        if "cameras" not in config_manager.config: config_manager.config["cameras"] = {}
+        if active_camera_id not in config_manager.config["cameras"]: config_manager.config["cameras"][active_camera_id] = {}
         
-        df.config_manager.config["cameras"][df.active_camera_id]["mark_points"] = roi.mark_points
-        df.config_manager.config["cameras"][df.active_camera_id]["start_point"] = roi.start_point
-        df.config_manager.config["cameras"][df.active_camera_id]["reverse_point"] = roi.reverse_point
-        df.config_manager.config["cameras"][df.active_camera_id]["point_zoom"] = roi.point_zoom 
+        config_manager.config["cameras"][active_camera_id]["mark_points"] = roi.mark_points
+        config_manager.config["cameras"][active_camera_id]["start_point"] = roi.start_point
+        config_manager.config["cameras"][active_camera_id]["reverse_point"] = roi.reverse_point
+        config_manager.config["cameras"][active_camera_id]["point_zoom"] = roi.point_zoom 
         
-        df.config_manager.save_config()
-        print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{df.active_camera_id}' เรียบร้อย!")
+        config_manager.save_config()
+        print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
             
 
 manager.close_all_writers()

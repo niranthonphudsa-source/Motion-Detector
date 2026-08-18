@@ -481,44 +481,44 @@ class Check_where_inRectangle:
                 self.state_ok_start_time
             )
 
-        # ====================================================
-        # แสดงผล Classification
-        # ====================================================
+        # # ====================================================
+        # # แสดงผล Classification
+        # # ====================================================
 
-        try:
+        # try:
 
-            cv2.putText(
-                frame,
-                f"ID: {self.p_id}",
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (255, 255, 0),
-                2
-            )
+        #     cv2.putText(
+        #         frame,
+        #         f"ID: {self.p_id}",
+        #         (20, 40),
+        #         cv2.FONT_HERSHEY_SIMPLEX,
+        #         0.7,
+        #         (255, 255, 0),
+        #         2
+        #     )
 
-            cv2.putText(
-                frame,
-                f"Pose: {predicted_label}",
-                (20, 70),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (0, 255, 0),
-                2
-            )
+        #     cv2.putText(
+        #         frame,
+        #         f"Pose: {predicted_label}",
+        #         (20, 70),
+        #         cv2.FONT_HERSHEY_SIMPLEX,
+        #         0.7,
+        #         (0, 255, 0),
+        #         2
+        #     )
 
-            cv2.putText(
-                frame,
-                f"Confidence: {self.confidence:.1f}%",
-                (20, 100),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (0, 255, 255),
-                2
-            )
+        #     cv2.putText(
+        #         frame,
+        #         f"Confidence: {self.confidence:.1f}%",
+        #         (20, 100),
+        #         cv2.FONT_HERSHEY_SIMPLEX,
+        #         0.7,
+        #         (0, 255, 255),
+        #         2
+        #     )
 
-        except Exception:
-            pass
+        # except Exception:
+        #     pass
 
         # ====================================================
         # State OK Holding
