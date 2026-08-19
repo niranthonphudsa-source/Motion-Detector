@@ -243,7 +243,9 @@ class VideoFolderManagerWindow:
 
 class ConfigGUI:
     def __init__(self, config_path=r"setting\config.yml"):
-        self.config_path = config_path
+        # ถอยออก 1 โฟลเดอร์ด้วย .. และแปลงเป็น Absolute Path
+        self.base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        self.config_path = os.path.join(self.base_dir, "setting", "config.yml")
         self.config = self.load_config()
         self.root = None
 
@@ -824,7 +826,8 @@ class ConfigGUI:
                     self.config["global"] = {}
                 if self.default_camera_var.get() in camera_list:
                     self.config["global"]["default_camera_id"] = self.default_camera_var.get()
-                
+
+                print(cam_id, self.config)
             # 4. บันทึกลงไฟล์ YAML และส่ง Callback
             if self.save_config():
                 messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")

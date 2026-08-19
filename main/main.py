@@ -19,6 +19,10 @@ import datetime
 import videoWrite
 import queue
 import torch
+import sys
+
+# เพิ่มโฟลเดอร์ setting เข้าไปในระบบค้นหาโมดูลของ Python
+sys.path.append(os.path.join(os.path.dirname(__file__), "setting"))
 
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
@@ -98,6 +102,7 @@ class PoseDetectionApp:
         # 🌟 [เพิ่มบรรทัดนี้] ผูกการกดคีย์บอร์ดเข้ากับฟังก์ชันจัดการคีย์
         self.root.bind("<Key>", self.on_key_press)
         # ─── 1. โหลด CONFIG และการตั้งค่าเริ่มต้น ───
+        
         self.app_config = AppConfig(r"setting\config.yml")
         self.config_manager = self.app_config.config_manager
         self.config = self.app_config.config
@@ -166,7 +171,7 @@ class PoseDetectionApp:
 
         title_label = tk.Label(
             header_frame, 
-            text="📷 AI Pose & Motion Inspection System", 
+            text="AI Pose & Motion Inspection System", 
             font=("Segoe UI", 16, "bold"), 
             bg=BG_CARD, 
             fg=PRIMARY_BLUE
@@ -280,7 +285,7 @@ class PoseDetectionApp:
 
         self.config_manager.save_config()
         messagebox.showinfo("Config Saved", f"บันทึกค่า ROI ของกล้อง {self.active_camera_id} เรียบร้อยแล้ว!")
-
+        
     def open_settings_gui(self):
         cam_id_to_pass = self.active_camera_id if self.active_camera_id else "Camera_1"
         gui_thread = threading.Thread(
@@ -294,6 +299,7 @@ class PoseDetectionApp:
         gui_thread.start()
 
     def reload_config_callback(self, new_camera_id, updated_config=None):
+        # 1. อัปเดต Config ล่าสุด
         if updated_config:
             self.config = updated_config
             self.config_manager.config = updated_config
@@ -301,6 +307,7 @@ class PoseDetectionApp:
             self.config_manager.config = self.config_manager.load_config()
             self.config = self.config_manager.config
 
+        # 2. โหลดโมเดล AI ใหม่
         try:
             model_info = self.config.get("model", {}).get("Model_path_1", {})
             new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
@@ -311,35 +318,68 @@ class PoseDetectionApp:
         except Exception as e:
             print(f"❌ [Model Error]: {e}")
 
-        if self.active_camera_id != new_camera_id:
-            old_cap = self.cap
-            self.active_camera_id = new_camera_id
-            self.camera = self.config["cameras"][self.active_camera_id]
-            self.type = self.camera["Type"]
-            new_source = self.camera["source"]
-            self.cap = RTSPVideoGrabber(df.fps, new_source)
+        # 3. Validation ป้องกัน KeyError กรณี new_camera_id เป็นค่าว่าง หรือไม่มีใน Config
+        cameras_dict = self.config.get("cameras", {})
+        
+        if not new_camera_id or new_camera_id not in cameras_dict:
+            # Fallback: ลองใช้ default_camera_id หรือดึงกล้องตัวแรกในระบบมาแทน
+            default_cam = self.config.get("global", {}).get("default_camera_id")
+            if default_cam and default_cam in cameras_dict:
+                new_camera_id = default_cam
+            elif cameras_dict:
+                new_camera_id = list(cameras_dict.keys())[0]
+            else:
+                new_camera_id = "Camera_1"
 
-            if old_cap:
-                if hasattr(old_cap, 'stop'): old_cap.stop()
-                elif hasattr(old_cap, 'release'): old_cap.release()
+        # 4. ตรวจสอบการเปลี่ยนแปลงของกล้อง หรือ Source URL
+        old_source = self.camera.get("source") if hasattr(self, "camera") and isinstance(self.camera, dict) else None
+        
+        # อัปเดต self.camera และ active_camera_id เสมอ (ใช้ .get() เพื่อความปลอดภัย)
+        self.active_camera_id = new_camera_id
+        self.camera = cameras_dict.get(self.active_camera_id, {})
+        new_source = self.camera.get("source", "")
+        self.type = self.camera.get("Type", "RTSP")
 
-            self.roi.clear()
-            cam_mark = self.camera.get("mark_points", [])
-            cam_start = self.camera.get("start_point", None)
-            cam_reverse = self.camera.get("reverse_point", None)
-            point_zoom = self.camera.get("point_zoom", None)
-            
-            (self.roi.mark_points, self.roi.start_point, self.roi.reverse_point, 
-             self.roi.point_zoom, self.roi.is_confirmed) = self.roi.update_roi_start_check(
-                cam_mark, cam_start, cam_reverse, point_zoom
-            )
+        # ตรวจสอบว่ามีการเปลี่ยนตัวกล้อง หรือเปลี่ยน RTSP URL หรือไม่
+        is_camera_changed = (self.active_camera_id != new_camera_id)
+        is_source_changed = (old_source != new_source)
 
-        cam_data = self.config["cameras"].get(self.active_camera_id, {})
-        self.save_ok_flag = cam_data.get("save_ok", True)
-        self.save_ng_flag = cam_data.get("save_ng", True)
-        self.save_data_flag = cam_data.get("save_data", True)
-        self.cam_badge.config(text=f"Camera: {self.active_camera_id}")
-        return cam_data, self.save_ok_flag, self.save_ng_flag, self.save_data_flag
+        if is_camera_changed or is_source_changed or not getattr(self, "cap", None):
+            # ปิด Stream เก่าก่อนเพื่อคืน Memory/Socket
+            if hasattr(self, "cap") and self.cap:
+                if hasattr(self.cap, 'stop'): 
+                    self.cap.stop()
+                elif hasattr(self.cap, 'release'): 
+                    self.cap.release()
+                self.cap = None
+
+            # เชื่อมต่อ Stream ใหม่
+            if new_source:
+                self.cap = RTSPVideoGrabber(df.fps, new_source)
+
+            # รีเซ็ต ROI และโหลดพิกัดใหม่
+            if hasattr(self, "roi") and self.roi:
+                self.roi.clear()
+                cam_mark = self.camera.get("mark_points", [])
+                cam_start = self.camera.get("start_point", None)
+                cam_reverse = self.camera.get("reverse_point", None)
+                point_zoom = self.camera.get("point_zoom", None)
+                
+                (self.roi.mark_points, self.roi.start_point, self.roi.reverse_point, 
+                 self.roi.point_zoom, self.roi.is_confirmed) = self.roi.update_roi_start_check(
+                    cam_mark, cam_start, cam_reverse, point_zoom
+                )
+
+        # 5. อัปเดต Flag และ UI Status
+        self.save_ok_flag = self.camera.get("save_ok", True)
+        self.save_ng_flag = self.camera.get("save_ng", True)
+        self.save_data_flag = self.camera.get("save_data", True)
+        
+        if hasattr(self, "cam_badge") and self.cam_badge:
+            self.cam_badge.config(text=f"Camera: {self.active_camera_id}")
+
+        print(f"Camera Detail:{self.active_camera_id}, {self.camera}, OK:{self.save_ok_flag}, NG:{self.save_ng_flag}, DB:{self.save_data_flag}")
+        return self.camera, self.save_ok_flag, self.save_ng_flag, self.save_data_flag
 
     def on_canvas_click(self, event):
         """แปลงพิกัดการคลิกบน Tkinter Canvas กลับไปยังขนาดดั้งเดิมของ Frame"""
