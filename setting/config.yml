@@ -68,28 +68,29 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 496
-      - 424
-    - - 635
-      - 425
-    - - 634
-      - 491
-    - - 466
-      - 482
+    - - 1195
+      - 762
+    - - 1467
+      - 774
+    - - 1457
+      - 919
+    - - 1137
+      - 881
     person_limit: 5
     point_zoom:
-    - 647
-    - 129
+    - 1186
+    - 399
     record_video: true
     reverse_point:
-    - 458
-    - 698
+    - 1253
+    - 1416
+    save_data: true
     save_ng: false
     save_ok: false
     source: rtsp://admin:aoyama123456@10.17.7.43:554/Streaming/Channels/101/
     start_point:
-    - 550
-    - 455
+    - 1323
+    - 813
   Camera_4:
     Display:
       Position_x: 0
@@ -210,7 +211,7 @@ cameras:
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: ..\..\dataset\pose_dataset copy 2.csv
-  default_camera_id: Camera_1
+  default_camera_id: Camera_3
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full

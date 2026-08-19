@@ -7,6 +7,8 @@ import time
 import pandas as pd
 import threading
 import tkinter as tk
+from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
 import serial
 import mark_roi_polygon as mark_roi
 import run_start.default_config_var as df
@@ -18,10 +20,8 @@ import videoWrite
 import queue
 import torch
 
-
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
-# from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.user_manager import UserStateManager  
@@ -33,462 +33,525 @@ from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
-# ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
 
-config_manager = app_config.config_manager
-config = app_config.config
-active_camera_id = app_config.active_camera_id
-camera = app_config.camera
-source = app_config.source
-save_ok_flag = app_config.save_ok_flag
-save_ng_flag = app_config.save_ng_flag
-save_data_flag = app_config.save_data_flag
-model_sklearn = app_config.model_sklearn
-type = app_config.type
-df.simulated_key
-def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, save_data_flag,config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
-    
-    if updated_config:
-        config = updated_config
-        config_manager.config = updated_config
-    else:
-        config_manager.config = config_manager.load_config()
-        config = config_manager.config
-    
-    try:
-        model_info = config.get("model", {}).get("Model_path_1", {})
-        new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
-
-        if new_model_path and os.path.exists(new_model_path):
-            model_sklearn = new_model_path
-            pose_classifier = joblib.load(model_sklearn)
-            print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
-            
-        else:
-            print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
-    except Exception as e:
-        print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
-
-    # 🔄 สลับกล้อง (Switch Camera)
-    if active_camera_id != new_camera_id:
-        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
-        old_cap = cap
-        active_camera_id = new_camera_id
-        camera = config["cameras"][active_camera_id]
-        type = camera["Type"]
-        cam_reverse = camera["reverse_point"]
-        
-        # fps = check_source_type(type)
-        print(f"Type Main {type}  fps_limit={df.fps}")
-        print(f"cam_reverse: {cam_reverse}")
-        new_source = camera["source"]
-        cap = RTSPVideoGrabber(df.fps, new_source)
-
-   
-        # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
-        if old_cap:
-            if hasattr(old_cap, 'stop'):
-                old_cap.stop()
-            elif hasattr(old_cap, 'release'):
-                old_cap.release()
-
-        roi.clear()
-        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
-        point_zoom = camera.get("point_zoom", None)
-        (roi.mark_points, 
-         roi.start_point, 
-         roi.reverse_point, 
-         roi.point_zoom, 
-         roi.is_confirmed
-         ) = roi.update_roi_start_check(cam_mark,
-                                        cam_start,
-                                        cam_reverse, 
-                                        point_zoom
-                                        )
+# ==========================================
+# 🎨 PALETTE COLOR (โทนสีขาว-ฟ้า Clean Tech)
+# ==========================================
+BG_MAIN = "#F4F7FB"          # พื้นหลังหลัก (ขาวอมฟ้าอ่อน)
+BG_CARD = "#FFFFFF"          # พื้นหลังการ์ด/พาเนล (ขาวบริสุทธิ์)
+PRIMARY_BLUE = "#0288D1"     # ฟ้าหลัก (Medium Blue)
+PRIMARY_HOVER = "#0277BD"    # ฟ้าเข้มตอนโฮเวอร์
+PRIMARY_LIGHT = "#E1F5FE"    # ฟ้าอ่อนรองพื้นปุ่ม
+ACCENT_BLUE = "#03A9F4"     # ฟ้าสว่างสำหรับไฮไลต์
+TEXT_DARK = "#1E293B"       # สีตัวหนังสือหลัก (เทาเข้มเกือบดำ อ่านง่าย)
+TEXT_MUTED = "#64748B"      # สีตัวหนังสือรอง
+SUCCESS_GREEN = "#2E7D32"   # เขียว OK
+DANGER_RED = "#D32F2F"      # แดง NG/Stop
+BORDER_COLOR = "#E2E8F0"    # สีเส้นขอบ
 
 
-    cam_data = config["cameras"].get(active_camera_id, {})
-    save_ok_flag = cam_data.get("save_ok", True)
-    save_ng_flag = cam_data.get("save_ng", True)
-    save_data_flag = cam_data.get("save_data", True)
-    
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag},Model={model_sklearn}")
-    return cam_data, save_ok_flag, save_ng_flag, save_data_flag
-
-
-# ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
-roi = ROIHandler()
-# show_status = ShowStatusPose()
-window_name = f"Mode Control ROI - {active_camera_id}"
-
-# movement = Check_direction_of_Movement()
-cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
-cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-cv2.setMouseCallback(window_name, roi.click_event)
-
-
-# ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
-cam_mark = camera.get("mark_points", [])
-cam_start = camera.get("start_point", None)
-cam_reverse = camera.get("reverse_point", None)
-point_zoom = camera.get("point_zoom", None)
-
-
-if len(roi.mark_points) > 0:
-    roi.is_confirmed = True
-    
-(roi.mark_points, 
- roi.start_point, 
- roi.reverse_point, 
- roi.point_zoom, 
- roi.is_confirmed) = roi.update_roi_start_check(cam_mark,
-                                                cam_start,
-                                                cam_reverse, 
-                                                point_zoom
-                                            )
-model = YOLO('yolo26n-pose_openvino_model/', task='pose')
-
-s = ShowPredict(df.SKIP_FRAMES, model)
-
-
-cap = RTSPVideoGrabber(df.fps, source)
-zoom_tool = AdvancedZoomArea(zoom_factor=2)
-
-
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
-
-direction_tracker = {}
-pose_classifier = joblib.load(model_sklearn) 
-
-
-# cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
-# stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
-stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
-
-# config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
-latest_frame = None
-
-# ตัวแปรคำนวณ fps
-prev_frame_time = 0
-new_frame_time = 0
-
-type = camera.get("Type", None)
-cam_reverse = camera.get("reverse_point", (0, 0))
-reverse_y = 0
-
-count = 0
-# ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
-while True:
-
-    ret, frame = cap.read()
-    if not ret:     
-        break
-        # continue
-    frame = cv2.resize(frame, (2560, 1440))
-    h, w = frame.shape[:2]
-    # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
-    latest_frame = frame.copy()
-    if roi.point_zoom is not None:
-        zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
-        frame = zoomed_frame
-
-    s.searchKeypoint(frame)
-    s.current_frame_poses = [] 
-    s.current_frame_ids = [] 
-    num_pts = len(roi.mark_points)
-
-    
-    # --- ส่วนที่ 3: UI กล่อง ROI รวม และวาด Marker Indicators ---
-    check_people = "People in Rectangle" if df.any_people_inside else "None People"
-    box_color = (0, 0, 255) if df.any_people_inside else (0, 255, 0)
-
-
-    # # วาดจุดมาร์กและเส้นตาราง ROI Polygon
-    # สิ่งที่ต้องส่งเข้าฟังชันนี้ num_pts, roi.mark_point
-    # mark_roi_polygon(num_pts, roi.mark_point)
-    # return x, y
-
-    mark_roi.mark_roi_polygon(num_pts, frame, roi.mark_points,  check_people, box_color, roi.is_confirmed)
-
-    # 🌟 วาดจุด Start (จุดที่ 1) และ Reverse (จุดที่ 2) บนหน้าจอ
-    frame = roi.draw_indicators(frame)
-
-    # --- ส่วนที่ 1: หาพิกัด Keypoints ---
-    # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
-
-    # search_key = s.searchKeypoint()
-    s.current_frame_poses, s.current_frame_ids =  s.searchKeypoint(frame)
-
-    # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
-    # ใช้ set ของ ID แทน boolean ทั่วทั้งเฟรม เพื่อรองรับหลายคนที่อยู่ใน ROI พร้อมกัน
-    inside_roi_ids = set()
-    current_frame_active_ids = set(s.current_frame_ids)
-
-    for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
-        s.p_id += df.lastID
-        if len(point_pose) < 17: 
-            continue
-        
-        state = manager.get_or_recover_id(s.p_id, current_frame_active_ids, point_pose)
-        if state is None:
-            continue
-
-        people_in_rectangle = False
-
-        # ดึงพิกัดเท้าเพื่อใช้เช็กระยะกับจุดมาร์ก (Ankle: 15, 16)
-        foot_x = int((point_pose[15][0] + point_pose[16][0]) / 2)
-        foot_y = int((point_pose[15][1] + point_pose[16][1]) / 2)
-        foot_pos = (foot_x, foot_y)
-
-        # 🌟 ─── ตรวจสอบทิศทางการเดิน (Direction Check) ───
-        if s.p_id not in direction_tracker:
-            direction_tracker[s.p_id] = {'first_touch': None, 'is_reverse': False}
-
-        # วาดเส้นกระดูก Skeleton
-        point_skel = point_pose.astype(int)
-        for start_idx, end_idx in df.SKELETON_CONNECTIONS:
-            if (point_skel[start_idx, 0] == 0 and point_skel[start_idx, 1] == 0) or \
-               (point_skel[end_idx, 0] == 0 and point_skel[end_idx, 1] == 0):
-                continue
-            cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
-
-
-        person_dir = direction_tracker[s.p_id]
-
-        movement = Check_direction_of_Movement(
-            person_dir,
-            foot_pos,
-            foot_x,
-            foot_y,
-            roi.start_point,
-            roi.reverse_point,
-            s.p_id
+class ModernButton(tk.Button):
+    """ปุ่มกดสไตล์โมเดิร์นพร้อม Hover Effect"""
+    def __init__(self, parent, text, command=None, bg_color=PRIMARY_BLUE, fg_color="#FFFFFF", hover_bg=PRIMARY_HOVER, **kwargs):
+        super().__init__(
+            parent,
+            text=text,
+            command=command,
+            bg=bg_color,
+            fg=fg_color,
+            activebackground=hover_bg,
+            activeforeground=fg_color,
+            font=("Segoe UI", 10, "bold"),
+            bd=0,
+            relief="flat",
+            cursor="hand2",
+            padx=15,
+            pady=8,
+            **kwargs
         )
-        person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
-
-        # print(len(w))
-        # cv2.line(frame, (0, foot_y), (w, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
-        # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
-        if person_dir['is_reverse']:
-            continue
-
-        # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
-        checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, _ = checkInRoi.checkPeopleInRoi()
-        if people_in_rectangle:
-            inside_roi_ids.add(s.p_id)
-
-        if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
-            recordVideo = RecordVedioDetect(
-                state["writer"],
-                state["video_filename"],
-                s.p_id,
-                fourcc,
-                w,
-                h
-                
-            )
-            state["writer"], state["video_filename"] = recordVideo.recordingVideo()
+        self.bg_color = bg_color
+        self.hover_bg = hover_bg
+        self.bind("<Enter>", lambda e: self.config(bg=self.hover_bg))
+        self.bind("<Leave>", lambda e: self.config(bg=self.bg_color))
 
 
-        # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
-        cw_inRectangle = Check_where_inRectangle(
-                                    people_in_rectangle,
-                                    state["is_terminating"],
-                                    state["termination_start_time"],
-                                    state["is_ok_holding"],
-                                    state["confirm"],
-                                    state["valaus_last"],
-                                    state["ok_start_time"],
-                                    point_pose,
-                                    s.p_id,
-                                    pose_classifier,
-                                    df.check_pose,
-                                    df.keypoint_conf
-                                    )
-        (confidence, state["is_terminating"], 
-            state["termination_start_time"], 
-            state["is_ok_holding"], 
-            state["confirm"], 
-            state["valaus_last"], 
-            state["ok_start_time"]
-        ) = cw_inRectangle.check_where_inRectangle(frame, w, h, manager)
+class PoseDetectionApp:
+    def __init__(self, root):
+        self.root = root
+        # 1. กำหนดข้อความ Title ให้ถูกต้อง
+        self.root.title("AI Pose Detection & ROI Control System")
+        self.root.geometry("1600x900")
 
-
-        # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
-        if not people_in_rectangle and state["was_inside_last_frame"] :
-            if state["writer"] is not None and not state["is_terminating"]:
-                state["is_terminating"] = True
-                state["termination_start_time"] = time.time()
-                print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")
-
-
-                
-        # ─── 📍 จุดที่ 3: อัปเดตสถานะเข้า Manager และเขียน Frame ลงไฟล์วิดีโอ ───
-        manager.update_tracking_data(state, people_in_rectangle, point_pose)
-
-        # แสดงข้อความบนตัวบุคคล
-        text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
-        text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
-        line_height = 20
-        status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
-
-        status_show = ShowStatusPose(s.p_id,
-                                        df.predicted_label, 
-                                        confidence,
-                                        people_in_rectangle, 
-                                        line_height,
-                                        status_color, 
-                                        text_x, 
-                                        text_y_start, 
-                                        state["confirm"], 
-                                        state['valaus_last']
-                                    )
-
-        status_show.showStatus(frame)
-
-        if state["writer"] is not None:
-            state["writer"].write(frame)
-
-    df.any_people_inside = bool(inside_roi_ids)
-
-    # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
-    manager.handle_lost_people(
-        current_frame_active_ids, 
-        save_ok=save_ok_flag, 
-        save_ng=save_ng_flag,
-        # stats_db=stats_db,                # 👈 ส่งตัวบันทึกข้อมูลลง DB
-        camera_id=active_camera_id        # 👈 ระบุ ID กล้อง
-    )
-
-    # ล้างข้อมูล direction_tracker สำหรับ ID ที่หลุดเฟรมไปนานแล้ว
-    active_ids_list = list(direction_tracker.keys())
-    for tid in active_ids_list:
-        if tid not in current_frame_active_ids and tid not in manager.user_states:
-            del direction_tracker[tid]
-
-    active_ids_list_history = list(s.pose_history.keys())
-    for tid in active_ids_list_history:
-        if tid not in current_frame_active_ids and tid not in manager.user_states:
-            del s.pose_history[tid]
-
-    last_x = w
-    if reverse_y is not None:
-        reverse_y = cam_reverse[1]
-        # print(reverse_y)
-        cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
-
-    # show fps
-    new_frame_time = time.time()
-    fps_per_sec = 1 / (new_frame_time - prev_frame_time)
-    prev_frame_time = new_frame_time
-
-    fps_per_sec = int(fps_per_sec)
-    show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
-
-    # เรนเดอร์ภาพออกหน้าจอหลัก
-    cv2.imshow(window_name, frame)
-    s.frame_count += 1 
-    count += 1
-    if count == 50:
-        time.sleep(20)
-    # time.sleep(0.01)
-
-    # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
-    stats_manager.update_window()
-
-    # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
-    key_input = cv2.waitKey(1) & 0xFF
-    key = None
-        # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
-    if df.simulated_key != -1:
-    # รองรับทั้งการส่งค่ามาเป็น String ('s') หรือ Integer (ord('s'))
-        if isinstance(df.simulated_key, str):
-            key = df.simulated_key.lower()
+        # 2. ตั้งค่า Icon โลโก้โปรแกรม (.png)
+        logo_path = os.path.join("main", "Logo", "atc_logo.png")
+        if os.path.exists(logo_path):
+            try:
+                # โหลดรูป PNG และตั้งเป็น Icon ของหน้าต่างหลัก
+                logo_img = ImageTk.PhotoImage(Image.open(logo_path))
+                self.root.iconphoto(False, logo_img)
+            except Exception as e:
+                print(f"⚠️ ไม่สามารถตั้งค่า Icon ได้: {e}")
         else:
-            key = chr(df.simulated_key).lower()
+            print(f"⚠️ ไม่พบไฟล์โลโก้ที่: {logo_path}")
+        self.root.geometry("1600x900")
+        self.root.configure(bg=BG_MAIN)
+        # 🌟 [เพิ่มบรรทัดนี้] ผูกการกดคีย์บอร์ดเข้ากับฟังก์ชันจัดการคีย์
+        self.root.bind("<Key>", self.on_key_press)
+        # ─── 1. โหลด CONFIG และการตั้งค่าเริ่มต้น ───
+        self.app_config = AppConfig(r"setting\config.yml")
+        self.config_manager = self.app_config.config_manager
+        self.config = self.app_config.config
+        self.active_camera_id = self.app_config.active_camera_id
+        self.camera = self.app_config.camera
+        self.source = self.app_config.source
+        self.save_ok_flag = self.app_config.save_ok_flag
+        self.save_ng_flag = self.app_config.save_ng_flag
+        self.save_data_flag = self.app_config.save_data_flag
+        self.model_sklearn = self.app_config.model_sklearn
+        self.type = self.app_config.type
 
-        df.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
-    elif key_input != 255:
-        key = chr(key_input).lower()
-    # roi.current_mode =  clb.checkKey(key)
-    # if roi.current_mode == False:
-    #     break
-    if key == 'q':
-        break
-    elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
-        print("💡 กำลังเปิดหน้าต่างคู่มือช่วยเหลือ (Help GUI)...")
-        clb.open_help_window()
+        # ─── 2. โมดูลการทำงานหลัก ───
+        self.roi = ROIHandler()
+        self.cam_mark = self.camera.get("mark_points", [])
+        self.cam_start = self.camera.get("start_point", None)
+        self.cam_reverse = self.camera.get("reverse_point", None)
+        self.point_zoom = self.camera.get("point_zoom", None)
+
+        if len(self.roi.mark_points) > 0:
+            self.roi.is_confirmed = True
+
+        (self.roi.mark_points, 
+         self.roi.start_point, 
+         self.roi.reverse_point, 
+         self.roi.point_zoom, 
+         self.roi.is_confirmed) = self.roi.update_roi_start_check(
+            self.cam_mark, self.cam_start, self.cam_reverse, self.point_zoom
+        )
+
+        self.model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+        self.s = ShowPredict(df.SKIP_FRAMES, self.model)
+        self.cap = RTSPVideoGrabber(df.fps, self.source)
+        self.zoom_tool = AdvancedZoomArea(zoom_factor=2)
+        self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self.manager = UserStateManager(df.check_pose, self.fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
+        self.direction_tracker = {}
+        self.pose_classifier = joblib.load(self.model_sklearn)
+        self.stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
+
+        # ตัวแปรสถานะ
+        self.is_running = True
+        self.prev_frame_time = 0
+        self.fps_per_sec = 0
+        self.current_frame = None
+
+        # Create GUI Components
+        self.setup_ui()
+
+        # Binding Mouse Events สำหรับวาด ROI บน Video Canvas
+        self.video_label.bind("<Button-1>", self.on_canvas_click)
+
+        # Thread ประมวลผลวิดีโอ
+        self.video_thread = threading.Thread(target=self.process_video_loop, daemon=True)
+        self.video_thread.start()
+
+        # Update GUI Loop (Tkinter Periodic Event)
+        self.root.after(10, self.update_gui_dashboard)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def setup_ui(self):
+        """สร้างเค้าโครง UI โทนสีขาว-ฟ้า"""
+        # ─── TOP HEADER ───
+        header_frame = tk.Frame(self.root, bg=BG_CARD, height=65, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        header_frame.pack(side="top", fill="x")
+
+        title_label = tk.Label(
+            header_frame, 
+            text="📷 AI Pose & Motion Inspection System", 
+            font=("Segoe UI", 16, "bold"), 
+            bg=BG_CARD, 
+            fg=PRIMARY_BLUE
+        )
+        title_label.pack(side="left", padx=20, pady=15)
+
+        # Info Badges บน Header
+        self.cam_badge = tk.Label(
+            header_frame, 
+            text=f"Camera: {self.active_camera_id}", 
+            font=("Segoe UI", 10, "bold"), 
+            bg=PRIMARY_LIGHT, 
+            fg=PRIMARY_BLUE, 
+            padx=12, pady=4
+        )
+        self.cam_badge.pack(side="right", padx=15)
+
+        self.fps_badge = tk.Label(
+            header_frame, 
+            text="FPS: 0", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#E8F5E9", 
+            fg=SUCCESS_GREEN, 
+            padx=12, pady=4
+        )
+        self.fps_badge.pack(side="right", padx=5)
+
+        # ─── MAIN CONTENT CONTAINER ───
+        main_container = tk.Frame(self.root, bg=BG_MAIN)
+        main_container.pack(side="top", fill="both", expand=True, padx=20, pady=15)
+
+        # LEFT SIDE: Video Display Area (Card View)
+        video_card = tk.Frame(main_container, bg=BG_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        video_card.pack(side="left", fill="both", expand=True, padx=(0, 15))
+
+        video_header = tk.Frame(video_card, bg=BG_CARD)
+        video_header.pack(fill="x", padx=15, pady=10)
         
-    elif key == '1':  # โหมดมาร์กพิกัดพื้นที่ Polygon
-        roi.clear_roi()
-        roi.current_mode = 1
-        print("✏️ เปิดโหมดวาด Polygon ROI: คลิกสร้างรูปปิด...")
+        tk.Label(video_header, text="Live Camera Feed", font=("Segoe UI", 12, "bold"), bg=BG_CARD, fg=TEXT_DARK).pack(side="left")
+        self.mode_status_label = tk.Label(video_header, text="Mode: Normal", font=("Segoe UI", 10, "bold"), bg=PRIMARY_LIGHT, fg=PRIMARY_BLUE, padx=8, pady=2)
+        self.mode_status_label.pack(side="right")
 
-    elif key == '2':  # 🌟 โหมดมาร์กจุดเริ่มเช็ก (Start Point)
-        roi.current_mode = 2
-        print("🟢 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 1: Start Check Point]")
+        self.video_label = tk.Label(video_card, bg="#000000")
+        self.video_label.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
-    elif key == '3':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
-        roi.current_mode = 3
-        print("🔴 คลิกบนหน้าจอเพื่อกำหนด [จุดที่ 2: Reverse Check Point]")
+        # RIGHT SIDE: Control Panel
+        sidebar = tk.Frame(main_container, bg=BG_MAIN, width=340)
+        sidebar.pack(side="right", fill="y")
 
-    elif key == '5':  # 🌟 โหมดมาร์กจุด Zoom
-        roi.current_mode = 5
-        print("🔴 คลิกบนหน้าจอเพื่อกำหนด [Mark Point Zoom]")
+        # --- Card 1: ROI & Point Controls ---
+        roi_card = tk.Frame(sidebar, bg=BG_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        roi_card.pack(fill="x", pady=(0, 15))
 
-    elif key == '6':  # 🌟 โหมดมาร์กจุดดักเดินสวน (Reverse Point)
-        roi.clear_point_zoom()
-        print("🔴[Cancle Mark Point Zoom]")
+        tk.Label(roi_card, text="🎯 ROI & Point Marking", font=("Segoe UI", 12, "bold"), bg=BG_CARD, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=12)
 
-    elif key == 'c':  # ล้างพิกัดหน้าจอ
-        roi.clear()
-        
-    elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
-        print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
-        # 🔍 เช็กค่า active_camera_id ก่อนเปิดหน้าต่าง
-        # ป้องกันกรณี active_camera_id เป็น None
-        cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
-        
+        ModernButton(roi_card, "1. Mark Polygon ROI", lambda: self.set_mode(1)).pack(fill="x", padx=15, pady=4)
+        ModernButton(roi_card, "2. Mark Start Point", lambda: self.set_mode(2)).pack(fill="x", padx=15, pady=4)
+        ModernButton(roi_card, "3. Mark Reverse Point", lambda: self.set_mode(3)).pack(fill="x", padx=15, pady=4)
+        ModernButton(roi_card, "5. Mark Zoom Point", lambda: self.set_mode(5)).pack(fill="x", padx=15, pady=4)
+        ModernButton(roi_card, "6. Clear Zoom Point", self.clear_zoom_point, bg_color="#ECEFF1", fg_color=TEXT_DARK, hover_bg="#CFD8DC").pack(fill="x", padx=15, pady=4)
+
+        btn_grid_frame = tk.Frame(roi_card, bg=BG_CARD)
+        btn_grid_frame.pack(fill="x", padx=15, pady=(8, 15))
+
+        ModernButton(btn_grid_frame, "💾 Save (0)", self.save_roi_config, bg_color=SUCCESS_GREEN, hover_bg="#1B5E20").pack(side="left", expand=True, fill="x", padx=(0, 4))
+        ModernButton(btn_grid_frame, "🧹 Clear All (C)", self.clear_all_roi, bg_color="#FF9800", hover_bg="#F57C00").pack(side="right", expand=True, fill="x", padx=(4, 0))
+
+        # --- Card 2: System Actions ---
+        sys_card = tk.Frame(sidebar, bg=BG_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        sys_card.pack(fill="x", pady=(0, 15))
+
+        tk.Label(sys_card, text="⚙️ System Controls", font=("Segoe UI", 12, "bold"), bg=BG_CARD, fg=TEXT_DARK).pack(anchor="w", padx=15, pady=12)
+
+        ModernButton(sys_card, "⚙️ Open Settings (S)", self.open_settings_gui, bg_color=PRIMARY_LIGHT, fg_color=PRIMARY_BLUE, hover_bg="#B3E5FC").pack(fill="x", padx=15, pady=4)
+        ModernButton(sys_card, "🗄️ Database Center (O)", lambda: clb.open_ssms_gui(), bg_color=PRIMARY_LIGHT, fg_color=PRIMARY_BLUE, hover_bg="#B3E5FC").pack(fill="x", padx=15, pady=4)
+        ModernButton(sys_card, "❓ Help Manual (H)", lambda: clb.open_help_window(), bg_color=PRIMARY_LIGHT, fg_color=PRIMARY_BLUE, hover_bg="#B3E5FC").pack(fill="x", padx=15, pady=4)
+
+        # Exit Button
+        ModernButton(sidebar, "🛑 Exit Application (Q)", self.on_close, bg_color=DANGER_RED, hover_bg="#B71C1C").pack(fill="x", side="bottom")
+
+    # ─── ACTION HANDLERS ───
+    def set_mode(self, mode_num):
+        if mode_num == 1:
+            self.roi.clear_roi()
+        self.roi.current_mode = mode_num
+        mode_names = {1: "Mark Polygon", 2: "Mark Start", 3: "Mark Reverse", 5: "Mark Zoom"}
+        self.mode_status_label.config(text=f"Mode: {mode_names.get(mode_num, 'Normal')}")
+
+    def clear_zoom_point(self):
+        self.roi.clear_point_zoom()
+        self.mode_status_label.config(text="Mode: Normal")
+
+    def clear_all_roi(self):
+        self.roi.clear()
+        self.mode_status_label.config(text="Mode: Normal")
+
+    def save_roi_config(self):
+        self.roi.is_confirmed = True
+        self.roi.current_mode = 0
+        self.mode_status_label.config(text="Mode: Normal")
+
+        if "cameras" not in self.config_manager.config: 
+            self.config_manager.config["cameras"] = {}
+        if self.active_camera_id not in self.config_manager.config["cameras"]: 
+            self.config_manager.config["cameras"][self.active_camera_id] = {}
+
+        self.config_manager.config["cameras"][self.active_camera_id]["mark_points"] = self.roi.mark_points
+        self.config_manager.config["cameras"][self.active_camera_id]["start_point"] = self.roi.start_point
+        self.config_manager.config["cameras"][self.active_camera_id]["reverse_point"] = self.roi.reverse_point
+        self.config_manager.config["cameras"][self.active_camera_id]["point_zoom"] = self.roi.point_zoom
+
+        self.config_manager.save_config()
+        messagebox.showinfo("Config Saved", f"บันทึกค่า ROI ของกล้อง {self.active_camera_id} เรียบร้อยแล้ว!")
+
+    def open_settings_gui(self):
+        cam_id_to_pass = self.active_camera_id if self.active_camera_id else "Camera_1"
         gui_thread = threading.Thread(
-            target=config_manager.open_settings,
+            target=self.config_manager.open_settings,
             kwargs={
-                "current_cam_id": active_camera_id, 
-                "on_close_callback": reload_config_callback
+                "current_cam_id": cam_id_to_pass, 
+                "on_close_callback": self.reload_config_callback
             },
             daemon=True
         )
         gui_thread.start()
-    # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
-    # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
-    # elif key == 'd':
-    #     print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
-    #     stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
- 
-    elif key == 'o':
-        print("📊 กำลังเปิดหน้าต่าง Connect Database...")
-        clb.open_ssms_gui()
-    
-    elif key == '0':  # บันทึกพิกัดจุดมาร์กเข้า config.yml
-        roi.is_confirmed = True
-        roi.current_mode = 0
-        
-        if "cameras" not in config_manager.config: config_manager.config["cameras"] = {}
-        if active_camera_id not in config_manager.config["cameras"]: config_manager.config["cameras"][active_camera_id] = {}
-        
-        config_manager.config["cameras"][active_camera_id]["mark_points"] = roi.mark_points
-        config_manager.config["cameras"][active_camera_id]["start_point"] = roi.start_point
-        config_manager.config["cameras"][active_camera_id]["reverse_point"] = roi.reverse_point
-        config_manager.config["cameras"][active_camera_id]["point_zoom"] = roi.point_zoom 
-        
-        config_manager.save_config()
-        print(f"💾 [Config Saved] บันทึก ROI ({len(roi.mark_points)} จุด), Start Pt {roi.start_point}, Reverse Pt {roi.reverse_point} ของกล้อง '{active_camera_id}' เรียบร้อย!")
+
+    def reload_config_callback(self, new_camera_id, updated_config=None):
+        if updated_config:
+            self.config = updated_config
+            self.config_manager.config = updated_config
+        else:
+            self.config_manager.config = self.config_manager.load_config()
+            self.config = self.config_manager.config
+
+        try:
+            model_info = self.config.get("model", {}).get("Model_path_1", {})
+            new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
+
+            if new_model_path and os.path.exists(new_model_path):
+                self.model_sklearn = new_model_path
+                self.pose_classifier = joblib.load(self.model_sklearn)
+        except Exception as e:
+            print(f"❌ [Model Error]: {e}")
+
+        if self.active_camera_id != new_camera_id:
+            old_cap = self.cap
+            self.active_camera_id = new_camera_id
+            self.camera = self.config["cameras"][self.active_camera_id]
+            self.type = self.camera["Type"]
+            new_source = self.camera["source"]
+            self.cap = RTSPVideoGrabber(df.fps, new_source)
+
+            if old_cap:
+                if hasattr(old_cap, 'stop'): old_cap.stop()
+                elif hasattr(old_cap, 'release'): old_cap.release()
+
+            self.roi.clear()
+            cam_mark = self.camera.get("mark_points", [])
+            cam_start = self.camera.get("start_point", None)
+            cam_reverse = self.camera.get("reverse_point", None)
+            point_zoom = self.camera.get("point_zoom", None)
             
+            (self.roi.mark_points, self.roi.start_point, self.roi.reverse_point, 
+             self.roi.point_zoom, self.roi.is_confirmed) = self.roi.update_roi_start_check(
+                cam_mark, cam_start, cam_reverse, point_zoom
+            )
 
-manager.close_all_writers()
-cap.release()
-cv2.destroyAllWindows()
+        cam_data = self.config["cameras"].get(self.active_camera_id, {})
+        self.save_ok_flag = cam_data.get("save_ok", True)
+        self.save_ng_flag = cam_data.get("save_ng", True)
+        self.save_data_flag = cam_data.get("save_data", True)
+        self.cam_badge.config(text=f"Camera: {self.active_camera_id}")
+        return cam_data, self.save_ok_flag, self.save_ng_flag, self.save_data_flag
 
+    def on_canvas_click(self, event):
+        """แปลงพิกัดการคลิกบน Tkinter Canvas กลับไปยังขนาดดั้งเดิมของ Frame"""
+        if self.current_frame is None: return
+        lbl_w = self.video_label.winfo_width()
+        lbl_h = self.video_label.winfo_height()
+        
+        if lbl_w > 0 and lbl_h > 0:
+            frame_h, frame_w = self.current_frame.shape[:2]
+            real_x = int(event.x * (frame_w / lbl_w))
+            real_y = int(event.y * (frame_h / lbl_h))
+            self.roi.click_event(cv2.EVENT_LBUTTONDOWN, real_x, real_y, None, None)
+
+    # ─── THREAD LOGIC: PROCESS VIDEO ───
+    def process_video_loop(self):
+        while self.is_running:
+            ret, frame = self.cap.read()
+            if not ret:
+                time.sleep(0.01)
+                continue
+
+            frame = cv2.resize(frame, (2560, 1440))
+            h, w = frame.shape[:2]
+
+            if self.roi.point_zoom is not None:
+                zoomed_frame = self.zoom_tool.apply(frame, center_pt=self.roi.point_zoom)
+                frame = zoomed_frame
+
+            self.s.searchKeypoint(frame)
+            self.s.current_frame_poses = [] 
+            self.s.current_frame_ids = [] 
+            num_pts = len(self.roi.mark_points)
+
+            check_people = "People in Rectangle" if df.any_people_inside else "None People"
+            box_color = (0, 0, 255) if df.any_people_inside else (0, 255, 0)
+
+            mark_roi.mark_roi_polygon(num_pts, frame, self.roi.mark_points, check_people, box_color, self.roi.is_confirmed)
+            frame = self.roi.draw_indicators(frame)
+
+            self.s.current_frame_poses, self.s.current_frame_ids = self.s.searchKeypoint(frame)
+            inside_roi_ids = set()
+            current_frame_active_ids = set(self.s.current_frame_ids)
+
+            for point_pose, p_id in zip(self.s.current_frame_poses, self.s.current_frame_ids):
+                p_id += df.lastID
+                if len(point_pose) < 17: continue
+
+                state = self.manager.get_or_recover_id(p_id, current_frame_active_ids, point_pose)
+                if state is None: continue
+
+                people_in_rectangle = False
+                foot_x = int((point_pose[15][0] + point_pose[16][0]) / 2)
+                foot_y = int((point_pose[15][1] + point_pose[16][1]) / 2)
+                foot_pos = (foot_x, foot_y)
+
+                if p_id not in self.direction_tracker:
+                    self.direction_tracker[p_id] = {'first_touch': None, 'is_reverse': False}
+
+                # Skeleton Drawing
+                point_skel = point_pose.astype(int)
+                for start_idx, end_idx in df.SKELETON_CONNECTIONS:
+                    if (point_skel[start_idx, 0] == 0 and point_skel[start_idx, 1] == 0) or \
+                       (point_skel[end_idx, 0] == 0 and point_skel[end_idx, 1] == 0):
+                        continue
+                    cv2.line(frame, tuple(point_skel[start_idx]), tuple(point_skel[end_idx]), (0, 255, 0), 2)
+
+                person_dir = self.direction_tracker[p_id]
+                movement = Check_direction_of_Movement(
+                    person_dir, foot_pos, foot_x, foot_y, 
+                    self.roi.start_point, self.roi.reverse_point, p_id
+                )
+                person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
+
+                if person_dir['is_reverse']: continue
+
+                checkInRoi = CheckPeopleInRoi(frame, self.roi.mark_points, point_pose)
+                people_in_rectangle, _ = checkInRoi.checkPeopleInRoi()
+                if people_in_rectangle: inside_roi_ids.add(p_id)
+
+                if people_in_rectangle and (self.save_ok_flag or self.save_ng_flag): 
+                    recordVideo = RecordVedioDetect(
+                        state["writer"], state["video_filename"], p_id, self.fourcc, w, h
+                    )
+                    state["writer"], state["video_filename"] = recordVideo.recordingVideo()
+
+                cw_inRectangle = Check_where_inRectangle(
+                    people_in_rectangle, state["is_terminating"], state["termination_start_time"],
+                    state["is_ok_holding"], state["confirm"], state["valaus_last"],
+                    state["ok_start_time"], point_pose, p_id, self.pose_classifier,
+                    df.check_pose, df.keypoint_conf
+                )
+                (confidence, state["is_terminating"], state["termination_start_time"], 
+                 state["is_ok_holding"], state["confirm"], state["valaus_last"], 
+                 state["ok_start_time"]) = cw_inRectangle.check_where_inRectangle(frame, w, h, self.manager)
+
+                if not people_in_rectangle and state["was_inside_last_frame"]:
+                    if state["writer"] is not None and not state["is_terminating"]:
+                        state["is_terminating"] = True
+                        state["termination_start_time"] = time.time()
+
+                self.manager.update_tracking_data(state, people_in_rectangle, point_pose)
+
+                text_x = int(point_pose[5][0]) if point_pose[5][0] > 0 else 50
+                text_y_start = int(point_pose[5][1]) - 80 if point_pose[5][1] > 80 else 50
+                status_color = (0, 255, 0) if state["confirm"] == "OK" else (0, 0, 255)
+
+                status_show = ShowStatusPose(
+                    p_id, df.predicted_label, confidence, people_in_rectangle,
+                    20, status_color, text_x, text_y_start, state["confirm"], state['valaus_last']
+                )
+                status_show.showStatus(frame)
+
+                if state["writer"] is not None:
+                    state["writer"].write(frame)
+
+            df.any_people_inside = bool(inside_roi_ids)
+            self.manager.handle_lost_people(current_frame_active_ids, save_ok=self.save_ok_flag, save_ng=self.save_ng_flag, camera_id=self.active_camera_id)
+
+            # Cleanup direction trackers
+            for tid in list(self.direction_tracker.keys()):
+                if tid not in current_frame_active_ids and tid not in self.manager.user_states:
+                    del self.direction_tracker[tid]
+
+            cam_reverse = self.camera.get("reverse_point", (0, 0))
+            if cam_reverse:
+                cv2.line(frame, (0, cam_reverse[1]), (w, cam_reverse[1]), (0, 255, 0), 2, cv2.LINE_AA)
+
+            # FPS Calculator
+            new_frame_time = time.time()
+            if new_frame_time - self.prev_frame_time > 0:
+                self.fps_per_sec = int(1 / (new_frame_time - self.prev_frame_time))
+            self.prev_frame_time = new_frame_time
+
+            show_m.showModeDisplay(frame, self.roi.current_mode, df.fps, self.fps_per_sec)
+
+            # ส่งเฟรมไปให้ Tkinter Display
+            self.current_frame = frame
+            self.s.frame_count += 1
+
+    # ─── PERIODIC GUI UPDATE LOOP ───
+    def update_gui_dashboard(self):
+        if self.current_frame is not None:
+            # แปลงภาพ BGR -> RGB สำหรับ PIL
+            rgb_frame = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(rgb_frame)
+
+            # Resize ให้พอดีกับ Label Container
+            lbl_w = max(self.video_label.winfo_width(), 100)
+            lbl_h = max(self.video_label.winfo_height(), 100)
+            img = img.resize((lbl_w, lbl_h), Image.Resampling.LANCZOS)
+
+            imgtk = ImageTk.PhotoImage(image=img)
+            self.video_label.imgtk = imgtk
+            self.video_label.configure(image=imgtk)
+
+            # อัปเดต FPS Badge
+            self.fps_badge.config(text=f"FPS: {self.fps_per_sec}")
+
+        self.stats_manager.update_window()
+        
+        if self.is_running:
+            self.root.after(15, self.update_gui_dashboard)
+
+    def on_close(self):
+        """ปิดการทำงานอย่างปลอดภัย"""
+        if messagebox.askokcancel("Quit", "คุณต้องการปิดโปรแกรมใช่หรือไม่?"):
+            self.is_running = False
+            self.manager.close_all_writers()
+            if hasattr(self.cap, 'release'): self.cap.release()
+            cv2.destroyAllWindows()
+            self.root.destroy()
+
+    def on_key_press(self, event):
+        """รับค่าจากคีย์บอร์ดแล้วสั่งงานฟังก์ชันเหมือนการกดปุ่มบน GUI"""
+        key = event.char.lower()
+        
+        if key == '1':
+            print("⌨️ [Keyboard 1] เปิดโหมดวาด Polygon ROI")
+            self.set_mode(1)
+        elif key == '2':
+            print("⌨️ [Keyboard 2] เปิดโหมดมาร์ก Start Point")
+            self.set_mode(2)
+        elif key == '3':
+            print("⌨️ [Keyboard 3] เปิดโหมดมาร์ก Reverse Point")
+            self.set_mode(3)
+        elif key == '5':
+            print("⌨️ [Keyboard 5] เปิดโหมดมาร์ก Zoom Point")
+            self.set_mode(5)
+        elif key == '6':
+            print("⌨️ [Keyboard 6] ยกเลิกจุด Zoom Point")
+            self.clear_zoom_point()
+        elif key == '0':
+            print("⌨️ [Keyboard 0] บันทึกพิกัด ROI")
+            self.save_roi_config()
+        elif key == 'c':
+            print("⌨️ [Keyboard C] ล้างพิกัดทั้งหมด")
+            self.clear_all_roi()
+        elif key == 's':
+            print("⌨️ [Keyboard S] เปิดหน้าต่าง Settings")
+            self.open_settings_gui()
+        elif key == 'o':
+            print("⌨️ [Keyboard O] เปิดหน้าต่าง Database")
+            clb.open_ssms_gui()
+        elif key == 'h':
+            print("⌨️ [Keyboard H] เปิดหน้าต่าง Help")
+            clb.open_help_window()
+        elif key == 'q':
+            print("⌨️ [Keyboard Q] ปิดโปรแกรม")
+            self.on_close()
+
+# ─── MAIN EXECUTION ───
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PoseDetectionApp(root)
+    root.mainloop()
