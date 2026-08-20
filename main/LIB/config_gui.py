@@ -14,9 +14,10 @@ import time
 import os
 import platform
 import subprocess
+
+
 from tkinter import messagebox
-
-
+from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -307,8 +308,11 @@ class ConfigGUI:
 
         info_frame.columnconfigure(0, weight=1)
 
+        date_time = datetime.now()
+        formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
+
         dataset_path = self.config.get("global", {}).get("dataset_path", "dataset.csv")
-        model_path = os.path.join("model", selected_model_file) if not os.path.isabs(selected_model_file) else selected_model_file
+        model_path = os.path.join("model", f"model_train_{formath_time}") 
 
         def browse_file():
             nonlocal dataset_path
@@ -333,8 +337,10 @@ class ConfigGUI:
                                 )
         label_dataset.grid(row=0, column=0, sticky="w", pady=2, padx=10)
 
+        date_time = datetime.now()
+        formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
         label_model = tk.Label(info_frame,
-                               text=f"🤖 Target Save: {os.path.basename(model_path)}",
+                               text=f"🤖 Target Save: " + f"model_train_{formath_time}",
                                fg="#2563EB",
                                bg=PANEL_COLOR,
                                font=("Segoe UI", 9, "bold")
@@ -395,7 +401,10 @@ class ConfigGUI:
             if hasattr(self, 'cb_model'):
                 self.available_models = self.scan_models()
                 self.cb_model['values'] = self.available_models
-                
+
+            date_time = datetime.now()
+            formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
+
             messagebox.showinfo("Train Success", f"🎉 เทรนโมเดลสำเร็จสมบูรณ์!\n\n🎯 Accuracy: {acc:.2f}%\n📂 PATH: {path}")
             train_win.destroy()
 

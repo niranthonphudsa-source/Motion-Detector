@@ -212,7 +212,7 @@ cameras:
     source: ../../ProjectDetection/recordings/VideoTrain_20260817_153543.mp4
 global:
   active_model: model\pose_classifier_1 copy.pkl
-  dataset_path: ..\..\dataset\pose_dataset copy 2.csv
+  dataset_path: pose_dataset_99.4_persent copy.csv
   default_camera_id: Camera_Test
   default_person_limit: 3
   detection_confidence: 0.9
