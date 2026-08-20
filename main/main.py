@@ -36,7 +36,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
-
+from LIB.config_gui import ConfigGUI
 
 # ==========================================
 # 🎨 PALETTE COLOR (โทนสีขาว-ฟ้า Clean Tech)
@@ -332,16 +332,17 @@ class PoseDetectionApp:
                 new_camera_id = "Camera_1"
 
         # 4. ตรวจสอบการเปลี่ยนแปลงของกล้อง หรือ Source URL
-        old_source = self.camera.get("source") if hasattr(self, "camera") and isinstance(self.camera, dict) else None
+        old_camera_id = self.active_camera_id
+        old_source = self.camera.get("source") if isinstance(self.camera, dict) else None
         
         # อัปเดต self.camera และ active_camera_id เสมอ (ใช้ .get() เพื่อความปลอดภัย)
         self.active_camera_id = new_camera_id
         self.camera = cameras_dict.get(self.active_camera_id, {})
-        new_source = self.camera.get("source", "")
-        self.type = self.camera.get("Type", "RTSP")
+        new_source = self.camera.get("source", 0)
+        self.type = self.camera.get("Type", "LIVE_STREAM")
 
         # ตรวจสอบว่ามีการเปลี่ยนตัวกล้อง หรือเปลี่ยน RTSP URL หรือไม่
-        is_camera_changed = (self.active_camera_id != new_camera_id)
+        is_camera_changed = (old_camera_id != new_camera_id)
         is_source_changed = (old_source != new_source)
 
         if is_camera_changed or is_source_changed or not getattr(self, "cap", None):
@@ -578,8 +579,20 @@ class PoseDetectionApp:
             print("⌨️ [Keyboard C] ล้างพิกัดทั้งหมด")
             self.clear_all_roi()
         elif key == 's':
-            print("⌨️ [Keyboard S] เปิดหน้าต่าง Settings")
-            self.open_settings_gui()
+            print("⌨️ [Keyboard S] เปิดหน้าต่าง Settings") 
+            # self.open_settings_gui()
+            cf_gui = ConfigGUI()
+            cam_id_to_pass = self.active_camera_id if self.active_camera_id else "Camera_1"
+            gui_thread = threading.Thread(
+                target=cf_gui.open_settings(cam_id_to_pass),
+                kwargs={
+                    "current_cam_id": cam_id_to_pass, 
+                    "on_close_callback": self.reload_config_callback
+                },
+                daemon=True
+            )
+            gui_thread.start()
+               
         elif key == 'o':
             print("⌨️ [Keyboard O] เปิดหน้าต่าง Database")
             clb.open_ssms_gui()

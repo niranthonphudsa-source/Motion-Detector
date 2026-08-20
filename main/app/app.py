@@ -4,13 +4,14 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
 import sys
+# import run_start.default_config_var as df
 # เพิ่มโฟลเดอร์ปัจจุบันของ app.py เข้า sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import data_viewer_gui as dt_view
 import time
 import datetime
 
-import run_start.default_config_var as df
+
 
 # ==========================================
 # 1. CLASS จัดการ CONFIG (JSON)
@@ -58,7 +59,7 @@ class TableViewerWindow(tk.Toplevel):
         self.title("📊 SQL Server Data Viewer")
         self.geometry("900x600")
         self.config_data = config_data
-
+        self.save_data_flag = False
         self.BG_COLOR = "#F8FAFC"
         self.PANEL_COLOR = "#FFFFFF"
         self.PRIMARY_COLOR = "#1E3A8A"
@@ -161,7 +162,7 @@ class TableViewerWindow(tk.Toplevel):
             f"📥 [Inserting] User ID: {user_id} | Camera ID: {camera_id} | Status: {status_pose}"
         )
         conn = None
-        if df.save_data_flag:
+        if self.save_data_flag:
             try:
                 server = config_data.get("server")
                 database = config_data.get("database")

@@ -248,7 +248,7 @@ class ConfigGUI:
         self.config_path = os.path.join(self.base_dir, "setting", "config.yml")
         self.config = self.load_config()
         self.root = None
-
+        self.cam_id = ""
     def load_config(self):
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
@@ -257,14 +257,7 @@ class ConfigGUI:
             print(f"Error loading config: {e}")
             return {"global": {}, "cameras": {}, "model": {}}
 
-    def save_config(self):
-        try:
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.config, f, allow_unicode=True)
-            return True
-        except Exception as e:
-            messagebox.showerror("Error", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
-            return False
+
 
     def scan_models(self):
         """สแกนไฟล์โมเดลในโฟลเดอร์ และดึงรายการโมเดลทั้งหมดที่มีอยู่ใน config"""
@@ -435,7 +428,9 @@ class ConfigGUI:
             self.root.destroy()
 
     def open_settings(self, current_cam_id=None, on_close_callback=None):
+        self.cam_id = current_cam_id
         """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Layout ใหม่)"""
+        print(f"Cam ID {current_cam_id}")
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -607,8 +602,8 @@ class ConfigGUI:
         self.chk_save_data.pack(anchor="w", pady=2)
 
         def on_camera_select(event=None):
-            cam_id = self.cam_var.get()
-            cam_data = self.config.get("cameras", {}).get(cam_id, {})
+            self.cam_id = self.cam_var.get()
+            cam_data = self.config.get("cameras", {}).get(self.cam_id, {})
             self.var_ok.set(cam_data.get("save_ok", True))
             self.var_ng.set(cam_data.get("save_ng", True))
             self.save_database.set(cam_data.get("save_data", True))
@@ -703,8 +698,8 @@ class ConfigGUI:
         self.lbl_pts.pack(anchor="w", pady=(4, 0))
 
         def update_info_labels(*args):
-            cam_id = self.cam_var.get()
-            cam_data = self.config.get("cameras", {}).get(cam_id, {})
+            self.cam_id = self.cam_var.get()
+            cam_data = self.config.get("cameras", {}).get(self.cam_id, {})
             self.lbl_source.config(text=f"Source: {cam_data.get('source', 'None')}")
             self.lbl_type.config(text=f"Type: {cam_data.get('Type', 'None')}")
             pts_count = len(cam_data.get("mark_points", []))
@@ -779,11 +774,14 @@ class ConfigGUI:
 
         self.root.protocol("WM_DELETE_WINDOW", on_window_close)
 
+
         # ─── ปุ่มบันทึกข้อมูลหลัก ───
         def save_and_close():
-            cam_id = self.cam_var.get()
+            self.cam_id = self.cam_var.get()
             selected_file = self.model_var.get()
 
+            print(f"self.cam_id: {self.cam_var.get()} model: {self.model_var.get()}" )
+            print(f"self.cam_id: {self.cam_id} model: {selected_file}" )
             # 1. จัดการ Path ของโมเดลที่เลือก
             if self.custom_model_full_path and os.path.basename(self.custom_model_full_path) == selected_file:
                 final_model_path = self.custom_model_full_path
@@ -812,22 +810,22 @@ class ConfigGUI:
                 self.config["model"][found_key]["source"] = final_model_path
 
             # 3. บันทึกการตั้งค่ากล้อง (Save OK / Save NG)
-            if cam_id:
+            if self.cam_id:
                 if "cameras" not in self.config: 
                     self.config["cameras"] = {}
-                if cam_id not in self.config["cameras"]: 
-                    self.config["cameras"][cam_id] = {}
+                if self.cam_id not in self.config["cameras"]: 
+                    self.config["cameras"][self.cam_id] = {}
                 
-                self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
-                self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
-                self.config["cameras"][cam_id]["save_data"] = self.save_database.get()
+                self.config["cameras"][self.cam_id]["save_ok"] = self.var_ok.get()
+                self.config["cameras"][self.cam_id]["save_ng"] = self.var_ng.get()
+                self.config["cameras"][self.cam_id]["save_data"] = self.save_database.get()
 
                 if "global" not in self.config or not isinstance(self.config["global"], dict):
                     self.config["global"] = {}
                 if self.default_camera_var.get() in camera_list:
                     self.config["global"]["default_camera_id"] = self.default_camera_var.get()
 
-                print(cam_id, self.config)
+                print(self.cam_id, self.config)
             # 4. บันทึกลงไฟล์ YAML และส่ง Callback
             if self.save_config():
                 messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")
@@ -836,7 +834,7 @@ class ConfigGUI:
                 self.root = None
                 
                 if on_close_callback:
-                    on_close_callback(cam_id, self.config)
+                    on_close_callback(self.cam_id, self.config)
 
                     
         btn_save = tk.Button(
@@ -856,6 +854,14 @@ class ConfigGUI:
 
         self.root.mainloop()
 
+    def save_config(self):
+        try:
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(self.config, f, allow_unicode=True)
+            return True
+        except Exception as e:
+            messagebox.showerror("Error", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
+            return False
 
 # ─── ตัวอย่างการเรียกใช้งาน ───
 if __name__ == "__main__":
