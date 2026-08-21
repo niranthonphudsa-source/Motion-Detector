@@ -14,6 +14,7 @@ import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
 import csv
 import datetime
+import update_heart
 
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
@@ -154,7 +155,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
-pose_classifier = joblib.load(model_sklearn) 
+pose_classifier = model_sklearn
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
@@ -174,6 +175,7 @@ reverse_y = 0
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
+    update_heart.update_heartbeat()
     ret, frame = cap.read()
     if not ret:     
         break

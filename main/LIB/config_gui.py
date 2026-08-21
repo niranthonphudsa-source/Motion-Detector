@@ -240,10 +240,19 @@ class VideoFolderManagerWindow:
         cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
         cleanup_thread.start()
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class ConfigGUI:
-    def __init__(self, config_path=r"setting\config.yml"):
-        self.config_path = config_path
+    def __init__(self, config_path=None):
+        # ถ้าไม่ได้ส่ง config_path มา ให้สร้าง Absolute Path อ้างอิงจาก BASE_DIR เสมอ
+        if config_path is None:
+            # self.config_path = os.path.join(BASE_DIR, "config.yml")
+            # หรือถ้า config.yml อยู่ในโฟลเดอร์ setting ให้ใช้:\
+            PARENT_DIR = os.path.dirname(BASE_DIR)
+            GRANDPARENT_DIR = os.path.dirname(PARENT_DIR)
+            self.config_path = os.path.join(GRANDPARENT_DIR, "setting", "config.yml")
+        else:
+            self.config_path = config_path
+
         self.config = self.load_config()
         self.root = None
 

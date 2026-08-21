@@ -14,11 +14,14 @@ from openpyxl import Workbook, load_workbook
 
 from datetime import datetime
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+GRAND_PARENT = os.path.dirname(PARENT_DIR)
+DB_PATH = os.path.join(GRAND_PARENT, 'db_config.json')
 def load_data():
-    if os.path.exists('db_config.json'):
+    if os.path.exists(DB_PATH):
         try:
-            with open('db_config.json', "r", encoding="utf-8") as f:
+            with open(DB_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return None

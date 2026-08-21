@@ -6,7 +6,7 @@ from LIB.config_gui import ConfigGUI
 class AppConfig:
     def __init__(self, config_path=r"setting\config.yml"):
         self.config_path = config_path
-        self.config_manager = ConfigGUI(self.config_path)
+        self.config_manager = ConfigGUI()
         self.config = self.config_manager.config
         
         # ตัวแปรที่จะดึงไปใช้งานหลัก

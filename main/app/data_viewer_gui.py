@@ -9,9 +9,14 @@ from tkcalendar import DateEntry
 # ==========================================
 # 1. CLASS สำหรับโหลด CONFIG
 # ==========================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(BASE_DIR)
+GRAND_PARENT = os.path.dirname(PARENT_DIR)
+DB_PATH = os.path.join(GRAND_PARENT, 'db_config.json')
+
 class ConfigManager:
 
-    def __init__(self, filename="db_config.json"):
+    def __init__(self, filename=DB_PATH):
         self.filename = filename
 
     def load_config(self):
@@ -703,24 +708,40 @@ class CheckLastID:
         self.config_data = self.config_mgr.load_config()
 
     def _get_connection(self):
-        server = self.config_data.get("server")
-        database = self.config_data.get("database")
-        driver = self.config_data.get(
-            "driver", "ODBC Driver 17 for SQL Server"
-        )
-        auth_type = self.config_data.get("auth_type")
+        # 1. ตรวจสอบว่า self.config มีข้อมูลหรือไม่
+        if not self.config_data or not isinstance(self.config_data, dict):
+            print("Config is missing, empty, or None")
+            return None
+            
+        # 2. ดึงค่า Config ของ Database 
+        db_config = self.config_data.get("database", self.config_data)
+        
+        server = db_config.get("server")
+        database = db_config.get("database")
+        driver = db_config.get("driver", "ODBC Driver 17 for SQL Server")
+        auth_type = db_config.get("auth_type")
 
+        # ตรวจสอบว่ามีข้อมูล Server และ Database หรือไม่
+        if not server or not database:
+            print("Database configuration (server/database) is incomplete.")
+            return None
+
+        # 3. ประกอบ Connection String
         if auth_type == "Windows Authentication":
             conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
         else:
-            user = self.config_data.get("username")
-            pwd = self.config_data.get("password")
+            user = db_config.get("username", "")
+            pwd = db_config.get("password", "")
             conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={user};PWD={pwd};"
 
         if "18" in driver:
             conn_str += "TrustServerCertificate=yes;"
 
-        return pyodbc.connect(conn_str, timeout=5)
+        try:
+            return pyodbc.connect(conn_str, timeout=5)
+        except Exception as e:
+            print(f"Database connection failed: {e}")
+            return None
 
     def get_last_id(self):
         selected_table = "Tb_Check_Pose"

@@ -41,7 +41,7 @@ SKELETON_CONNECTIONS = df.SKELETON_CONNECTIONS
 lastID = df.lastID
 
 direction_tracker = {}
-pose_classifier = joblib.load(model_sklearn) 
+# pose_classifier = joblib.load(model_sklearn) 
 
 
 def open_ssms_gui():
