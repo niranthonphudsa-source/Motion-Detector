@@ -3,6 +3,9 @@ import time
 import cv2
 import pandas as pd
 import run_start.default_config_var as df
+import joblib
+import sklearn
+
 
 class CheckPeopleInRoi():
     def __init__(self, frame, mark_points, point_pose):

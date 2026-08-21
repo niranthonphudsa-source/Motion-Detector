@@ -2,9 +2,12 @@
 import os
 from LIB.config_gui import ConfigGUI
 
-
+base_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(base_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+config_dir = os.path.join(grandparent_dir, "setting", "config.yml")
 class AppConfig:
-    def __init__(self, config_path=r"setting\config.yml"):
+    def __init__(self, config_path=config_dir):
         self.config_path = config_path
         self.config_manager = ConfigGUI()
         self.config = self.config_manager.config

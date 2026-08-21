@@ -31,7 +31,10 @@ from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
 # ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(base_dir)
+config_dir = os.path.join(parent_dir, "setting", "config.yml")
+app_config = AppConfig(config_dir)
 
 config_manager = app_config.config_manager
 config = app_config.config
@@ -155,7 +158,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
-pose_classifier = model_sklearn
+pose_classifier = joblib.load(model_sklearn)
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
@@ -173,6 +176,7 @@ type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
 
+count = 0
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     update_heart.update_heartbeat()
@@ -359,7 +363,7 @@ while True:
             del direction_tracker[tid]
 
     last_x = w
-    if reverse_y is not None:
+    if reverse_y is not None and  cam_reverse is not None:
         reverse_y = cam_reverse[1]
         # print(reverse_y)
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
@@ -375,6 +379,9 @@ while True:
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
+    # count += 1
+    # if count == 100:
+    #     time.sleep(15)
     # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง

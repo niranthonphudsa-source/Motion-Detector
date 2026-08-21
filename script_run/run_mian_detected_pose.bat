@@ -4,11 +4,10 @@ echo "Start Connect Main Programe!"
 cd /d "%~dp0"
 
 set "PATH_BAT=%CD%"
-
 call %PATH_BAT%\run_config_gui.bat
-call %PATH_BAT%\run_detected_pose.bat
+call %PATH_BAT%\run_checktime_error_restrart.bat
 
-
+pause
 
 
 @REM @echo off

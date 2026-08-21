@@ -82,7 +82,7 @@ def stop_pose_process(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return  # จบไปแล้ว
 
-    write_log("Stopping pose_detect.py ...")
+    write_log("Stopping main.py ...")
     process.terminate()
 
     try:
@@ -115,7 +115,7 @@ def main():
                 # 1) เช็กว่าตัวโปรแกรมปิดไปหรือยัง
                 exit_code = process.poll()
                 if exit_code is not None:
-                    write_log(f"pose_detect.py stopped. Exit code = {exit_code}")
+                    write_log(f"main.py stopped. Exit code = {exit_code}")
                     break
 
                 # 2) เช็ก heartbeat ว่ายังอัปเดตอยู่ไหม
@@ -132,7 +132,7 @@ def main():
                 if heartbeat_age > HEARTBEAT_TIMEOUT_SEC:
                     write_log(
                         f"Heartbeat timeout ({heartbeat_age:.1f} sec). "
-                        f"Assume pose_detect.py is hung. Restarting..."
+                        f"Assume main.py is hung. Restarting..."
                     )
                     stop_pose_process(process)
                     break

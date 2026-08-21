@@ -15,7 +15,11 @@ from LIB.config_loader_start import AppConfig
 from LIB.roi_handler import ROIHandler
 from LIB.stats_gui import StatsGUI, StatsManager
 # ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(base_dir)
+config_dir = os.path.join(parent_dir, "setting", "config.yml")
+app_config = AppConfig(config_dir)
 
 config_manager = app_config.config_manager
 config = app_config.config
