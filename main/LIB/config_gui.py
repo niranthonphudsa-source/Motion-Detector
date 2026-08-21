@@ -275,7 +275,33 @@ class ConfigGUI:
 
     def scan_models(self):
         """สแกนไฟล์โมเดลในโฟลเดอร์ และดึงรายการโมเดลทั้งหมดที่มีอยู่ใน config"""
-        files = glob.glob("model/*.pkl") + glob.glob("model/*.joblib") + glob.glob("*.pkl") + glob.glob("*.joblib")
+        # 1. ล็อกตำแหน่งโฟลเดอร์ปัจจุบันของไฟล์สคริปต์นี้
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(base_dir)
+        grandparent_dir = os.path.dirname(parent_dir)
+        model_dir = os.path.join(grandparent_dir, "model")
+
+        # 2. ใช้ Absolute Path สแกนหาไฟล์ .pkl และ .joblib
+        pattern_pkl_sub = os.path.join(model_dir, "*.pkl")
+        pattern_joblib_sub = os.path.join(model_dir, "*.joblib")
+        pattern_pkl_root = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_root = os.path.join(base_dir, "*.joblib")
+        pattern_pkl_sub_sec = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_sub_sec = os.path.join(base_dir, "*.joblib")
+        pattern_pkl_sub_thr = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_sub_thr = os.path.join(base_dir, "*.joblib")
+
+        files = (
+            glob.glob(pattern_pkl_sub) + 
+            glob.glob(pattern_joblib_sub) + 
+            glob.glob(pattern_pkl_root) + 
+            glob.glob(pattern_joblib_root) +
+            glob.glob(pattern_pkl_sub_sec) + 
+            glob.glob(pattern_joblib_sub_sec)+
+            glob.glob(pattern_pkl_sub_thr) + 
+            glob.glob(pattern_joblib_sub_thr)
+        )
+        
         model_names = [os.path.basename(f) for f in files]
 
         if "model" in self.config and isinstance(self.config["model"], dict):
@@ -660,7 +686,7 @@ class ConfigGUI:
                 file_path = os.path.normpath(file_path)
                 filename = os.path.basename(file_path)
                 
-                current_dir = os.getcwd()
+                current_dir = os.path.dirname(os.path.abspath(__file__))
                 models_dir = os.path.join(current_dir, "model")
                 
                 if file_path.startswith(models_dir):
