@@ -1,6 +1,6 @@
 import cv2
 import time
-
+import threading
 
 class RTSPVideoGrabber:
     def __init__(self, target_fps=30, src=0):
@@ -9,33 +9,55 @@ class RTSPVideoGrabber:
         if not self.cap.isOpened():
             raise RuntimeError(f"ไม่สามารถเปิดวิดีโอ/RTSP source: {src}")
 
+        # ล็อก Buffer Size ให้เหลือ 1 เฟรม
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        # ใช้ FPS จริงจาก source ถ้า source ไม่ส่งค่าออกมา ให้ใช้ค่าจาก target_fps
+        self.ret = False
+        self.frame = None
+        self.running = True
+
+        # ควบคุม FPS ในการดึงเฟรมไปใช้งาน
         source_fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.target_fps = float(target_fps) if target_fps and target_fps > 0 else 30.0
-        if source_fps is None or source_fps <= 0:
-            source_fps = self.target_fps
-        self.target_fps = float(source_fps)
+        if source_fps and source_fps > 0:
+            self.target_fps = float(source_fps)
         self.frame_interval = 1.0 / self.target_fps
-        self.last_read_time = time.perf_counter()
+        self.last_grab_time = 0
+
+        # สร้าง Thread แยกสำหรับอ่านภาพจากกล้องตลอดเวลา (ป้องกันภาพค้างสะสมใน Buffer)
+        self.lock = threading.Lock()
+        self.thread = threading.Thread(target=self._update_frame, daemon=True)
+        self.thread.start()
+
+    def _update_frame(self):
+        """Thread ย่อย: ดึงเฟรมจาก OpenCV ออกจาก Buffer ให้เร็วที่สุดเพื่อไม่ให้เกิด Delay"""
+        while self.running:
+            ret, frame = self.cap.read()
+            if not ret:
+                time.sleep(0.01)
+                continue
+            
+            with self.lock:
+                self.ret = ret
+                self.frame = frame
 
     def read(self):
-        """อ่านเฟรมตาม FPS จริงของ source เพื่อไม่ให้เล่นเร็วเกินเวลา"""
-        while True:
-            now = time.perf_counter()
-            elapsed = now - self.last_read_time
-            if elapsed < self.frame_interval:
-                time.sleep(self.frame_interval - elapsed)
-                continue
+        """อ่านเฟรมล่าสุด โดยคุม FPS ฝั่ง Consumer ไม่ให้เรียกถี่เกินไป"""
+        now = time.perf_counter()
+        elapsed = now - self.last_grab_time
 
-            self.last_read_time = time.perf_counter()
-            ret, frame = self.cap.read()
-            if not ret or frame is None:
-                return False, None
-            return True, frame
+        # ถ้ารายงานภาพเร็วกว่า target_fps ให้หน่วงเฉพาะเวลาดึงไปใช้ (ไม่กระทบการอ่านจากกล้อง)
+        if elapsed < self.frame_interval:
+            time.sleep(self.frame_interval - elapsed)
+
+        with self.lock:
+            self.last_grab_time = time.perf_counter()
+            return self.ret, self.frame
 
     def release(self):
+        self.running = False
+        if hasattr(self, 'thread') and self.thread.is_alive():
+            self.thread.join(timeout=1.0)
         if self.cap is not None:
             self.cap.release()
 
@@ -44,18 +66,17 @@ class RTSPVideoGrabber:
 
 
 if __name__ == "__main__":
-    rtsp_url = 0
-    app = RTSPVideoGrabber(src=rtsp_url, target_fps=15)
+    rtsp_url = 0  # เปลี่ยนเป็น RTSP URL เช่น "rtsp://admin:12345@192.168.1.100:554/stream1"
+    app = RTSPVideoGrabber(src=rtsp_url, target_fps=30)
 
     try:
         while True:
             ret, frame = app.read()
             if not ret or frame is None:
-                print("ไม่สามารถรับสัญญาณภาพได้")
-                time.sleep(0.1)
+                time.sleep(0.01)
                 continue
 
-            cv2.imshow("RTSP Limited FPS", frame)
+            cv2.imshow("RTSP Realtime (No Lag)", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     finally:
