@@ -5,7 +5,9 @@ from LIB.config_gui import ConfigGUI
 base_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(base_dir)
 grandparent_dir = os.path.dirname(parent_dir)
-config_dir = os.path.join(grandparent_dir, "setting", "config.yml")
+
+root_path = grandparent_dir
+config_dir = os.path.join(root_path, "setting", "config.yml")
 class AppConfig:
     def __init__(self, config_path=config_dir):
         self.config_path = config_path
@@ -60,8 +62,16 @@ class AppConfig:
 
         # โหลดโมเดล AI
         model_path = self.config.get("model", {}).get("Model_path_1", {})
-        self.model_sklearn = model_path.get("source", "")
-        
+        raw_model_path = model_path.get("source", "")
+
+        if raw_model_path:
+            # ถ้าเป็น Absolute Path อยู่แล้วให้ใช้ค่านั้น แต่ถ้าเป็น Relative Path ให้เอามาต่อกับ PROJECT_ROOT
+            if os.path.isabs(raw_model_path):
+                self.model_sklearn = raw_model_path
+            else:
+                self.model_sklearn = os.path.abspath(os.path.join(root_path, raw_model_path))
+        else:
+            self.model_sklearn = ""
 
         # ปริ้นท์สรุปสถานะเมื่อเริ่มโปรแกรม
         self.print_status()

@@ -4,17 +4,16 @@ chcp 65001 > nul
 REM ==================================================
 REM กำหนด path ของโปรเจกต์
 REM ==================================================
-cd /d "~dp0"
+cd /d "%~dp0"
 cd ..
 set "PROJECT_DIR=%CD%"
-set "SCRIPT_DIR=%PROJECT_DIR%\main\LIB"
-set "SCRIPT_FILE=%SCRIPT_DIR%\checktime_error_restart.py"
+set "SCRIPT_DIR=%PROJECT_DIR%\main"
+set "SCRIPT_FILE=%SCRIPT_DIR%\LIB\checktime_error_restart.py"
 
 REM ==================================================
 REM ใช้ Python จาก .venv1
 REM ==================================================
 set "PYTHON_EXE=%PROJECT_DIR%\venv\Scripts\python.exe"
-
 set "PYTHON_CONFIG=%PROJECT_DIR%\setting\config.yml"
 REM ==================================================
 
@@ -49,8 +48,12 @@ if not exist "%SCRIPT_FILE%" (
 
 cd /d "%SCRIPT_DIR%"
 @REM cd ..
-"%PYTHON_EXE%" checktime_error_restart.py
+"%PYTHON_EXE%" %SCRIPT_FILE%
 
-echo.
+echo ===========================================
+cd /d "%PROJECT_DIR%"
+set "last_dir=%CD%"
+echo last_dir: %last_dir% 
+echo ===========================================
 pause
 endlocal

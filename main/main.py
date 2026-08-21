@@ -34,8 +34,8 @@ from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 base_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(base_dir)
 config_dir = os.path.join(parent_dir, "setting", "config.yml")
-app_config = AppConfig(config_dir)
 
+app_config = AppConfig(config_dir)
 config_manager = app_config.config_manager
 config = app_config.config
 active_camera_id = app_config.active_camera_id
@@ -45,6 +45,7 @@ save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
+
 
 df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
@@ -158,9 +159,11 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
+
+print(f"Modelsklearn: {model_sklearn}")
 pose_classifier = joblib.load(model_sklearn)
 
-
+print(f"Poseclassifier: {pose_classifier}")
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
 # stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
