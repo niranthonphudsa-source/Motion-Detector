@@ -554,3 +554,6 @@
 [2026-08-21 16:55:17] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
 [2026-08-21 16:55:27] Waiting for main.py to initialize and create heartbeat...
 [2026-08-21 16:55:37] Waiting for main.py to initialize and create heartbeat...
+[2026-08-22 19:46:14] Supervisor started.
+[2026-08-22 19:46:14] Old heartbeat file removed.
+[2026-08-22 19:46:14] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe
