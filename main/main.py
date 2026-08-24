@@ -1,36 +1,51 @@
-import os
-import cv2
-import math
-import numpy as np
-import joblib
-import time
-import pandas as pd
-import threading
-import tkinter as tk
-import serial
-import mark_roi_polygon as mark_roi
-import run_start.default_config_var as df
-import callback_command.callback_command as clb
-import show_mode_inDisplay as show_m
 import csv
 import datetime
+import math
+import os
+import threading
+import time
+import tkinter as tk
+import cv2
+import joblib
+import numpy as np
+import pandas as pd
+import serial
 
+import callback_command.callback_command as clb
+import mark_roi_polygon as mark_roi
+import run_start.default_config_var as df
+import show_mode_inDisplay as show_m
 from app.data_viewer_gui import CheckLastID
-from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
-from search_keypoint import SearchKeypoint
-from LIB.roi_handler import ROIHandler
-from LIB.predict_frame_pose import ShowPredict
-from LIB.user_manager import UserStateManager  
-from LIB.stats_gui import StatsGUI, StatsManager
-from LIB.config_loader_start import AppConfig
-from ultralytics import YOLO
-from rtspVideo import RTSPVideoGrabber
-from LIB.zoom_arae import AdvancedZoomArea
-from show_status_pose import ShowStatusPose
+from check_people_in_roi import (
+    Check_where_inRectangle,
+    CheckPeopleInRoi,
+    RecordVedioDetect,
+)
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
+from LIB.config_loader_start import AppConfig
+from LIB.predict_frame_pose import ShowPredict
+from LIB.roi_handler import ROIHandler
+from LIB.stats_gui import StatsGUI, StatsManager
+from LIB.user_manager import UserStateManager
+from LIB.zoom_arae import AdvancedZoomArea
+from rtspVideo import RTSPVideoGrabber
+from search_keypoint import SearchKeypoint
+from show_status_pose import ShowStatusPose
+from ultralytics import YOLO
+
+# ─── คำนวณหา PROJECT_ROOT ป้องกันปัญหา Working Directory เคลื่อน ───
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))  # อยู่ที่โฟลเดอร์ main
+PROJECT_ROOT = os.path.dirname(
+    CURRENT_DIR
+)  # ถอย 1 ชั้นไปที่ Root ของ Project
 
 # ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
+CONFIG_FILE_PATH = os.path.join(PROJECT_ROOT, "setting", "config.yml")
+app_config = AppConfig(
+    CONFIG_FILE_PATH
+    if os.path.exists(CONFIG_FILE_PATH)
+    else r"setting\config.yml"
+)
 
 config_manager = app_config.config_manager
 config = app_config.config
@@ -43,135 +58,185 @@ model_sklearn = app_config.model_sklearn
 type = app_config.type
 
 df.simulated_key
+
+def resolve_model_path(path_str):
+  """ช่วยแปลง Path ของโมเดลให้เป็น Absolute Path เสมอ"""
+  if not path_str or not str(path_str).strip():
+    return None
+
+  path_str = str(path_str).strip()
+  if os.path.isabs(path_str):
+    return path_str
+
+  # ถ้าเป็น Relative Path ให้ค้นหาจาก PROJECT_ROOT/model/filename
+  filename = os.path.basename(path_str)
+  return os.path.join(PROJECT_ROOT, "model", filename)
+
+
 def reload_config_callback(new_camera_id, updated_config=None):
     global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
-    
+
     if updated_config:
         config = updated_config
         config_manager.config = updated_config
     else:
         config_manager.config = config_manager.load_config()
         config = config_manager.config
-    
+
     try:
         model_info = config.get("model", {}).get("Model_path_1", {})
-        new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
+        new_model_path = (
+            model_info.get("source", "")
+            if isinstance(model_info, dict)
+            else str(model_info)
+        )
 
-        if new_model_path and os.path.exists(new_model_path):
-            model_sklearn = new_model_path
-            pose_classifier = joblib.load(model_sklearn)
+        full_path = resolve_model_path(new_model_path)
+        if full_path and os.path.exists(full_path):
+            model_sklearn = full_path
+            ose_classifier = joblib.load(model_sklearn)
             print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
-            
         else:
-            print(f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {new_model_path}")
+            print(
+                f"⚠️ [Model Warning] ไม่พบไฟล์โมเดลที่ Path: {full_path or new_model_path}"
+            )
     except Exception as e:
         print(f"❌ [Model Error] เกิดข้อผิดพลาดในการโหลดโมเดล: {e}")
 
     # 🔄 สลับกล้อง (Switch Camera)
     if active_camera_id != new_camera_id:
-        print(f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️ {new_camera_id}")
+        print(
+            f"🔄 [Switch Camera] ตรวจพบการเปลี่ยนกล้องจาก {active_camera_id} ➡️"
+            f" {new_camera_id}"
+        )
         old_cap = cap
         active_camera_id = new_camera_id
-        camera = config["cameras"][active_camera_id]
-        type = camera["Type"]
-        cam_reverse = camera["reverse_point"]
-        
-        # fps = check_source_type(type)
+        camera = config.get("cameras", {}).get(active_camera_id, {})
+
+        # ใช้ .get() เพื่อป้องกัน KeyError ทั้งหมด
+        type = camera.get("Type", "")
+        cam_reverse = camera.get("reverse_point", (0, 0))
+
         print(f"Type Main {type}  fps_limit={df.fps}")
         print(f"cam_reverse: {cam_reverse}")
-        new_source = camera["source"]
+        new_source = camera.get("source", 0)
         cap = RTSPVideoGrabber(df.fps, new_source)
         print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 
-        # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
-            if hasattr(old_cap, 'stop'):
+            if hasattr(old_cap, "stop"):
                 old_cap.stop()
-            elif hasattr(old_cap, 'release'):
+            elif hasattr(old_cap, "release"):
                 old_cap.release()
 
-        roi.clear()
-        cam_mark = camera.get("mark_points", []); cam_start = camera.get("start_point", None); cam_reverse = camera.get("reverse_point", None)
-        point_zoom = camera.get("point_zoom", None)
-        (roi.mark_points, 
-         roi.start_point, 
-         roi.reverse_point, 
-         roi.point_zoom, 
-         roi.is_confirmed
-         ) = roi.update_roi_start_check(cam_mark,
-                                        cam_start,
-                                        cam_reverse, 
-                                        point_zoom
-                                        )
+            roi.clear()
+            cam_mark = camera.get("mark_points", [])
+            cam_start = camera.get("start_point", None)
+            cam_reverse = camera.get("reverse_point", None)
+            point_zoom = camera.get("point_zoom", None)
+            (
+                roi.mark_points,
+                roi.start_point,
+                roi.reverse_point,
+                roi.point_zoom,
+                roi.is_confirmed,
+            ) = roi.update_roi_start_check(
+                cam_mark, cam_start, cam_reverse, point_zoom
+            )
 
-
-    cam_data = config["cameras"].get(active_camera_id, {})
+    cam_data = config.get("cameras", {}).get(active_camera_id, {})
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
-    
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
+
+    print(
+        f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save"
+        f" NG={save_ng_flag}, Model={model_sklearn}"
+    )
     return cam_data, save_ok_flag, save_ng_flag
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
-# show_status = ShowStatusPose()
 window_name = f"Mode Control ROI - {active_camera_id}"
 s = ShowPredict()
-# movement = Check_direction_of_Movement()
-cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
-cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+cv2.setWindowProperty(
+    window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
+)
 cv2.setMouseCallback(window_name, roi.click_event)
-
 
 # ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
 cam_mark = camera.get("mark_points", [])
 cam_start = camera.get("start_point", None)
-cam_reverse = camera.get("reverse_point", None)
+cam_reverse = camera.get("reverse_point", (0, 0))
 point_zoom = camera.get("point_zoom", None)
 
-
 if len(roi.mark_points) > 0:
-    roi.is_confirmed = True
-    
-(roi.mark_points, 
- roi.start_point, 
- roi.reverse_point, 
- roi.point_zoom, 
- roi.is_confirmed) = roi.update_roi_start_check(cam_mark,
-                                                cam_start,
-                                                cam_reverse, 
-                                                point_zoom
-                                            )
-model = YOLO('yolo26n-pose.pt')
+  roi.is_confirmed = True
+
+(
+    roi.mark_points,
+    roi.start_point,
+    roi.reverse_point,
+    roi.point_zoom,
+    roi.is_confirmed,
+) = roi.update_roi_start_check(cam_mark, cam_start, cam_reverse, point_zoom)
+
+# โหลด YOLO Model (ใช้ Absolute Path หากมีไฟล์ในโฟลเดอร์หลัก)
+yolo_model_path = os.path.join(PROJECT_ROOT, "yolo26n-pose.pt")
+model = YOLO(
+    yolo_model_path if os.path.exists(yolo_model_path) else "yolo26n-pose.pt"
+)
 
 cap = RTSPVideoGrabber(df.fps, source)
 print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
-
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
+fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+manager = UserStateManager(
+    df.check_pose,
+    fourcc,
+    df.ok_display_time,
+    max_lost_time=2.0,
+    max_distance=80,
+    buffer_output_time=5,
+)
 
 direction_tracker = {}
-pose_classifier = joblib.load(model_sklearn) 
 
+# ─── Safe Load Pose Classifier Model (บรรทัดที่ 157) ───
+pose_classifier = None
+target_model_path = resolve_model_path(model_sklearn)
 
-# cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
-# stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
-stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
+if target_model_path and os.path.exists(target_model_path):
+  try:
+    pose_classifier = joblib.load(target_model_path)
+    model_sklearn = target_model_path
+    print(f"✅ โหลด Sklearn Model สำเร็จจาก: {target_model_path}")
+  except Exception as e:
+    print(f"❌ เกิดข้อผิดพลาดในการโหลด Sklearn Model: {e}")
+else:
+  print(
+      "⚠️ [Warning] ไม่พบไฟล์ Sklearn Model หรือค่าใน config.yml เป็นค่าว่าง!"
+  )
+  print(f"   Path ที่พยายามค้นหา: {target_model_path or model_sklearn}")
 
-# config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
+# โหลดไฟล์ Database แบบ Absolute Path
+DB_FILE_PATH = os.path.join(PROJECT_ROOT, "setting", "inspection_stats.db")
+stats_manager = StatsManager(
+    db_path=DB_FILE_PATH
+    if os.path.exists(DB_FILE_PATH)
+    else r"setting\inspection_stats.db"
+)
+
 latest_frame = None
 
-# ตัวแปรคำนวณ fps
 prev_frame_time = 0
 new_frame_time = 0
 
 type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
-
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
     ret, frame = cap.read()
@@ -357,7 +422,7 @@ while True:
             del direction_tracker[tid]
 
     last_x = w
-    if reverse_y is not None:
+    if reverse_y is not None and cam_reverse is not None:
         reverse_y = cam_reverse[1]
         # print(reverse_y)
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)

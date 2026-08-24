@@ -8,13 +8,15 @@ from datetime import datetime
 # =========================================================
 # ตั้งค่า path
 # =========================================================
+# โฟลเดอร์ที่ไฟล์ supervisor นี้วางอยู่ (เช่น .../Motion-Detector/supervisor)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.dirname(BASE_DIR)
-GRAND_DIR = os.path.dirname(PARENT_DIR)
-POSE_SCRIPT = os.path.join(PARENT_DIR, "main.py")
 
-GRANDPARENT_DIR = os.path.dirname(PARENT_DIR)
-CONFIG_PATH = os.path.join(GRAND_DIR, "setting", "config.yml")
+# โฟลเดอร์หลักของโปรเจกต์ (Project Root: .../Motion-Detector)
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+
+# Path ไฟล์หลักและไฟล์ Config อ้างอิงจาก PROJECT_ROOT
+POSE_SCRIPT = os.path.join(PROJECT_ROOT, "main.py")
+CONFIG_PATH = os.path.join(PROJECT_ROOT, "setting", "config.yml")
 
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -68,10 +70,12 @@ def start_pose_process() -> subprocess.Popen:
     cmd = [python_exe, POSE_SCRIPT]
 
     write_log(f"Starting main.py with: {python_exe}")
+    write_log(f"Working Directory (cwd): {PROJECT_ROOT}")
 
+    # ✅ กำหนด cwd ชี้ไปที่ PROJECT_ROOT เพื่อให้ main.py หาโฟลเดอร์ model/ และ setting/ เจอเสมอ
     process = subprocess.Popen(
         cmd,
-        cwd=PARENT_DIR
+        cwd=PROJECT_ROOT
     )
     return process
 
