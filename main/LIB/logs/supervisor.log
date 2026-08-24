@@ -559,3 +559,25 @@
 [2026-08-22 19:46:14] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe
 [2026-08-23 10:01:39] Supervisor started.
 [2026-08-23 10:01:39] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:05:01] Supervisor started.
+[2026-08-24 11:05:01] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:05:11] main.py stopped. Exit code = 1
+[2026-08-24 11:05:11] Restarting in 5 seconds...
+[2026-08-24 11:05:16] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:05:26] main.py stopped. Exit code = 1
+[2026-08-24 11:05:26] Restarting in 5 seconds...
+[2026-08-24 11:05:31] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:05:34] Supervisor started.
+[2026-08-24 11:05:34] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:05:41] main.py stopped. Exit code = 1
+[2026-08-24 11:05:41] Restarting in 5 seconds...
+[2026-08-24 11:05:44] main.py stopped. Exit code = 1
+[2026-08-24 11:05:44] Restarting in 5 seconds...
+[2026-08-24 11:06:37] Supervisor started.
+[2026-08-24 11:06:37] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:06:47] main.py stopped. Exit code = 1
+[2026-08-24 11:06:47] Restarting in 5 seconds...
+[2026-08-24 11:06:52] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 11:07:42] Supervisor started.
+[2026-08-24 11:07:42] Old heartbeat file removed.
+[2026-08-24 11:07:42] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
