@@ -19,10 +19,16 @@ OPEN CMD
 pip install opencv-python Pillow PyYAML pyodbc 
 pip install ultralytics pandas joblib pyserial 
 pip install tkcalendar 
+<<<<<<< HEAD
 pip install shutil
 pip install openvino
 
 
+=======
+pip install shutil scikit-learn
+pip install openvino
+pip install openpyxl
+>>>>>>> test-checkout-comit
 
 -----make file .json in cmd-----
 (venv) C:\(path project)deactivate
@@ -40,4 +46,8 @@ copy pase
 }
 
 ---install OBDC for connect database
+<<<<<<< HEAD
 Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2249006" -OutFile "msodbcsql18.msi"; Start-Process msiexec.exe -ArgumentList '/i msodbcsql18.msi /qn IACCEPTMSODBCSQLLICENSETERMS=YES' -Wait; Remove-Item "msodbcsql18.msi"
+=======
+Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2249006" -OutFile "msodbcsql18.msi"; Start-Process msiexec.exe -ArgumentList '/i msodbcsql18.msi /qn IACCEPTMSODBCSQLLICENSETERMS=YES' -Wait; Remove-Item "msodbcsql18.msi"
+>>>>>>> test-checkout-comit
