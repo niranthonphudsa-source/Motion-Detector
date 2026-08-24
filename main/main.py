@@ -29,7 +29,7 @@ from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.user_manager import UserStateManager
 from LIB.zoom_arae import AdvancedZoomArea
 from rtspVideo import RTSPVideoGrabber
-from search_keypoint import SearchKeypoint
+# from search_keypoint import SearchKeypoint
 from show_status_pose import ShowStatusPose
 from ultralytics import YOLO
 
@@ -158,7 +158,6 @@ def reload_config_callback(new_camera_id, updated_config=None):
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
 window_name = f"Mode Control ROI - {active_camera_id}"
-s = ShowPredict()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 cv2.setWindowProperty(
     window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN
@@ -238,6 +237,8 @@ type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
+
+s = ShowPredict(df.SKIP_FRAMES, model)
 while True:
     ret, frame = cap.read()
     if not ret:     
@@ -274,8 +275,7 @@ while True:
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
 
-    search_key = SearchKeypoint(df.SKIP_FRAMES, frame, model, s.frame_count)
-    s.current_frame_poses, s.current_frame_ids =  search_key.searchKeypoint()
+    s.current_frame_poses, s.current_frame_ids = s.searchKeypoint(frame)
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
     df.any_people_inside = False
