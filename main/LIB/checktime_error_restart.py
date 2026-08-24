@@ -2,13 +2,18 @@ import os
 import sys
 import time
 import subprocess
+import yaml
 from datetime import datetime
 
 # =========================================================
 # ตั้งค่า path
 # =========================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-POSE_SCRIPT = os.path.join(BASE_DIR, r"main.py")
+PARENT_DIR = os.path.dirname(BASE_DIR)
+POSE_SCRIPT = os.path.join(PARENT_DIR, "main.py")
+
+GRANDPARENT_DIR = os.path.dirname(PARENT_DIR)
+CONFIG_PATH = os.path.join(GRANDPARENT_DIR, "setting", "config.yml")
 
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -16,7 +21,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 SUPERVISOR_LOG = os.path.join(LOG_DIR, "supervisor.log")
 HEARTBEAT_FILE = os.path.join(LOG_DIR, "heartbeat.txt")
 
-RESTART_DELAY_SEC = 3
+RESTART_DELAY_SEC = 5
 
 # ถ้า heartbeat ไม่อัปเดตเกินกี่วินาที ถือว่าค้าง
 HEARTBEAT_TIMEOUT_SEC = 120
@@ -50,16 +55,22 @@ def start_pose_process() -> subprocess.Popen:
     """
     เปิด main.py เป็น subprocess
     """
-
+    # ✅ ลบไฟล์ heartbeat.txt เก่าออกทุกครั้งก่อนรันใหม่
+    if os.path.exists(HEARTBEAT_FILE):
+        try:
+            os.remove(HEARTBEAT_FILE)
+            write_log("Old heartbeat file removed.")
+        except Exception as e:
+            write_log(f"Warning: Could not remove old heartbeat file: {e}")
 
     python_exe = sys.executable
     cmd = [python_exe, POSE_SCRIPT]
 
     write_log(f"Starting main.py with: {python_exe}")
-    
+
     process = subprocess.Popen(
         cmd,
-        cwd=BASE_DIR
+        cwd=PARENT_DIR
     )
     return process
 
@@ -96,6 +107,7 @@ def main():
 
         try:
             process = start_pose_process()
+            start_time = time.time() # บันทึกเวลาที่เริ่มเปิด Process
 
             while True:
                 time.sleep(CHECK_INTERVAL_SEC)
@@ -110,7 +122,11 @@ def main():
                 heartbeat_age = get_heartbeat_age_seconds()
 
                 if heartbeat_age is None:
-                    write_log("Heartbeat file not found yet. Waiting...")
+                    # ถ้าเพิ่งเปิดโปรแกรมไม่ถึง 30 วินาที ให้รอ main.py สร้างไฟล์ก่อน (Grace Period)
+                    if time.time() - start_time < 30:
+                        write_log("Waiting for main.py to initialize and create heartbeat...")
+                    else:
+                        write_log("Heartbeat file not found after startup timeout.")
                     continue
 
                 if heartbeat_age > HEARTBEAT_TIMEOUT_SEC:

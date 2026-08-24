@@ -1,4 +1,5 @@
 import tkinter as tk
+import os
 from app.data_viewer_gui import SSTableViewerGUI, CheckLastID
 from rtspVideo import RTSPVideoGrabber
 from LIB.config_loader_start import AppConfig
@@ -7,9 +8,12 @@ from LIB.config_loader_start import AppConfig
 # root.mainloop()
 
 
-
+base_path = os.path.dirname(os.path.abspath(__file__))
+parent_path = os.path.dirname(base_path)
+grand_path = os.path.dirname(parent_path)
+config_path = os.path.join(grand_path, "setting", "config.yml")
 # ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
+app_config = AppConfig(config_path)
 
 config_manager = app_config.config_manager
 config = app_config.config
@@ -18,7 +22,7 @@ camera = app_config.camera
 source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
-save_data_flag = app_config.save_data_flag
+# save_data_flag = app_config.save_data_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 

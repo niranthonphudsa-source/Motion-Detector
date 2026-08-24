@@ -310,3 +310,8 @@
 [2026-08-18 14:57:12] main.py stopped. Exit code = 1
 [2026-08-18 14:57:12] Restarting in 3 seconds...
 [2026-08-18 14:57:15] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-24 08:20:10] Supervisor started.
+[2026-08-24 08:20:10] Starting main.py with: C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\python.exe
+[2026-08-24 08:20:20] main.py stopped. Exit code = 1
+[2026-08-24 08:20:20] Restarting in 3 seconds...
+[2026-08-24 08:20:23] Starting main.py with: C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\python.exe

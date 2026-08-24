@@ -103,7 +103,13 @@ class PoseDetectionApp:
         self.root.bind("<Key>", self.on_key_press)
         # ─── 1. โหลด CONFIG และการตั้งค่าเริ่มต้น ───
         
-        self.app_config = AppConfig(r"setting\config.yml")
+        
+        self.base_path = os.path.dirname(os.path.dirname(__file__))
+        self.parent_path = os.path.dirname(self.base_path)
+        self.grad_parent = os.path.dirname(self.parent_path)
+        self.config_path = os.path.join(self.grad_parent, "setting", "config.yml")
+
+        self.app_config = AppConfig(self.config_path)
         self.config_manager = self.app_config.config_manager
         self.config = self.app_config.config
         self.active_camera_id = self.app_config.active_camera_id
@@ -111,7 +117,7 @@ class PoseDetectionApp:
         self.source = self.app_config.source
         self.save_ok_flag = self.app_config.save_ok_flag
         self.save_ng_flag = self.app_config.save_ng_flag
-        self.save_data_flag = self.app_config.save_data_flag
+        # self.save_data_flag = self.app_config.save_data_flag
         self.model_sklearn = self.app_config.model_sklearn
         self.type = self.app_config.type
 
@@ -132,6 +138,9 @@ class PoseDetectionApp:
          self.roi.is_confirmed) = self.roi.update_roi_start_check(
             self.cam_mark, self.cam_start, self.cam_reverse, self.point_zoom
         )
+
+        model = YOLO('yolo26n-pose.pt')
+        model.export(format='openvino')
 
         self.model = YOLO('yolo26n-pose_openvino_model/', task='pose')
         self.s = ShowPredict(df.SKIP_FRAMES, self.model)
@@ -514,7 +523,7 @@ class PoseDetectionApp:
                 self.fps_per_sec = int(1 / (new_frame_time - self.prev_frame_time))
             self.prev_frame_time = new_frame_time
 
-            show_m.showModeDisplay(frame, self.roi.current_mode, df.fps, self.fps_per_sec)
+            # show_m.showModeDisplay(frame, self.roi.current_mode, df.fps, self.fps_per_sec)
 
             # ส่งเฟรมไปให้ Tkinter Display
             self.current_frame = frame
@@ -584,9 +593,9 @@ class PoseDetectionApp:
             cf_gui = ConfigGUI()
             cam_id_to_pass = self.active_camera_id if self.active_camera_id else "Camera_1"
             gui_thread = threading.Thread(
-                target=cf_gui.open_settings(cam_id_to_pass),
+                target=cf_gui.open_settings(self.active_camera_id),
                 kwargs={
-                    "current_cam_id": cam_id_to_pass, 
+                    "current_cam_id": self.active_camera_id, 
                     "on_close_callback": self.reload_config_callback
                 },
                 daemon=True

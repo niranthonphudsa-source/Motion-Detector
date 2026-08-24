@@ -14,10 +14,9 @@ import time
 import os
 import platform
 import subprocess
-
-
 from tkinter import messagebox
-from datetime import datetime
+
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -35,9 +34,9 @@ class VideoFolderManagerWindow:
         os.makedirs(self.folder_path, exist_ok=True)
 
         # ทำความสะอาดไฟล์เก่าอัตโนมัติทันทีเมื่อเปิดหน้าต่าง
-        self.cleanup_old_videos(max_days=30, min_free_gb=1.0)
+        self.cleanup_old_videos(max_days=30, min_free_gb=50.0)
         # 🌟 เริ่มการทำความสะอาดเบื้องหลังอัตโนมัติ (เช็กทุกๆ 1 ชั่วโมง)
-        self.start_auto_cleanup_thread(interval_seconds=3600, max_days=30, min_free_gb=1.0)
+        self.start_auto_cleanup_thread(interval_seconds=3600, max_days=30, min_free_gb=50.0)
 
         # Header Frame
         header_frame = ttk.Frame(self.window, padding=10)
@@ -165,7 +164,7 @@ class VideoFolderManagerWindow:
         else:
             subprocess.call(["xdg-open", self.folder_path])
 
-    def cleanup_old_videos(self, max_days=30, min_free_gb=1.0):
+    def cleanup_old_videos(self, max_days=30, min_free_gb=50.0):
         """ฟังก์ชันลบไฟล์อัตโนมัติ (อายุเกิน 30 วัน หรือพื้นที่เหลือน้อยกว่า 1GB)"""
         if not os.path.exists(self.folder_path):
             return 0
@@ -224,7 +223,7 @@ class VideoFolderManagerWindow:
 
         return deleted_count
 
-    def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=1.0):
+    def start_auto_cleanup_thread(self, interval_seconds=3600, max_days=30, min_free_gb=50.0):
         """เริ่ม Background Thread คอยตรวจเช็กไฟล์ขยะตามระยะเวลาที่กำหนด"""
         def cleanup_loop():
             self.cleanup_old_videos(max_days=max_days, min_free_gb=min_free_gb)
@@ -241,15 +240,22 @@ class VideoFolderManagerWindow:
         cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
         cleanup_thread.start()
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class ConfigGUI:
-    def __init__(self, config_path=r"setting\config.yml"):
-        # ถอยออก 1 โฟลเดอร์ด้วย .. และแปลงเป็น Absolute Path
-        self.base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        self.config_path = os.path.join(self.base_dir, "setting", "config.yml")
+    def __init__(self, config_path=None):
+        # ถ้าไม่ได้ส่ง config_path มา ให้สร้าง Absolute Path อ้างอิงจาก BASE_DIR เสมอ
+        if config_path is None:
+            # self.config_path = os.path.join(BASE_DIR, "config.yml")
+            # หรือถ้า config.yml อยู่ในโฟลเดอร์ setting ให้ใช้:\
+            PARENT_DIR = os.path.dirname(BASE_DIR)
+            GRANDPARENT_DIR = os.path.dirname(PARENT_DIR)
+            self.config_path = os.path.join(GRANDPARENT_DIR, "setting", "config.yml")
+        else:
+            self.config_path = config_path
+
         self.config = self.load_config()
         self.root = None
-        self.cam_id = ""
+
     def load_config(self):
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
@@ -258,11 +264,44 @@ class ConfigGUI:
             print(f"Error loading config: {e}")
             return {"global": {}, "cameras": {}, "model": {}}
 
-
+    def save_config(self):
+        try:
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(self.config, f, allow_unicode=True)
+            return True
+        except Exception as e:
+            messagebox.showerror("Error", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
+            return False
 
     def scan_models(self):
         """สแกนไฟล์โมเดลในโฟลเดอร์ และดึงรายการโมเดลทั้งหมดที่มีอยู่ใน config"""
-        files = glob.glob("model/*.pkl") + glob.glob("model/*.joblib") + glob.glob("*.pkl") + glob.glob("*.joblib")
+        # 1. ล็อกตำแหน่งโฟลเดอร์ปัจจุบันของไฟล์สคริปต์นี้
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(base_dir)
+        grandparent_dir = os.path.dirname(parent_dir)
+        model_dir = os.path.join(grandparent_dir, "model")
+
+        # 2. ใช้ Absolute Path สแกนหาไฟล์ .pkl และ .joblib
+        pattern_pkl_sub = os.path.join(model_dir, "*.pkl")
+        pattern_joblib_sub = os.path.join(model_dir, "*.joblib")
+        pattern_pkl_root = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_root = os.path.join(base_dir, "*.joblib")
+        pattern_pkl_sub_sec = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_sub_sec = os.path.join(base_dir, "*.joblib")
+        pattern_pkl_sub_thr = os.path.join(base_dir, "*.pkl")
+        pattern_joblib_sub_thr = os.path.join(base_dir, "*.joblib")
+
+        files = (
+            glob.glob(pattern_pkl_sub) + 
+            glob.glob(pattern_joblib_sub) + 
+            glob.glob(pattern_pkl_root) + 
+            glob.glob(pattern_joblib_root) +
+            glob.glob(pattern_pkl_sub_sec) + 
+            glob.glob(pattern_joblib_sub_sec)+
+            glob.glob(pattern_pkl_sub_thr) + 
+            glob.glob(pattern_joblib_sub_thr)
+        )
+        
         model_names = [os.path.basename(f) for f in files]
 
         if "model" in self.config and isinstance(self.config["model"], dict):
@@ -308,11 +347,8 @@ class ConfigGUI:
 
         info_frame.columnconfigure(0, weight=1)
 
-        date_time = datetime.now()
-        formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
-
         dataset_path = self.config.get("global", {}).get("dataset_path", "dataset.csv")
-        model_path = os.path.join("model", f"model_train_{formath_time}") 
+        model_path = os.path.join("model", selected_model_file) if not os.path.isabs(selected_model_file) else selected_model_file
 
         def browse_file():
             nonlocal dataset_path
@@ -337,10 +373,8 @@ class ConfigGUI:
                                 )
         label_dataset.grid(row=0, column=0, sticky="w", pady=2, padx=10)
 
-        date_time = datetime.now()
-        formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
         label_model = tk.Label(info_frame,
-                               text=f"🤖 Target Save: " + f"model_train_{formath_time}",
+                               text=f"🤖 Target Save: {os.path.basename(model_path)}",
                                fg="#2563EB",
                                bg=PANEL_COLOR,
                                font=("Segoe UI", 9, "bold")
@@ -401,10 +435,7 @@ class ConfigGUI:
             if hasattr(self, 'cb_model'):
                 self.available_models = self.scan_models()
                 self.cb_model['values'] = self.available_models
-
-            date_time = datetime.now()
-            formath_time = date_time.strftime("%d-%m-%Y-%H-%M-%S")
-
+                
             messagebox.showinfo("Train Success", f"🎉 เทรนโมเดลสำเร็จสมบูรณ์!\n\n🎯 Accuracy: {acc:.2f}%\n📂 PATH: {path}")
             train_win.destroy()
 
@@ -437,9 +468,7 @@ class ConfigGUI:
             self.root.destroy()
 
     def open_settings(self, current_cam_id=None, on_close_callback=None):
-        self.cam_id = current_cam_id
         """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Layout ใหม่)"""
-        print(f"Cam ID {current_cam_id}")
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
@@ -594,12 +623,11 @@ class ConfigGUI:
                 self.cb_camera.current(0)
 
         # 2.2 โซนบันทึกวิดีโอ
-        _, c_save = create_card_frame(row1_frame, "📹 ตั้งค่าการบันทึกข้อมูล", fill=False)
+        _, c_save = create_card_frame(row1_frame, "📹 การบันทึกวิดีโอ (Output)", fill=False)
         c_save.master.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
         self.var_ok = tk.BooleanVar()
         self.var_ng = tk.BooleanVar()
-        self.save_database = tk.BooleanVar()
 
         self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ OK (video_ok)", variable=self.var_ok)
         self.chk_ok.pack(anchor="w", pady=2)
@@ -607,15 +635,11 @@ class ConfigGUI:
         self.chk_ng = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ NG (video_ng)", variable=self.var_ng)
         self.chk_ng.pack(anchor="w", pady=2)
 
-        self.chk_save_data = ttk.Checkbutton(c_save, text="บันทึกสถานะลง Database", variable=self.save_database)
-        self.chk_save_data.pack(anchor="w", pady=2)
-
         def on_camera_select(event=None):
-            self.cam_id = self.cam_var.get()
-            cam_data = self.config.get("cameras", {}).get(self.cam_id, {})
+            cam_id = self.cam_var.get()
+            cam_data = self.config.get("cameras", {}).get(cam_id, {})
             self.var_ok.set(cam_data.get("save_ok", True))
             self.var_ng.set(cam_data.get("save_ng", True))
-            self.save_database.set(cam_data.get("save_data", True))
 
         self.cb_camera.bind("<<ComboboxSelected>>", on_camera_select)
         if camera_list: 
@@ -662,7 +686,7 @@ class ConfigGUI:
                 file_path = os.path.normpath(file_path)
                 filename = os.path.basename(file_path)
                 
-                current_dir = os.getcwd()
+                current_dir = os.path.dirname(os.path.abspath(__file__))
                 models_dir = os.path.join(current_dir, "model")
                 
                 if file_path.startswith(models_dir):
@@ -707,8 +731,8 @@ class ConfigGUI:
         self.lbl_pts.pack(anchor="w", pady=(4, 0))
 
         def update_info_labels(*args):
-            self.cam_id = self.cam_var.get()
-            cam_data = self.config.get("cameras", {}).get(self.cam_id, {})
+            cam_id = self.cam_var.get()
+            cam_data = self.config.get("cameras", {}).get(cam_id, {})
             self.lbl_source.config(text=f"Source: {cam_data.get('source', 'None')}")
             self.lbl_type.config(text=f"Type: {cam_data.get('Type', 'None')}")
             pts_count = len(cam_data.get("mark_points", []))
@@ -771,26 +795,13 @@ class ConfigGUI:
             if on_close_callback and current_cam_id:
                 on_close_callback(current_cam_id)
 
-        # 1. ฟังก์ชันสำหรับปุ่ม "X": ปิดทันทีโดยไม่เซฟค่าใหม่
-        def on_close_without_save():
-            if self.root:
-                self.root.destroy()
-            self.root = None
-            # หากมี callback เมื่อปิดหน้าต่าง สามารถส่งค่ากลับไปได้โดยไม่อัปเดต self.config
-            if on_close_callback and current_cam_id:
-                on_close_callback(current_cam_id)
-
-
         self.root.protocol("WM_DELETE_WINDOW", on_window_close)
-
 
         # ─── ปุ่มบันทึกข้อมูลหลัก ───
         def save_and_close():
-            self.cam_id = self.cam_var.get()
+            cam_id = self.cam_var.get()
             selected_file = self.model_var.get()
 
-            print(f"self.cam_id: {self.cam_var.get()} model: {self.model_var.get()}" )
-            print(f"self.cam_id: {self.cam_id} model: {selected_file}" )
             # 1. จัดการ Path ของโมเดลที่เลือก
             if self.custom_model_full_path and os.path.basename(self.custom_model_full_path) == selected_file:
                 final_model_path = self.custom_model_full_path
@@ -819,22 +830,18 @@ class ConfigGUI:
                 self.config["model"][found_key]["source"] = final_model_path
 
             # 3. บันทึกการตั้งค่ากล้อง (Save OK / Save NG)
-            if self.cam_id:
-                if "cameras" not in self.config: 
-                    self.config["cameras"] = {}
-                if self.cam_id not in self.config["cameras"]: 
-                    self.config["cameras"][self.cam_id] = {}
+            if cam_id:
+                if "cameras" not in self.config: self.config["cameras"] = {}
+                if cam_id not in self.config["cameras"]: self.config["cameras"][cam_id] = {}
                 
-                self.config["cameras"][self.cam_id]["save_ok"] = self.var_ok.get()
-                self.config["cameras"][self.cam_id]["save_ng"] = self.var_ng.get()
-                self.config["cameras"][self.cam_id]["save_data"] = self.save_database.get()
+                self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
+                self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
 
                 if "global" not in self.config or not isinstance(self.config["global"], dict):
                     self.config["global"] = {}
                 if self.default_camera_var.get() in camera_list:
                     self.config["global"]["default_camera_id"] = self.default_camera_var.get()
-
-                print(self.cam_id, self.config)
+                
             # 4. บันทึกลงไฟล์ YAML และส่ง Callback
             if self.save_config():
                 messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")
@@ -843,9 +850,8 @@ class ConfigGUI:
                 self.root = None
                 
                 if on_close_callback:
-                    on_close_callback(self.cam_id, self.config)
+                    on_close_callback(cam_id, self.config)
 
-                    
         btn_save = tk.Button(
             scrollable_frame, 
             text="💾 บันทึกและปิดหน้าต่าง (Save & Close)", 
@@ -863,14 +869,6 @@ class ConfigGUI:
 
         self.root.mainloop()
 
-    def save_config(self):
-        try:
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.config, f, allow_unicode=True)
-            return True
-        except Exception as e:
-            messagebox.showerror("Error", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
-            return False
 
 # ─── ตัวอย่างการเรียกใช้งาน ───
 if __name__ == "__main__":

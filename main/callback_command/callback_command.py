@@ -24,7 +24,7 @@ camera = app_config.camera
 source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
-save_data_flag = app_config.save_data_flag
+# save_data_flag = app_config.save_data_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 

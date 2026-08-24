@@ -29,8 +29,8 @@ cameras:
     - 1220
     - 1412
     save_data: true
-    save_ng: false
-    save_ok: false
+    save_ng: true
+    save_ok: true
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
     - 1118
@@ -213,7 +213,7 @@ cameras:
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: pose_dataset_99.4_persent copy.csv
-  default_camera_id: Camera_Test
+  default_camera_id: Camera_1
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full
