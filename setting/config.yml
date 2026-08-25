@@ -29,8 +29,8 @@ cameras:
     - 1220
     - 1412
     save_data: false
-    save_ng: true
-    save_ok: true
+    save_ng: false
+    save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
     - 1118
@@ -210,7 +210,7 @@ cameras:
     source: ../../ProjectDetection/recordings/VideoTrain_20260817_153543.mp4
 global:
   active_model: model\pose_classifier_1 copy.pkl
-  dataset_path: ..\..\dataset\pose_dataset copy 2.csv
+  dataset_path: pose_dataset_label.csv
   default_camera_id: Camera_1
   default_person_limit: 3
   detection_confidence: 0.9
@@ -222,7 +222,7 @@ global:
   video_path: video_model
 model:
   Model_path_1:
-    source: model\pose_classifier_18-08-2026-09-38-52_.pkl
+    source: model\pose_classifier_17-08-2026-16-36-49.pkl
   Model_path_2:
     source: model\pose_classifier_1.pkl
   Model_path_3:

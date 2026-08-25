@@ -38,7 +38,7 @@ start_y = 0
 reverse_point = None
 simulated_key = -1 
 fps = 30
-save_video_per_frame = float(fps)
+save_video_per_frame = float(fps / 2)
 keypoint_conf = 0
 # lastID = SSTableViewerGUI._getLastID()
 

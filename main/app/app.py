@@ -165,6 +165,7 @@ class TableViewerWindow(tk.Toplevel):
         )
         conn = None
         if save_data:
+            print(save_data)
             try:
                 server = config_data.get("server")
                 database = config_data.get("database")
