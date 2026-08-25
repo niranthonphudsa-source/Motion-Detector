@@ -187,7 +187,7 @@ while True:
     if not ret:     
         break
         # continue
-    frame = cv2.resize(frame, (720, 440))
+    # frame = cv2.resize(frame, (720, 440))
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()

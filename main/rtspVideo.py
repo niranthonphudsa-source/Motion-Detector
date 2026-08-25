@@ -13,7 +13,7 @@ class RTSPVideoGrabber:
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         
         self.ret, self.frame = self.cap.read()
-        self.frame = cv2.resize(self.frame, (720, 440))
+        # self.frame = cv2.resize(self.frame, (720, 440))
         self.running = True
         self.lock = threading.Lock() # ป้องกัน Race Condition
         self.last_read_time = 0
