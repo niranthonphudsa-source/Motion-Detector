@@ -146,31 +146,31 @@ cameras:
     Type: Video
     enabled: false
     mark_points:
-    - - 370
-      - 617
-    - - 728
-      - 612
-    - - 772
-      - 726
-    - - 385
-      - 728
-    - - 387
+    - - 560
+      - 686
+    - - 1145
       - 707
-    - - 370
-      - 694
+    - - 1193
+      - 807
+    - - 582
+      - 814
+    - - 582
+      - 790
+    - - 553
+      - 779
     person_limit: 5
     point_zoom: null
     record_video: false
     reverse_point:
-    - 603
-    - 949
+    - 961
+    - 1019
     save_data: true
     save_ng: false
     save_ok: false
     source: ../video_model/videoTrain3.mp4
     start_point:
-    - 550
-    - 673
+    - 876
+    - 765
   Camera_8:
     Display:
       Position_x: 0

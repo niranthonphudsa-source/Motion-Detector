@@ -7,7 +7,7 @@ from PIL import Image, ImageOps, ImageTk
 
 class DisplayGui:
 
-    def __init__(self, frame_queue=None, key_queue=None, stop_event=None):
+    def __init__(self, frame_queue=None, key_queue=None, mouse_queue=None, stop_event=None):
         # ─── โทนสีหลัก (White & Blue Theme) ───
         BG_COLOR = "#F8FAFC"        # พื้นหลังหลัก
         PANEL_COLOR = "#FFFFFF"     # พื้นหลังกล่องการ์ด
@@ -29,6 +29,7 @@ class DisplayGui:
         self.example_image = None
         self.frame_queue = frame_queue
         self.key_queue = key_queue
+        self.mouse_queue = mouse_queue
         self.stop_event = stop_event
         self._closing = False
 
@@ -156,6 +157,7 @@ class DisplayGui:
         self.lb_examle.bind("<Configure>", self._refresh_example_size)
         self.imageExample()
         self.root.bind("<KeyPress>", self._handle_key)
+        self.lbs.bind("<Button-1>", self._handle_mouse)
         self.root.focus_force()
 
         # จัดการการกดปิดหน้าต่างผ่านปุ่ม X มุมขวาบน
@@ -269,6 +271,28 @@ class DisplayGui:
             pass
 
         return "break"
+
+    def _handle_mouse(self, event):
+        if self.mouse_queue is None or getattr(self, "current_frame", None) is None:
+            return
+
+        frame_height, frame_width = self.current_frame.shape[:2]
+        label_width = self.lbs.winfo_width()
+        label_height = self.lbs.winfo_height()
+        scale = max(label_width / frame_width, label_height / frame_height)
+        scaled_width = frame_width * scale
+        scaled_height = frame_height * scale
+        crop_x = (scaled_width - label_width) / 2
+        crop_y = (scaled_height - label_height) / 2
+        frame_x = int((event.x + crop_x) / scale)
+        frame_y = int((event.y + crop_y) / scale)
+        frame_x = max(0, min(frame_x, frame_width - 1))
+        frame_y = max(0, min(frame_y, frame_height - 1))
+
+        try:
+            self.mouse_queue.put_nowait((frame_x, frame_y))
+        except queue.Full:
+            pass
 
     def _poll_frame_queue(self):
         if self.frame_queue is None:

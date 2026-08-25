@@ -150,12 +150,14 @@ s = ShowPredict(df.SKIP_FRAMES, model)
 cap = RTSPVideoGrabber(df.fps, source)
 display_frame_queue = queue.Queue(maxsize=1)
 display_key_queue = queue.Queue(maxsize=20)
+display_mouse_queue = queue.Queue(maxsize=100)
 display_stop_event = threading.Event()
 
 def run_display_gui():
     DisplayGui(
         frame_queue=display_frame_queue,
         key_queue=display_key_queue,
+        mouse_queue=display_mouse_queue,
         stop_event=display_stop_event
     ).run()
 
@@ -196,6 +198,13 @@ while not display_stop_event.is_set():
         # continue
     frame = cv2.resize(frame, (1980, 1080))
     h, w = frame.shape[:2]
+    try:
+        while True:
+            click_x, click_y = display_mouse_queue.get_nowait()
+            roi.click_event(cv2.EVENT_LBUTTONDOWN, click_x, click_y, 0, None)
+    except queue.Empty:
+        pass
+
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
     if roi.point_zoom is not None:
@@ -383,7 +392,7 @@ while not display_stop_event.is_set():
             del s.pose_history[tid]
 
     last_x = w
-    if reverse_y is not None:
+    if cam_reverse is not None and reverse_y is not None:
         reverse_y = cam_reverse[1]
         # print(reverse_y)
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
@@ -473,14 +482,14 @@ while not display_stop_event.is_set():
         
     elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
-        # 🔍 เช็กค่า active_camera_id ก่อนเปิดหน้าต่าง
-        # ป้องกันกรณี active_camera_id เป็น None
+        # โหลดค่าล่าสุดจากไฟล์ก่อนสร้างฟอร์มตั้งค่า
+        config_manager.config = config_manager.load_config()
         cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
         
         gui_thread = threading.Thread(
             target=config_manager.open_settings,
             kwargs={
-                "current_cam_id": active_camera_id, 
+                "current_cam_id": cam_id_to_pass, 
                 "on_close_callback": reload_config_callback
             },
             daemon=True
