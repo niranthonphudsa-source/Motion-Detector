@@ -26,8 +26,8 @@ cameras:
     point_zoom: null
     record_video: true
     reverse_point:
-    - 1220
-    - 1412
+    - 720
+    - 440
     save_data: false
     save_ng: false
     save_ok: false

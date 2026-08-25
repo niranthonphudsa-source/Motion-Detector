@@ -17,8 +17,7 @@ import datetime
 import videoWrite
 import queue
 import torch
-
-
+from display.display_gui import DisplayGui
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
 # from search_keypoint import SearchKeypoint
@@ -154,6 +153,7 @@ s = ShowPredict(df.SKIP_FRAMES, model)
 
 
 cap = RTSPVideoGrabber(df.fps, source)
+dp = DisplayGui(source)
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -187,7 +187,7 @@ while True:
     if not ret:     
         break
         # continue
-    frame = cv2.resize(frame, (2560, 1440))
+    frame = cv2.resize(frame, (720, 440))
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
@@ -389,8 +389,17 @@ while True:
     fps_per_sec = int(fps_per_sec)
     show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
 
+    if not frame.full():
+        frame.put(frame)
+    else:
+        try:
+            frame.get_nowait() # เคลียร์เฟรมค้างเก่าออกเพื่อป้องกันภาพกระตุก/ดีเลย์
+            frame.put(frame)
+        except queue.Empty: 
+            pass
     # เรนเดอร์ภาพออกหน้าจอหลัก
-    cv2.imshow(window_name, frame)
+    # cv2.imshow(window_name, frame)
+    
     s.frame_count += 1 
 
     # time.sleep(0.01)
