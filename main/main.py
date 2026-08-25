@@ -132,7 +132,7 @@ cv2.setMouseCallback(window_name, roi.click_event)
 # ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
 cam_mark = camera.get("mark_points", [])
 cam_start = camera.get("start_point", None)
-cam_reverse = camera.get("reverse_point", None)
+cam_reverse = camera.get("reverse_point", (0, 0))
 point_zoom = camera.get("point_zoom", None)
 
 

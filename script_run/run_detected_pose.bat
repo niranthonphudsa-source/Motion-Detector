@@ -6,12 +6,12 @@ cd..
 
 call venv\Scripts\activate.bat
 
-echo.
-echo ===================================================
-echo [2/3] Starting Time Logger in Background...
-echo ===================================================
-:: รัน logger.py ในหน้าต่างเบื้องหลัง/แยกหน้าต่าง โดยไม่หยุดรอ
-start "Time Logger" /min python main\display_error_reset.py
+@REM echo.
+@REM echo ===================================================
+@REM echo [2/3] Starting Time Logger in Background...
+@REM echo ===================================================
+@REM :: รัน logger.py ในหน้าต่างเบื้องหลัง/แยกหน้าต่าง โดยไม่หยุดรอ
+@REM start "Time Logger" /min python main\display_error_reset.py
 
 
 
@@ -19,7 +19,7 @@ echo "Start Pose Detect"
 python main\main.py
 
 :: เมื่อปิด main.py ให้ปิดหน้าต่าง logger.py ตามไปด้วยอัตโนมัติ
-taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1
+@REM taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1
 
 pause
 

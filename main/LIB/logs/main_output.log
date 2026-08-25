@@ -1,0 +1,330 @@
+
+--- Process started at 2026-08-25 08:25:19.074083 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 12, in <module>
+    import run_start.default_config_var as df
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\run_start\default_config_var.py", line 12, in <module>
+    app_config = AppConfig(r"setting\config.yml")
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 23, in __init__
+    self.load_initial_settings()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 66, in load_initial_settings
+    self.print_status()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 71, in print_status
+    print(f"\U0001f680 [System Starting] \u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07: {self.active_camera_id}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+--- Process started at 2026-08-25 08:25:34.109296 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 12, in <module>
+    import run_start.default_config_var as df
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\run_start\default_config_var.py", line 12, in <module>
+    app_config = AppConfig(r"setting\config.yml")
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 23, in __init__
+    self.load_initial_settings()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 66, in load_initial_settings
+    self.print_status()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 71, in print_status
+    print(f"\U0001f680 [System Starting] \u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07: {self.active_camera_id}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+--- Process started at 2026-08-25 08:25:49.129983 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 12, in <module>
+    import run_start.default_config_var as df
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\run_start\default_config_var.py", line 12, in <module>
+    app_config = AppConfig(r"setting\config.yml")
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 23, in __init__
+    self.load_initial_settings()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 66, in load_initial_settings
+    self.print_status()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 71, in print_status
+    print(f"\U0001f680 [System Starting] \u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07: {self.active_camera_id}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+--- Process started at 2026-08-25 08:29:11.031597 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Backend tkagg is interactive backend. Turning interactive mode on.
+
+--- Process started at 2026-08-25 08:29:20.479735 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 12, in <module>
+    import run_start.default_config_var as df
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\run_start\default_config_var.py", line 12, in <module>
+    app_config = AppConfig(r"setting\config.yml")
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 23, in __init__
+    self.load_initial_settings()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 66, in load_initial_settings
+    self.print_status()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 71, in print_status
+    print(f"\U0001f680 [System Starting] \u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07: {self.active_camera_id}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+--- Process started at 2026-08-25 08:29:35.501258 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 12, in <module>
+    import run_start.default_config_var as df
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\run_start\default_config_var.py", line 12, in <module>
+    app_config = AppConfig(r"setting\config.yml")
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 23, in __init__
+    self.load_initial_settings()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 66, in load_initial_settings
+    self.print_status()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\LIB\config_loader_start.py", line 71, in print_status
+    print(f"\U0001f680 [System Starting] \u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07: {self.active_camera_id}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+--- Process started at 2026-08-25 08:29:46.087065 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Backend tkagg is interactive backend. Turning interactiveError loadiError loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Traceback (most recent call last):
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3775, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3760, in main
+    globals = debugger.run(setup["file"], None, None, is_module)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2744, in run
+    return self._exec(is_module, entry_point_fn, module_name, file, globals, locals)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2752, in _exec
+    globals = pydevd_runpy.run_path(file, globals, "__main__")
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 151, in <module>
+    model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\models\yolo\model.py", line 83, in __init__
+    super().__init__(model=model, task=task, verbose=verbose)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 133, in __init__
+    self._load(model, task=task)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 254, in _load
+    weights = checks.check_file(weights)  # runs in all cases, not redundant with above call
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\utils\checks.py", line 819, in check_file
+    raise FileNotFoundError(f"'{file}' does not exist")
+FileNotFoundError: 'yolo26n-pose_openvino_model/' does not exist
+
+--- Process started at 2026-08-25 08:30:21.109634 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Backend tkagg is interactive backend. Turning interactive mode on.
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Traceback (most recent call last):
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3775, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3760, in main
+    globals = debugger.run(setup["file"], None, None, is_module)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2744, in run
+    return self._exec(is_module, entry_point_fn, module_name, file, globals, locals)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2752, in _exec
+    globals = pydevd_runpy.run_path(file, globals, "__main__")
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 151, in <module>
+    model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\models\yolo\model.py", line 83, in __init__
+    super().__init__(model=model, task=task, verbose=verbose)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 133, in __init__
+    self._load(model, task=task)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 254, in _load
+    weights = checks.check_file(weights)  # runs in all cases, not redundant with above call
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\utils\checks.py", line 819, in check_file
+    raise FileNotFoundError(f"'{file}' does not exist")
+FileNotFoundError: 'yolo26n-pose_openvino_model/' does not exist
+
+--- Process started at 2026-08-25 08:30:56.135322 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Backend tkagg is interactive backend. Turning interactive mode on.
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Traceback (most recent call last):
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3775, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 3760, in main
+    globals = debugger.run(setup["file"], None, None, is_module)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2744, in run
+    return self._exec(is_module, entry_point_fn, module_name, file, globals, locals)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\pydevd.py", line 2752, in _exec
+    globals = pydevd_runpy.run_path(file, globals, "__main__")
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\.vscode\extensions\ms-python.debugpy-2026.7.12111009-win32-x64\bundled\libs\debugpy\_vendored\pydevd\_pydevd_bundle\pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\main\main.py", line 151, in <module>
+    model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\models\yolo\model.py", line 83, in __init__
+    super().__init__(model=model, task=task, verbose=verbose)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 133, in __init__
+    self._load(model, task=task)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\engine\model.py", line 254, in _load
+    weights = checks.check_file(weights)  # runs in all cases, not redundant with above call
+  File "c:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Lib\site-packages\ultralytics\utils\checks.py", line 819, in check_file
+    raise FileNotFoundError(f"'{file}' does not exist")
+FileNotFoundError: 'yolo26n-pose_openvino_model/' does not exist
+
+--- Process started at 2026-08-25 08:31:31.157589 ---
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+Backend tkagg is interactive backend. Turning interactive mode on.
+Error loading config: [Errno 2] No such file or directory: 'setting\\config.yml'
+==================================================
+🚀 [System Starting] กำลังเปิดกล้อง: Camera_1
+📹 Source: 0
+⚙️ สเตตัสการบันทึก: Save OK=False, Save NG=False, Save Data=False
+🤖 Model Path: 
+🤖 Type Camera: Video
+🤖 Reverse Camera: None
+==================================================
+
+--- Process started at 2026-08-25 08:32:06.191823 ---

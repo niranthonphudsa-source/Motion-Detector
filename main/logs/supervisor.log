@@ -352,3 +352,16 @@
 [2026-08-18 16:28:46] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
 [2026-08-18 16:28:56] main.py stopped. Exit code = 1
 [2026-08-18 16:28:56] Restarting in 3 seconds...
+[2026-08-25 08:20:56] Supervisor started.
+[2026-08-25 08:20:56] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-25 08:21:06] main.py stopped. Exit code = 1
+[2026-08-25 08:21:06] Restarting in 3 seconds...
+[2026-08-25 08:21:09] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-25 08:21:19] main.py stopped. Exit code = 1
+[2026-08-25 08:21:19] Restarting in 3 seconds...
+[2026-08-25 08:21:22] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-25 08:29:56] Supervisor started.
+[2026-08-25 08:29:56] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-25 08:30:06] main.py stopped. Exit code = 1
+[2026-08-25 08:30:06] Restarting in 3 seconds...
+[2026-08-25 08:30:10] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
