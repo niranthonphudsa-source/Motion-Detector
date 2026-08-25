@@ -403,7 +403,7 @@ while not display_stop_event.is_set():
     prev_frame_time = new_frame_time
 
     fps_per_sec = int(fps_per_sec)
-    show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
+    # show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
 
     # ส่งเฟรมที่ประมวลผลแล้วให้หน้า Display โดยเก็บไว้เฉพาะเฟรมล่าสุด
     try:
