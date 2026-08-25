@@ -123,11 +123,6 @@ roi = ROIHandler()
 window_name = f"Mode Control ROI - {active_camera_id}"
 
 # movement = Check_direction_of_Movement()
-cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
-cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-cv2.setMouseCallback(window_name, roi.click_event)
-
-
 # ดึงจุดมาร์กตามกล้องปัจจุบันใน config.yml
 cam_mark = camera.get("mark_points", [])
 cam_start = camera.get("start_point", None)
@@ -153,7 +148,19 @@ s = ShowPredict(df.SKIP_FRAMES, model)
 
 
 cap = RTSPVideoGrabber(df.fps, source)
-dp = DisplayGui(source)
+display_frame_queue = queue.Queue(maxsize=1)
+display_key_queue = queue.Queue(maxsize=20)
+display_stop_event = threading.Event()
+
+def run_display_gui():
+    DisplayGui(
+        frame_queue=display_frame_queue,
+        key_queue=display_key_queue,
+        stop_event=display_stop_event
+    ).run()
+
+display_thread = threading.Thread(target=run_display_gui, daemon=True)
+display_thread.start()
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -181,13 +188,13 @@ reverse_y = 0
 
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
-while True:
+while not display_stop_event.is_set():
 
     ret, frame = cap.read()
     if not ret:     
         break
         # continue
-    # frame = cv2.resize(frame, (720, 440))
+    frame = cv2.resize(frame, (1980, 1080))
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
@@ -389,13 +396,17 @@ while True:
     fps_per_sec = int(fps_per_sec)
     show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
 
-    if not frame.full():
-        frame.put(frame)
-    else:
+    # ส่งเฟรมที่ประมวลผลแล้วให้หน้า Display โดยเก็บไว้เฉพาะเฟรมล่าสุด
+    try:
+        display_frame_queue.put_nowait(frame.copy())
+    except queue.Full:
         try:
-            frame.get_nowait() # เคลียร์เฟรมค้างเก่าออกเพื่อป้องกันภาพกระตุก/ดีเลย์
-            frame.put(frame)
+            display_frame_queue.get_nowait()
         except queue.Empty: 
+            pass
+        try:
+            display_frame_queue.put_nowait(frame.copy())
+        except queue.Full:
             pass
     # เรนเดอร์ภาพออกหน้าจอหลัก
     # cv2.imshow(window_name, frame)
@@ -408,8 +419,13 @@ while True:
     stats_manager.update_window()
 
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
-    key_input = cv2.waitKey(1) & 0xFF
+    key_input = 255
     key = None
+    try:
+        key = display_key_queue.get_nowait()
+    except queue.Empty:
+        pass
+
         # 2. ถ้ามีคำสั่งจำลองมาจาก GUI ให้ใช้ค่านั้นแทน
     if df.simulated_key != -1:
     # รองรับทั้งการส่งค่ามาเป็น String ('s') หรือ Integer (ord('s'))
@@ -419,12 +435,13 @@ while True:
             key = chr(df.simulated_key).lower()
 
         df.simulated_key = -1  # ล้างค่าเมื่อดึงไปใช้แล้ว
-    elif key_input != 255:
+    elif key is None and key_input != 255:
         key = chr(key_input).lower()
     # roi.current_mode =  clb.checkKey(key)
     # if roi.current_mode == False:
     #     break
     if key == 'q':
+        display_stop_event.set()
         break
     elif key == 'h':  # 🌟 เพิ่มปุ่ม H สำหรับเปิด Help GUI
         print("💡 กำลังเปิดหน้าต่างคู่มือช่วยเหลือ (Help GUI)...")

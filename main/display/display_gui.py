@@ -1,4 +1,5 @@
 import cv2
+import queue
 import tkinter as tk
 import numpy as np
 from tkinter import ttk
@@ -6,7 +7,7 @@ from PIL import Image, ImageOps, ImageTk
 
 class DisplayGui:
 
-    def __init__(self):
+    def __init__(self, frame_queue=None, key_queue=None, stop_event=None):
         # ─── โทนสีหลัก (White & Blue Theme) ───
         BG_COLOR = "#F8FAFC"        # พื้นหลังหลัก
         PANEL_COLOR = "#FFFFFF"     # พื้นหลังกล่องการ์ด
@@ -26,6 +27,10 @@ class DisplayGui:
         self.source = None
         self.cap = None
         self.example_image = None
+        self.frame_queue = frame_queue
+        self.key_queue = key_queue
+        self.stop_event = stop_event
+        self._closing = False
 
         # ตั้งค่า App Window Icon (.ico / .png)
         try:
@@ -149,6 +154,9 @@ class DisplayGui:
         )
         self.lb_examle.pack(fill="both", expand=True, padx=15, pady=15)
         self.lb_examle.bind("<Configure>", self._refresh_example_size)
+        self.imageExample()
+        self.root.bind("<KeyPress>", self._handle_key)
+        self.root.focus_force()
 
         # จัดการการกดปิดหน้าต่างผ่านปุ่ม X มุมขวาบน
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
@@ -156,9 +164,8 @@ class DisplayGui:
     def getSource(self, source):
         self.source = source
         self.cap = cv2.VideoCapture(self.source)
-        # สั่งประมวลผลเฟรมแรกและโหลดรูปภาพตัวอย่าง
+        # สั่งประมวลผลเฟรมแรก
         self.getFrame()
-        self.imageExample()
 
     def getFrame(self):
         if self.cap is not None and self.cap.isOpened():
@@ -237,13 +244,50 @@ class DisplayGui:
             self.close_app()
 
     def close_app(self):
+        if self._closing:
+            return
+        self._closing = True
+        if self.stop_event is not None:
+            self.stop_event.set()
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
         cv2.destroyAllWindows()
         self.root.destroy()
 
     def run(self):
+        if self.frame_queue is not None:
+            self.root.after(15, self._poll_frame_queue)
         self.root.mainloop()
+
+    def _handle_key(self, event):
+        if self.key_queue is None or not event.char:
+            return
+
+        try:
+            self.key_queue.put_nowait(event.char.lower())
+        except queue.Full:
+            pass
+
+        return "break"
+
+    def _poll_frame_queue(self):
+        if self.frame_queue is None:
+            return
+        if self.stop_event is not None and self.stop_event.is_set():
+            self.close_app()
+            return
+
+        latest_frame = None
+        try:
+            while True:
+                latest_frame = self.frame_queue.get_nowait()
+        except queue.Empty:
+            pass
+
+        if latest_frame is not None:
+            self.showFrame(latest_frame, schedule=False)
+
+        self.root.after(15, self._poll_frame_queue)
 
 if __name__ == "__main__":
     # rtsp_url = "rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0"
