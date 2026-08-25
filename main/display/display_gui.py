@@ -2,7 +2,7 @@ import cv2
 import tkinter as tk
 import numpy as np
 from tkinter import ttk
-from PIL import Image, ImageTk
+from PIL import Image, ImageOps, ImageTk
 
 class DisplayGui:
 
@@ -25,6 +25,7 @@ class DisplayGui:
 
         self.source = None
         self.cap = None
+        self.example_image = None
 
         # ตั้งค่า App Window Icon (.ico / .png)
         try:
@@ -73,8 +74,8 @@ class DisplayGui:
         main_container = tk.Frame(self.root, bg=BG_COLOR, padx=20, pady=20)
         main_container.pack(fill="both", expand=True)
 
-        # แบ่ง Grid คอลัมน์ 0 และ 1 ให้กว้างเท่ากัน (50/50)
-        main_container.grid_columnconfigure(0, weight=1, uniform="group1")
+        # แบ่งพื้นที่แสดงผลเป็นวิดีโอ 80% และรูปตัวอย่าง 20%
+        main_container.grid_columnconfigure(0, weight=4, uniform="group1")
         main_container.grid_columnconfigure(1, weight=1, uniform="group1")
         main_container.grid_rowconfigure(0, weight=1)
 
@@ -111,6 +112,7 @@ class DisplayGui:
             font=("Segoe UI", 11)
         )
         self.lbs.pack(fill="both", expand=True, padx=15, pady=15)
+        self.lbs.bind("<Configure>", self._refresh_video_size)
 
         # --- 5. RIGHT CARD: Example Pose / Reference Image ---
         card_right = tk.Frame(
@@ -118,7 +120,8 @@ class DisplayGui:
             bg=PANEL_COLOR, 
             highlightbackground=BORDER_COLOR, 
             highlightthickness=1, 
-            bd=0
+            bd=0,
+            height=0
         )
         card_right.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
@@ -145,6 +148,7 @@ class DisplayGui:
             font=("Segoe UI", 11)
         )
         self.lb_examle.pack(fill="both", expand=True, padx=15, pady=15)
+        self.lb_examle.bind("<Configure>", self._refresh_example_size)
 
         # จัดการการกดปิดหน้าต่างผ่านปุ่ม X มุมขวาบน
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
@@ -173,26 +177,53 @@ class DisplayGui:
             print(f"❌ Error: ไม่พบไฟล์ภาพที่ path: {image_path}")
             return
             
-        # ปรับขนาดภาพตัวอย่างให้อยู่ในสัดส่วนที่เหมาะสม
-        image = cv2.resize(image, (640, 320))
         image_unit8 = np.ascontiguousarray(image, dtype=np.uint8)
         image_rgb = cv2.cvtColor(image_unit8, cv2.COLOR_BGR2RGB)
-        image_array = Image.fromarray(image_rgb)
-        image_tk = ImageTk.PhotoImage(image=image_array)
+        self.example_image = Image.fromarray(image_rgb)
+        self._refresh_example_size()
 
-        self.lb_examle.image_tk = image_tk
-        self.lb_examle.configure(image=image_tk)
+    def _fit_image(self, image, label):
+        width = label.winfo_width()
+        height = label.winfo_height()
+        if width <= 1 or height <= 1:
+            return None
 
-    def showFrame(self, frame):
+        return ImageOps.contain(image, (width, height), method=Image.Resampling.LANCZOS)
+
+    def _cover_image(self, image, label):
+        width = label.winfo_width()
+        height = label.winfo_height()
+        if width <= 1 or height <= 1:
+            return None
+
+        return ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
+
+    def _refresh_example_size(self, event=None):
+        if self.example_image is None:
+            return
+
+        image = self._fit_image(self.example_image, self.lb_examle)
+        if image is not None:
+            image_tk = ImageTk.PhotoImage(image=image)
+            self.lb_examle.image_tk = image_tk
+            self.lb_examle.configure(image=image_tk)
+
+    def _refresh_video_size(self, event=None):
+        if getattr(self, "current_frame", None) is not None:
+            self.showFrame(self.current_frame, schedule=False)
+
+    def showFrame(self, frame, schedule=True):
         if frame is not None: 
-            # ปรับขนาดเฟรมวิดีโอให้เข้ากับ Card
-            frame = cv2.resize(frame, (920, 640))
+            self.current_frame = frame
             frame = np.ascontiguousarray(frame, dtype=np.uint8)
 
             # 1. แปลง BGR เป็น RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # 2. แปลงเป็น Image และ PhotoImage เพื่อแสดงบน Tkinter
-            img = Image.fromarray(rgb_frame)
+            img = self._cover_image(Image.fromarray(rgb_frame), self.lbs)
+            if img is None:
+                if schedule:
+                    self.root.after(15, self.getFrame)
+                return
             imgtk = ImageTk.PhotoImage(image=img)
             
             # 3. อัปเดตภาพลง Label
@@ -200,7 +231,8 @@ class DisplayGui:
             self.lbs.configure(image=imgtk)
 
             # 4. วนลูปเรียกตัวเองทุกๆ 15ms
-            self.root.after(15, self.getFrame)
+            if schedule:
+                self.root.after(15, self.getFrame)
         else:
             self.close_app()
 
@@ -214,7 +246,8 @@ class DisplayGui:
         self.root.mainloop()
 
 if __name__ == "__main__":
-    rtsp_url = "rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0"
+    # rtsp_url = "rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0"
+    rtsp_url = r"\File_Work\Git_clone\video_model\videoTrain3.mp4"
     
     app = DisplayGui()
     app.getSource(rtsp_url)
