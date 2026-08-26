@@ -19,3 +19,4 @@ setting/inspection_stats.db
 /main/__pycache__
 *.pyc
 *db_config.json
+*.log
