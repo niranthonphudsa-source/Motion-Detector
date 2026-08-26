@@ -1,7 +1,13 @@
 import os
+import sys
 import cv2
 import math
 import numpy as np
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
 
 # ✅ ดักจับและแมป np.row_stack ไปหา np.vstack ก่อนที่ไลบรารีอื่นจะเรียกใช้
 if not hasattr(np, "row_stack"):
@@ -36,8 +42,6 @@ from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(PROJECT_ROOT)
 HEARTBEAT_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "heartbeat.txt")
 
 

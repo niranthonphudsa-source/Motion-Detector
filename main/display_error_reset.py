@@ -66,10 +66,15 @@ def start_pose_process() -> subprocess.Popen:
 
     write_log(f"Starting main.py with: {python_exe}")
     
+    existing_pythonpath = os.environ.get("PYTHONPATH")
+    pythonpath = PROJECT_DIR
+    if existing_pythonpath:
+        pythonpath = os.pathsep.join((PROJECT_DIR, existing_pythonpath))
+
     process = subprocess.Popen(
         cmd,
         cwd=PROJECT_DIR,
-        env={**os.environ, "PYTHONPATH": PROJECT_DIR}
+        env={**os.environ, "PYTHONPATH": pythonpath}
     )
     return process
 
@@ -115,6 +120,9 @@ def main():
                 exit_code = process.poll()
                 if exit_code is not None:
                     write_log(f"main.py stopped. Exit code = {exit_code}")
+                    if exit_code == 0:
+                        write_log("main.py ended normally. Supervisor stopped.")
+                        return
                     break
 
                 # 2) เช็ก heartbeat ว่ายังอัปเดตอยู่ไหม
