@@ -178,7 +178,7 @@ class DisplayGui:
                 print("⚠️ ไม่สามารถอ่านเฟรมจากกล้องได้")
 
     def imageExample(self):
-        image_path = r"main\Logo\ImageExample.png"
+        image_path = r"main\Logo\ImageExampleJpeg.jpg"
         image = cv2.imread(image_path)
         
         # 🌟 เช็กว่าอ่านภาพสำเร็จหรือไม่
