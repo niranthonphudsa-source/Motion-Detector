@@ -96,7 +96,7 @@ model_sklearn = app_config.model_sklearn
 type = app_config.type
 df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, save_data_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay, last_valid_frame
+    global save_ok_flag, save_ng_flag, save_data_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay, last_valid_frame, cam_reverse, reverse_y
     
     if updated_config:
         config = updated_config
@@ -135,6 +135,7 @@ def reload_config_callback(new_camera_id, updated_config=None):
         new_source = camera.get("source", 0)
         cap = RTSPVideoGrabber(df.fps, new_source)
         last_valid_frame = None
+        reverse_y = 0
 
    
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
@@ -493,14 +494,14 @@ while not display_stop_event.is_set():
     fps_per_sec = int(fps_per_sec)
     # ส่งเฟรมที่ประมวลผลแล้วให้หน้า Display โดยเก็บไว้เฉพาะเฟรมล่าสุด
     try:
-        display_frame_queue.put_nowait(frame.copy())
+        display_frame_queue.put_nowait({"frame": frame.copy(), "fps_sec": fps_per_sec})
     except queue.Full:
         try:
             display_frame_queue.get_nowait()
         except queue.Empty: 
             pass
         try:
-            display_frame_queue.put_nowait(frame.copy())
+            display_frame_queue.put_nowait({"frame": frame.copy(), "fps_sec": fps_per_sec})
         except queue.Full:
             pass
     # เรนเดอร์ภาพออกหน้าจอหลัก
