@@ -50,6 +50,19 @@ def update_heartbeat():
     with open(HEARTBEAT_FILE, "a", encoding="utf-8"):
         os.utime(HEARTBEAT_FILE, None)
 
+
+def heartbeat_loop():
+    while True:
+        try:
+            update_heartbeat()
+        except OSError:
+            pass
+        time.sleep(5)
+
+
+update_heartbeat()
+threading.Thread(target=heartbeat_loop, daemon=True).start()
+
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(os.path.join(PROJECT_ROOT, "setting", "config.yml"))
 
@@ -427,15 +440,6 @@ while not display_stop_event.is_set():
     prev_frame_time = new_frame_time
 
     fps_per_sec = int(fps_per_sec)
-    DisplayGui(
-        roi.current_mode,
-        df.fps,
-        fps_per_sec,
-        frame_queue=display_frame_queue,
-        key_queue=display_key_queue,
-        mouse_queue=display_mouse_queue,
-        stop_event=display_stop_event
-    )
     # ส่งเฟรมที่ประมวลผลแล้วให้หน้า Display โดยเก็บไว้เฉพาะเฟรมล่าสุด
     try:
         display_frame_queue.put_nowait(frame.copy())
@@ -513,19 +517,11 @@ while not display_stop_event.is_set():
         
     elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
-        # โหลดค่าล่าสุดจากไฟล์ก่อนสร้างฟอร์มตั้งค่า
-        config_manager.config = config_manager.load_config()
         cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
-        
-        gui_thread = threading.Thread(
-            target=config_manager.open_settings,
-            kwargs={
-                "current_cam_id": cam_id_to_pass, 
-                "on_close_callback": reload_config_callback
-            },
-            daemon=True
+        config_manager.open_settings(
+            current_cam_id=cam_id_to_pass,
+            on_close_callback=reload_config_callback
         )
-        gui_thread.start()
     # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
     # elif key == 'd':

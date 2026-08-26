@@ -243,7 +243,7 @@ class VideoFolderManagerWindow:
 
 class ConfigGUI:
     def __init__(self, config_path=r"setting\config.yml"):
-        self.config_path = config_path
+        self.config_path = os.path.abspath(config_path)
         self.config = self.load_config()
         self.root = None
 
@@ -434,6 +434,8 @@ class ConfigGUI:
 
     def open_settings(self, current_cam_id=None, on_close_callback=None):
         """เปิดหน้าต่าง GUI สำหรับการ Setting (Light Mode - Layout ใหม่)"""
+        self.config = self.load_config()
+
         if self.root is not None:
             try:
                 if self.root.winfo_exists():
