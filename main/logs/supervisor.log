@@ -365,3 +365,12 @@
 [2026-08-25 08:30:06] main.py stopped. Exit code = 1
 [2026-08-25 08:30:06] Restarting in 3 seconds...
 [2026-08-25 08:30:10] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-26 22:11:27] Supervisor started.
+[2026-08-26 22:11:27] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe
+[2026-08-26 22:12:04] Supervisor started.
+[2026-08-26 22:12:04] Old heartbeat file removed.
+[2026-08-26 22:12:04] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe
+[2026-08-26 22:12:24] main.py stopped. Exit code = 0
+[2026-08-26 22:12:24] Restarting in 3 seconds...
+[2026-08-26 22:12:27] Old heartbeat file removed.
+[2026-08-26 22:12:27] Starting main.py with: C:\File_Work\Git_clone\Motion-Detector\venv\Scripts\python.exe

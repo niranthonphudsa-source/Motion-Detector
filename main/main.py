@@ -32,8 +32,18 @@ from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(PROJECT_ROOT)
+HEARTBEAT_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "heartbeat.txt")
+
+
+def update_heartbeat():
+    os.makedirs(os.path.dirname(HEARTBEAT_FILE), exist_ok=True)
+    with open(HEARTBEAT_FILE, "a", encoding="utf-8"):
+        os.utime(HEARTBEAT_FILE, None)
+
 # ─── โหลดและจัดการ CONFIG ───
-app_config = AppConfig(r"setting\config.yml")
+app_config = AppConfig(os.path.join(PROJECT_ROOT, "setting", "config.yml"))
 
 config_manager = app_config.config_manager
 config = app_config.config
@@ -142,7 +152,7 @@ if len(roi.mark_points) > 0:
                                                 cam_reverse, 
                                                 point_zoom
                                             )
-model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+model = YOLO(os.path.join(PROJECT_ROOT, 'yolo26n-pose_openvino_model'), task='pose')
 
 s = ShowPredict(df.SKIP_FRAMES, model)
 
@@ -191,6 +201,8 @@ reverse_y = 0
 
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while not display_stop_event.is_set():
+
+    update_heartbeat()
 
     ret, frame = cap.read()
     if not ret:     

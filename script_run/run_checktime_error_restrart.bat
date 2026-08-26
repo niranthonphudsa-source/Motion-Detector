@@ -9,7 +9,7 @@ cd /d "%~dp0"
 cd ..
 set "PROJECT_DIR=%CD%"
 set "SCRIPT_DIR=%PROJECT_DIR%\main"
-set "SCRIPT_FILE=%SCRIPT_DIR%\LIB\checktime_error_restart.py"
+set "SCRIPT_FILE=%SCRIPT_DIR%\display_error_reset.py"
 
 REM ==================================================
 REM ??? Python ??? .venv1
@@ -33,13 +33,6 @@ if not exist "%PYTHON_EXE%" (
     exit /b 1
 )
 
-if not exist "%PYTHON_CONFIG%" (
-    echo ERROR: ????? Python Config
-    echo %PYTHON_CONFIG%
-    pause
-    exit /b 1
-)
-
 if not exist "%SCRIPT_FILE%" (
     echo ERROR: ????????? script
     echo %SCRIPT_FILE%
@@ -47,9 +40,8 @@ if not exist "%SCRIPT_FILE%" (
     exit /b 1
 )
 
-cd /d "%SCRIPT_DIR%"
-@REM cd ..
-"%PYTHON_EXE%" %SCRIPT_FILE%
+cd /d "%PROJECT_DIR%"
+"%PYTHON_EXE%" "%SCRIPT_FILE%"
 
 echo ===========================================
 cd /d "%PROJECT_DIR%"

@@ -2,9 +2,11 @@
 echo "Start Connect Main Programe!"
 
 cd /d "%~dp0"
-cd..
+cd /d "%~dp0.."
 
-call venv\Scripts\activate.bat
+set "PROJECT_DIR=%CD%"
+set "PYTHON_EXE=%PROJECT_DIR%\venv\Scripts\python.exe"
+set "SCRIPT_FILE=%PROJECT_DIR%\main\main.py"
 
 @REM echo.
 @REM echo ===================================================
@@ -16,7 +18,7 @@ call venv\Scripts\activate.bat
 
 
 echo "Start Pose Detect"
-python main\main.py
+"%PYTHON_EXE%" "%SCRIPT_FILE%"
 
 :: เมื่อปิด main.py ให้ปิดหน้าต่าง logger.py ตามไปด้วยอัตโนมัติ
 @REM taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1

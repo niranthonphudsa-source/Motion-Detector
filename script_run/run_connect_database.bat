@@ -2,10 +2,11 @@
 echo "Start Connect Database.....!"
 
 cd /d "%~dp0"
-cd..
+cd /d "%~dp0.."
 
-call venv\Scripts\activate.bat
+set "PYTHON_EXE=%CD%\venv\Scripts\python.exe"
+set "SCRIPT_FILE=%CD%\main\app\app.py"
 
-python main\app\app.py
+"%PYTHON_EXE%" "%SCRIPT_FILE%"
 
 pause

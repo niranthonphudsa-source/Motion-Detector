@@ -8,7 +8,8 @@ from datetime import datetime
 # ตั้งค่า path
 # =========================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-POSE_SCRIPT = os.path.join(BASE_DIR, r"main.py")
+PROJECT_DIR = os.path.dirname(BASE_DIR)
+POSE_SCRIPT = os.path.join(BASE_DIR, "main.py")
 
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -20,6 +21,7 @@ RESTART_DELAY_SEC = 3
 
 # ถ้า heartbeat ไม่อัปเดตเกินกี่วินาที ถือว่าค้าง
 HEARTBEAT_TIMEOUT_SEC = 120
+STARTUP_GRACE_PERIOD_SEC = 180
 
 # ตรวจ heartbeat ทุกกี่วินาที
 CHECK_INTERVAL_SEC = 10
@@ -52,6 +54,13 @@ def start_pose_process() -> subprocess.Popen:
     """
 
 
+    if os.path.exists(HEARTBEAT_FILE):
+        try:
+            os.remove(HEARTBEAT_FILE)
+            write_log("Old heartbeat file removed.")
+        except OSError as ex:
+            write_log(f"Warning: could not remove old heartbeat: {ex}")
+
     python_exe = sys.executable
     cmd = [python_exe, POSE_SCRIPT]
 
@@ -59,7 +68,8 @@ def start_pose_process() -> subprocess.Popen:
     
     process = subprocess.Popen(
         cmd,
-        cwd=BASE_DIR
+        cwd=PROJECT_DIR,
+        env={**os.environ, "PYTHONPATH": PROJECT_DIR}
     )
     return process
 
@@ -96,6 +106,7 @@ def main():
 
         try:
             process = start_pose_process()
+            start_time = time.time()
 
             while True:
                 time.sleep(CHECK_INTERVAL_SEC)
@@ -110,8 +121,12 @@ def main():
                 heartbeat_age = get_heartbeat_age_seconds()
 
                 if heartbeat_age is None:
-                    write_log("Heartbeat file not found yet. Waiting...")
-                    continue
+                    if time.time() - start_time < STARTUP_GRACE_PERIOD_SEC:
+                        write_log("Waiting for main.py to initialize and create heartbeat...")
+                        continue
+                    write_log("Heartbeat was not created after startup timeout; main.py may have failed.")
+                    stop_pose_process(process)
+                    break
 
                 if heartbeat_age > HEARTBEAT_TIMEOUT_SEC:
                     write_log(
