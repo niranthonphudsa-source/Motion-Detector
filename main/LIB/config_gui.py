@@ -18,6 +18,7 @@ from tkinter import messagebox
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(PROJECT_ROOT)
+SELECTED_CAMERA_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "selected_camera.txt")
 
 
 from sklearn.model_selection import train_test_split
@@ -834,6 +835,9 @@ class ConfigGUI:
                 
             # 4. บันทึกลงไฟล์ YAML และส่ง Callback
             if self.save_config():
+                os.makedirs(os.path.dirname(SELECTED_CAMERA_FILE), exist_ok=True)
+                with open(SELECTED_CAMERA_FILE, "w", encoding="utf-8") as camera_state_file:
+                    camera_state_file.write(cam_id)
                 messagebox.showinfo("สำเร็จ", f"อัปเดตโมเดลเป็น: {selected_file}\nบันทึกข้อมูลเรียบร้อยแล้ว")
                 if self.root:
                     self.root.destroy()

@@ -44,12 +44,29 @@ from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
 HEARTBEAT_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "heartbeat.txt")
+SELECTED_CAMERA_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "selected_camera.txt")
 
 
 def update_heartbeat():
     os.makedirs(os.path.dirname(HEARTBEAT_FILE), exist_ok=True)
     with open(HEARTBEAT_FILE, "a", encoding="utf-8"):
         os.utime(HEARTBEAT_FILE, None)
+
+
+def resolve_classifier_path(configured_path, config_data):
+    candidates = [configured_path]
+    for model_config in config_data.get("model", {}).values():
+        if isinstance(model_config, dict):
+            candidates.append(model_config.get("source", ""))
+
+    candidates.append(os.path.join("model", "pose_classifier.pkl"))
+    for candidate in candidates:
+        if not candidate:
+            continue
+        candidate_path = candidate if os.path.isabs(candidate) else os.path.join(PROJECT_ROOT, candidate)
+        if os.path.exists(candidate_path):
+            return candidate_path
+    return ""
 
 
 def heartbeat_loop():
@@ -79,7 +96,7 @@ model_sklearn = app_config.model_sklearn
 type = app_config.type
 df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, save_data_flag,config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
+    global save_ok_flag, save_ng_flag, save_data_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay, last_valid_frame
     
     if updated_config:
         config = updated_config
@@ -92,8 +109,9 @@ def reload_config_callback(new_camera_id, updated_config=None):
         model_info = config.get("model", {}).get("Model_path_1", {})
         new_model_path = model_info.get("source", "") if isinstance(model_info, dict) else str(model_info)
 
-        if new_model_path and os.path.exists(new_model_path):
-            model_sklearn = new_model_path
+        resolved_model_path = resolve_classifier_path(new_model_path, config)
+        if resolved_model_path:
+            model_sklearn = resolved_model_path
             pose_classifier = joblib.load(model_sklearn)
             print(f"🤖 [Model Reloaded] อัปเดตโมเดลเป็น: {model_sklearn}")
             
@@ -108,14 +126,15 @@ def reload_config_callback(new_camera_id, updated_config=None):
         old_cap = cap
         active_camera_id = new_camera_id
         camera = config["cameras"][active_camera_id]
-        type = camera["Type"]
-        cam_reverse = camera["reverse_point"]
+        type = camera.get("Type", "LIVE_STREAM")
+        cam_reverse = camera.get("reverse_point")
         
         # fps = check_source_type(type)
         print(f"Type Main {type}  fps_limit={df.fps}")
         print(f"cam_reverse: {cam_reverse}")
-        new_source = camera["source"]
+        new_source = camera.get("source", 0)
         cap = RTSPVideoGrabber(df.fps, new_source)
+        last_valid_frame = None
 
    
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
@@ -147,6 +166,26 @@ def reload_config_callback(new_camera_id, updated_config=None):
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag},Model={model_sklearn}")
     return cam_data, save_ok_flag, save_ng_flag, save_data_flag
+
+
+def sync_config_after_settings_closed():
+    global config_process
+
+    if config_process is None or config_process.poll() is None:
+        return
+
+    config_process = None
+    updated_config = config_manager.load_config()
+    cameras = updated_config.get("cameras", {})
+    new_camera_id = None
+    if os.path.exists(SELECTED_CAMERA_FILE):
+        with open(SELECTED_CAMERA_FILE, "r", encoding="utf-8") as selected_file:
+            new_camera_id = selected_file.read().strip()
+        os.remove(SELECTED_CAMERA_FILE)
+
+    if new_camera_id in cameras:
+        reload_config_callback(new_camera_id, updated_config)
+        print(f"✅ โหลด config ใหม่แล้ว: {new_camera_id}")
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
@@ -206,7 +245,10 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
-pose_classifier = joblib.load(model_sklearn) 
+model_sklearn = resolve_classifier_path(model_sklearn, config)
+if not model_sklearn:
+    raise FileNotFoundError("ไม่พบ classifier model ใน config.yml หรือโฟลเดอร์ model")
+pose_classifier = joblib.load(model_sklearn)
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
@@ -216,6 +258,7 @@ config_process = None
 
 # config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
+last_valid_frame = None
 
 # ตัวแปรคำนวณ fps
 prev_frame_time = 0
@@ -229,12 +272,17 @@ reverse_y = 0
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while not display_stop_event.is_set():
 
+    sync_config_after_settings_closed()
     update_heartbeat()
 
     ret, frame = cap.read()
-    if not ret:     
-        break
-        # continue
+    if not ret or frame is None:
+        if last_valid_frame is None:
+            frame = np.zeros((1080, 1980, 3), dtype=np.uint8)
+        else:
+            frame = last_valid_frame.copy()
+    else:
+        last_valid_frame = frame.copy()
     frame = cv2.resize(frame, (1980, 1080))
     h, w = frame.shape[:2]
     try:
@@ -435,7 +483,8 @@ while not display_stop_event.is_set():
         reverse_y = cam_reverse[1]
         # print(reverse_y)
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
-
+    else:
+        pass
     # show fps
     new_frame_time = time.time()
     fps_per_sec = 1 / (new_frame_time - prev_frame_time)
