@@ -2,12 +2,14 @@ import cv2
 import queue
 import tkinter as tk
 import numpy as np
+import os
+
 from tkinter import ttk
 from PIL import Image, ImageOps, ImageTk
 
 class DisplayGui:
 
-    def __init__(self, frame_queue=None, key_queue=None, mouse_queue=None, stop_event=None):
+    def __init__(self, current_mode, fps, fps_sec, frame_queue=None, key_queue=None, mouse_queue=None, stop_event=None):
         # ─── โทนสีหลัก (White & Blue Theme) ───
         BG_COLOR = "#F8FAFC"        # พื้นหลังหลัก
         PANEL_COLOR = "#FFFFFF"     # พื้นหลังกล่องการ์ด
@@ -18,11 +20,21 @@ class DisplayGui:
         TITLE_BLUE = "#1E3A8A"      # สีกรมท่าสำหรับหัวข้อ
 
         # --- 1. การตั้งค่าหน้าต่างหลัก (Main Window) ---
+        # --- 1. การตั้งค่าหน้าต่างหลัก (Main Window) ---
         self.root = tk.Tk()
         self.root.title("Aoyama Detection System")
         self.root.geometry("1920x1080")
         self.root.resizable(True, True)
         self.root.configure(bg=BG_COLOR)
+
+        # สั่งให้เริ่มต้นด้วยโหมดเต็มจอ
+        self.root.attributes('-fullscreen', True)
+
+        # ผูกปุ่ม F11 สำหรับสลับเต็มจอ / ปุ่ม Esc สำหรับออกจากเต็มจอ
+        self.root.bind("<F11>", self.toggle_fullscreen)
+        self.root.bind("<Escape>", lambda event: self.root.attributes('-fullscreen', False))
+
+
 
         self.source = None
         self.cap = None
@@ -32,7 +44,14 @@ class DisplayGui:
         self.mouse_queue = mouse_queue
         self.stop_event = stop_event
         self._closing = False
+        self.current_mode = current_mode
+        self.fps = fps
+        self.fps_sec = fps_sec
 
+        # ใช้ StringVar สำหรับอัปเดตข้อความ FPS แบบ Dynamic บน UI
+        self.fps_text_var = tk.StringVar()
+        self.update_fps_text()
+        
         # ตั้งค่า App Window Icon (.ico / .png)
         try:
             self.root.iconbitmap(r"main\Logo\atc_logo.ico")
@@ -47,12 +66,15 @@ class DisplayGui:
         header_content.pack(fill="x")
 
         # โหลดโลโก้ใน Header
+        base_path = os.path.dirname(os.path.abspath(__file__)) #r"main\Logo\atc_logo.png"
+        parent_path = os.path.dirname(base_path)
+        logo_path = os.path.join(parent_path, "Logo", "atc_logo.png")
         try:
-            self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png").subsample(2, 2)
+            self.logo_icon = tk.PhotoImage(file=logo_path).subsample(2, 2)
             lbl_logo = tk.Label(header_content, image=self.logo_icon, bg=PANEL_COLOR)
             lbl_logo.pack(side="left", padx=(0, 15))
         except Exception as e:
-            print(f"⚠️ ไม่สามารถโหลด Icon ได้: {e}")
+            pass
 
         # ข้อความหัวข้อระบบ
         header_text_frame = tk.Frame(header_content, bg=PANEL_COLOR)
@@ -76,8 +98,9 @@ class DisplayGui:
         )
         sub_title.pack(anchor="w")
 
+
         # --- 3. MAIN CONTENT CONTAINER (พื้นที่แสดงผลหลัก) ---
-        main_container = tk.Frame(self.root, bg=BG_COLOR, padx=20, pady=20)
+        main_container = tk.Frame(self.root, bg=BG_COLOR, padx=5, pady=5)
         main_container.pack(fill="both", expand=True)
 
         # แบ่งพื้นที่แสดงผลเป็นวิดีโอ 80% และรูปตัวอย่าง 20%
@@ -93,9 +116,9 @@ class DisplayGui:
             highlightthickness=1, 
             bd=0
         )
-        card_left.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        card_left.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        left_title_frame = tk.Frame(card_left, bg=PANEL_COLOR, padx=15, pady=12)
+        left_title_frame = tk.Frame(card_left, bg=PANEL_COLOR, padx=5, pady=5)
         left_title_frame.pack(fill="x")
 
         lbl_card_left_title = tk.Label(
@@ -105,7 +128,16 @@ class DisplayGui:
             fg=TEXT_MAIN, 
             bg=PANEL_COLOR
         )
-        lbl_card_left_title.pack(anchor="w")
+        lbl_card_left_title.pack(anchor="nw")
+
+        lb_fps_card = tk.Label(
+            left_title_frame, 
+            textvariable=self.fps_text_var,
+            font=("Segoe UI", 12, "bold"), 
+            fg=TEXT_MAIN, 
+            bg=PANEL_COLOR
+        )
+        lb_fps_card.pack(anchor="ne")
 
         ttk.Separator(card_left, orient="horizontal").pack(fill="x")
 
@@ -117,7 +149,7 @@ class DisplayGui:
             fg="#94A3B8",
             font=("Segoe UI", 11)
         )
-        self.lbs.pack(fill="both", expand=True, padx=15, pady=15)
+        self.lbs.pack(fill="both", expand=True, padx=5, pady=5)
         self.lbs.bind("<Configure>", self._refresh_video_size)
 
         # --- 5. RIGHT CARD: Example Pose / Reference Image ---
@@ -129,7 +161,7 @@ class DisplayGui:
             bd=0,
             height=0
         )
-        card_right.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        card_right.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
         right_title_frame = tk.Frame(card_right, bg=PANEL_COLOR, padx=15, pady=12)
         right_title_frame.pack(fill="x")
@@ -156,6 +188,7 @@ class DisplayGui:
         self.lb_examle.pack(fill="both", expand=True, padx=15, pady=15)
         self.lb_examle.bind("<Configure>", self._refresh_example_size)
         self.imageExample()
+        
         self.root.bind("<KeyPress>", self._handle_key)
         self.lbs.bind("<Button-1>", self._handle_mouse)
         self.root.focus_force()
@@ -163,10 +196,28 @@ class DisplayGui:
         # จัดการการกดปิดหน้าต่างผ่านปุ่ม X มุมขวาบน
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
 
+            # เพิ่มฟังก์ชันนี้ต่อท้ายใน Class DisplayGui
+    def toggle_fullscreen(self, event=None):
+        is_fullscreen = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not is_fullscreen)
+
+    def update_fps_text(self):
+        """ฟังก์ชันอัปเดตข้อความลง StringVar"""
+        self.fps_text_var.set(
+            f"Mode: {self.current_mode} fps_limit: {self.fps}  fps_per_sec: {self.fps_sec}"
+        )
+
+    def showMode(self, current_mode, fps, fps_sec):
+        """อัปเดตโหมดและค่า FPS พร้อมสั่งรีเฟรชหน้าจอ UI ทันที"""
+        self.current_mode = current_mode
+        self.fps = fps
+        self.fps_sec = fps_sec
+        self.update_fps_text()
+        print(f"Mode: {self.current_mode}, Limit: {self.fps}, FPS: {self.fps_sec}")
+
     def getSource(self, source):
         self.source = source
         self.cap = cv2.VideoCapture(self.source)
-        # สั่งประมวลผลเฟรมแรก
         self.getFrame()
 
     def getFrame(self):
@@ -178,10 +229,9 @@ class DisplayGui:
                 print("⚠️ ไม่สามารถอ่านเฟรมจากกล้องได้")
 
     def imageExample(self):
-        image_path = r"main\Logo\ImageExample.png"
+        image_path = r"main\Logo\ImageExampleJpeg.jpg"
         image = cv2.imread(image_path)
         
-        # 🌟 เช็กว่าอ่านภาพสำเร็จหรือไม่
         if image is None:
             print(f"❌ Error: ไม่พบไฟล์ภาพที่ path: {image_path}")
             return
@@ -196,7 +246,6 @@ class DisplayGui:
         height = label.winfo_height()
         if width <= 1 or height <= 1:
             return None
-
         return ImageOps.contain(image, (width, height), method=Image.Resampling.LANCZOS)
 
     def _cover_image(self, image, label):
@@ -204,7 +253,6 @@ class DisplayGui:
         height = label.winfo_height()
         if width <= 1 or height <= 1:
             return None
-
         return ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
 
     def _refresh_example_size(self, event=None):
@@ -226,7 +274,6 @@ class DisplayGui:
             self.current_frame = frame
             frame = np.ascontiguousarray(frame, dtype=np.uint8)
 
-            # 1. แปลง BGR เป็น RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             img = self._cover_image(Image.fromarray(rgb_frame), self.lbs)
             if img is None:
@@ -235,11 +282,9 @@ class DisplayGui:
                 return
             imgtk = ImageTk.PhotoImage(image=img)
             
-            # 3. อัปเดตภาพลง Label
             self.lbs.imgtk = imgtk
             self.lbs.configure(image=imgtk)
 
-            # 4. วนลูปเรียกตัวเองทุกๆ 15ms
             if schedule:
                 self.root.after(15, self.getFrame)
         else:
@@ -301,22 +346,32 @@ class DisplayGui:
             self.close_app()
             return
 
-        latest_frame = None
+        latest_data = None
         try:
             while True:
-                latest_frame = self.frame_queue.get_nowait()
+                latest_data = self.frame_queue.get_nowait()
         except queue.Empty:
             pass
 
-        if latest_frame is not None:
-            self.showFrame(latest_frame, schedule=False)
+        if latest_data is not None:
+            # รองรับทั้งกรณีส่งมาแค่ Frame หรือส่งมาแบบ Dictionary (เช่น {"frame": img, "fps_sec": 29.5})
+            if isinstance(latest_data, dict):
+                frame = latest_data.get("frame")
+                new_fps_sec = latest_data.get("fps_sec")
+                if new_fps_sec is not None:
+                    self.fps_sec = new_fps_sec
+                    self.update_fps_text()
+                if frame is not None:
+                    self.showFrame(frame, schedule=False)
+            else:
+                self.showFrame(latest_data, schedule=False)
 
         self.root.after(15, self._poll_frame_queue)
 
 if __name__ == "__main__":
-    # rtsp_url = "rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0"
-    rtsp_url = r"\File_Work\Git_clone\video_model\videoTrain3.mp4"
+    rtsp_url = "rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0"
     
-    app = DisplayGui()
+    # กำหนดค่าเริ่มต้นตอนสร้าง Object ให้ครบถ้วนเพื่อป้องกัน Error
+    app = DisplayGui(current_mode="Normal", fps=30, fps_sec=0.0)
     app.getSource(rtsp_url)
     app.run()
