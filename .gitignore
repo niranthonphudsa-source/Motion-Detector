@@ -20,3 +20,5 @@ setting/inspection_stats.db
 *.pyc
 *db_config.json
 *.log
+main/logs/heartbeat.txt
+main/logs/supervisor.log
