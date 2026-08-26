@@ -153,8 +153,12 @@ display_key_queue = queue.Queue(maxsize=20)
 display_mouse_queue = queue.Queue(maxsize=100)
 display_stop_event = threading.Event()
 
+fps_per_sec = 0
 def run_display_gui():
     DisplayGui(
+        roi.current_mode,
+        df.fps,
+        fps_per_sec,
         frame_queue=display_frame_queue,
         key_queue=display_key_queue,
         mouse_queue=display_mouse_queue,
@@ -403,8 +407,15 @@ while not display_stop_event.is_set():
     prev_frame_time = new_frame_time
 
     fps_per_sec = int(fps_per_sec)
-    # show_m.showModeDisplay(frame, roi.current_mode, df.fps, fps_per_sec)
-
+    DisplayGui(
+        roi.current_mode,
+        df.fps,
+        fps_per_sec,
+        frame_queue=display_frame_queue,
+        key_queue=display_key_queue,
+        mouse_queue=display_mouse_queue,
+        stop_event=display_stop_event
+    )
     # ส่งเฟรมที่ประมวลผลแล้วให้หน้า Display โดยเก็บไว้เฉพาะเฟรมล่าสุด
     try:
         display_frame_queue.put_nowait(frame.copy())

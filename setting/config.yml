@@ -8,18 +8,18 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 589
+    - - 583
+      - 683
+    - - 1168
       - 689
-    - - 1137
-      - 679
-    - - 1202
-      - 796
-    - - 604
-      - 801
-    - - 608
+    - - 1199
+      - 792
+    - - 597
+      - 809
+    - - 612
       - 782
-    - - 589
-      - 771
+    - - 570
+      - 778
     person_limit: 5
     point_zoom: null
     record_video: true
@@ -31,8 +31,8 @@ cameras:
     save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
-    - 884
-    - 748
+    - 872
+    - 758
   Camera_2:
     Display:
       Position_x: 0

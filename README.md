@@ -15,7 +15,8 @@ install project
 pip install opencv-python Pillow PyYAML pyodbc 
 pip install ultralytics pandas joblib pyserial 
 pip install tkcalendar 
-pip install shutil scikit-learn
+pip install shutil 
+pip install scikit-learn
 pip install openvino
 pip install openpyxl
 
