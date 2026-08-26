@@ -16,6 +16,9 @@ import platform
 import subprocess
 from tkinter import messagebox
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.chdir(PROJECT_ROOT)
+
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -243,6 +246,8 @@ class VideoFolderManagerWindow:
 
 class ConfigGUI:
     def __init__(self, config_path=r"setting\config.yml"):
+        if not os.path.isabs(config_path):
+            config_path = os.path.join(PROJECT_ROOT, config_path)
         self.config_path = os.path.abspath(config_path)
         self.config = self.load_config()
         self.root = None

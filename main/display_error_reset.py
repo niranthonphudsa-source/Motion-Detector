@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import subprocess
+import msvcrt
 from datetime import datetime
 
 # =========================================================
@@ -16,6 +17,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 SUPERVISOR_LOG = os.path.join(LOG_DIR, "supervisor.log")
 HEARTBEAT_FILE = os.path.join(LOG_DIR, "heartbeat.txt")
+LOCK_FILE = os.path.join(LOG_DIR, "supervisor.lock")
 
 RESTART_DELAY_SEC = 3
 
@@ -25,6 +27,17 @@ STARTUP_GRACE_PERIOD_SEC = 180
 
 # ตรวจ heartbeat ทุกกี่วินาที
 CHECK_INTERVAL_SEC = 10
+
+
+def acquire_supervisor_lock():
+    lock_file = open(LOCK_FILE, "a+", encoding="utf-8")
+    try:
+        lock_file.seek(0)
+        msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        lock_file.close()
+        return None
+    return lock_file
 
 
 def write_log(message: str) -> None:
@@ -100,6 +113,11 @@ def stop_pose_process(process: subprocess.Popen) -> None:
 
 
 def main():
+    lock_file = acquire_supervisor_lock()
+    if lock_file is None:
+        print("Another supervisor is already running. Exiting.")
+        return
+
     if not os.path.exists(POSE_SCRIPT):
         write_log(f"ERROR: main.py not found at: {POSE_SCRIPT}")
         return

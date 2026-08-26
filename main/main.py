@@ -27,6 +27,7 @@ import datetime
 import videoWrite
 import queue
 import torch
+import subprocess
 from display.display_gui import DisplayGui
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
@@ -211,6 +212,7 @@ pose_classifier = joblib.load(model_sklearn)
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
 # stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
 stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
+config_process = None
 
 # config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
 latest_frame = None
@@ -517,11 +519,15 @@ while not display_stop_event.is_set():
         
     elif key == 's':  # เรียกเปิดหน้าต่าง GUI ตั้งค่าระบบ
         print("⚙️ กำลังเปิดหน้าต่างตั้งค่าระบบ...")
-        cam_id_to_pass = active_camera_id if active_camera_id else "Camera_1"
-        config_manager.open_settings(
-            current_cam_id=cam_id_to_pass,
-            on_close_callback=reload_config_callback
-        )
+        if config_process is not None and config_process.poll() is None:
+            print("⚠️ หน้าต่างตั้งค่าเปิดอยู่แล้ว")
+        else:
+            config_script = os.path.join(PROJECT_ROOT, "main", "LIB", "config_gui.py")
+            config_process = subprocess.Popen(
+                [sys.executable, config_script],
+                cwd=PROJECT_ROOT,
+                env={**os.environ, "PYTHONPATH": PROJECT_ROOT}
+            )
     # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
     # elif key == 'd':
