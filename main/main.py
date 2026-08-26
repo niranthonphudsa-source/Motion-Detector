@@ -2,6 +2,10 @@ import os
 import cv2
 import math
 import numpy as np
+
+# ✅ ดักจับและแมป np.row_stack ไปหา np.vstack ก่อนที่ไลบรารีอื่นจะเรียกใช้
+if not hasattr(np, "row_stack"):
+    np.row_stack = np.vstack
 import joblib
 import time
 import pandas as pd

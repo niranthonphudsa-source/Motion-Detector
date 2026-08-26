@@ -2,6 +2,8 @@ import cv2
 import queue
 import tkinter as tk
 import numpy as np
+import os
+
 from tkinter import ttk
 from PIL import Image, ImageOps, ImageTk
 
@@ -64,12 +66,15 @@ class DisplayGui:
         header_content.pack(fill="x")
 
         # โหลดโลโก้ใน Header
+        base_path = os.path.dirname(os.path.abspath(__file__)) #r"main\Logo\atc_logo.png"
+        parent_path = os.path.dirname(base_path)
+        logo_path = os.path.join(parent_path, "Logo", "atc_logo.png")
         try:
-            self.logo_icon = tk.PhotoImage(file=r"main\Logo\atc_logo.png").subsample(2, 2)
+            self.logo_icon = tk.PhotoImage(file=logo_path).subsample(2, 2)
             lbl_logo = tk.Label(header_content, image=self.logo_icon, bg=PANEL_COLOR)
             lbl_logo.pack(side="left", padx=(0, 15))
         except Exception as e:
-            print(f"⚠️ ไม่สามารถโหลด Icon ได้: {e}")
+            pass
 
         # ข้อความหัวข้อระบบ
         header_text_frame = tk.Frame(header_content, bg=PANEL_COLOR)
