@@ -100,7 +100,7 @@ class DisplayGui:
 
 
         # --- 3. MAIN CONTENT CONTAINER (พื้นที่แสดงผลหลัก) ---
-        main_container = tk.Frame(self.root, bg=BG_COLOR, padx=20, pady=20)
+        main_container = tk.Frame(self.root, bg=BG_COLOR, padx=5, pady=5)
         main_container.pack(fill="both", expand=True)
 
         # แบ่งพื้นที่แสดงผลเป็นวิดีโอ 80% และรูปตัวอย่าง 20%
@@ -116,9 +116,9 @@ class DisplayGui:
             highlightthickness=1, 
             bd=0
         )
-        card_left.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        card_left.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        left_title_frame = tk.Frame(card_left, bg=PANEL_COLOR, padx=15, pady=12)
+        left_title_frame = tk.Frame(card_left, bg=PANEL_COLOR, padx=5, pady=5)
         left_title_frame.pack(fill="x")
 
         lbl_card_left_title = tk.Label(
@@ -149,7 +149,7 @@ class DisplayGui:
             fg="#94A3B8",
             font=("Segoe UI", 11)
         )
-        self.lbs.pack(fill="both", expand=True, padx=15, pady=15)
+        self.lbs.pack(fill="both", expand=True, padx=5, pady=5)
         self.lbs.bind("<Configure>", self._refresh_video_size)
 
         # --- 5. RIGHT CARD: Example Pose / Reference Image ---
@@ -161,7 +161,7 @@ class DisplayGui:
             bd=0,
             height=0
         )
-        card_right.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        card_right.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
         right_title_frame = tk.Frame(card_right, bg=PANEL_COLOR, padx=15, pady=12)
         right_title_frame.pack(fill="x")
