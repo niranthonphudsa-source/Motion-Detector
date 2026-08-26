@@ -18,11 +18,21 @@ class DisplayGui:
         TITLE_BLUE = "#1E3A8A"      # สีกรมท่าสำหรับหัวข้อ
 
         # --- 1. การตั้งค่าหน้าต่างหลัก (Main Window) ---
+        # --- 1. การตั้งค่าหน้าต่างหลัก (Main Window) ---
         self.root = tk.Tk()
         self.root.title("Aoyama Detection System")
         self.root.geometry("1920x1080")
         self.root.resizable(True, True)
         self.root.configure(bg=BG_COLOR)
+
+        # สั่งให้เริ่มต้นด้วยโหมดเต็มจอ
+        self.root.attributes('-fullscreen', True)
+
+        # ผูกปุ่ม F11 สำหรับสลับเต็มจอ / ปุ่ม Esc สำหรับออกจากเต็มจอ
+        self.root.bind("<F11>", self.toggle_fullscreen)
+        self.root.bind("<Escape>", lambda event: self.root.attributes('-fullscreen', False))
+
+
 
         self.source = None
         self.cap = None
@@ -180,7 +190,12 @@ class DisplayGui:
 
         # จัดการการกดปิดหน้าต่างผ่านปุ่ม X มุมขวาบน
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
-    
+
+            # เพิ่มฟังก์ชันนี้ต่อท้ายใน Class DisplayGui
+    def toggle_fullscreen(self, event=None):
+        is_fullscreen = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not is_fullscreen)
+
     def update_fps_text(self):
         """ฟังก์ชันอัปเดตข้อความลง StringVar"""
         self.fps_text_var.set(
