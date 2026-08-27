@@ -575,3 +575,7 @@
 [2026-08-27 08:45:37] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
 [2026-08-27 08:45:47] Waiting for main.py to initialize and create heartbeat...
 [2026-08-27 08:45:57] Waiting for main.py to initialize and create heartbeat...
+[2026-08-27 15:42:05] Supervisor started.
+[2026-08-27 15:42:05] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-08-27 15:44:25] main.py stopped. Exit code = 0
+[2026-08-27 15:44:25] main.py ended normally. Supervisor stopped.
