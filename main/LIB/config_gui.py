@@ -15,6 +15,10 @@ import os
 import platform
 import subprocess
 from tkinter import messagebox
+# ✅ ดักจับและแมป np.row_stack ไปหา np.vstack ก่อนที่ไลบรารีอื่นจะเรียกใช้
+import numpy as np
+if not hasattr(np, "row_stack"):
+    np.row_stack = np.vstack
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(PROJECT_ROOT)

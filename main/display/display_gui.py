@@ -53,50 +53,50 @@ class DisplayGui:
         self.update_fps_text()
         
         # ตั้งค่า App Window Icon (.ico / .png)
-        try:
-            self.root.iconbitmap(r"main\Logo\atc_logo.ico")
-        except Exception:
-            pass
+        # try:
+        #     self.root.iconbitmap(r"main\Logo\atc_logo.ico")
+        # except Exception:
+        #     pass
 
-        # --- 2. HEADER SECTION (แถบหัวข้อด้านบน) ---
-        header_frame = tk.Frame(self.root, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
-        header_frame.pack(fill="x", side="top", ipady=5)
+        # # --- 2. HEADER SECTION (แถบหัวข้อด้านบน) ---
+        # header_frame = tk.Frame(self.root, bg=PANEL_COLOR, highlightbackground=BORDER_COLOR, highlightthickness=1)
+        # header_frame.pack(fill="x", side="top", ipady=5)
 
-        header_content = tk.Frame(header_frame, bg=PANEL_COLOR, padx=25, pady=10)
-        header_content.pack(fill="x")
+        # header_content = tk.Frame(header_frame, bg=PANEL_COLOR, padx=25, pady=10)
+        # header_content.pack(fill="x")
 
-        # โหลดโลโก้ใน Header
-        base_path = os.path.dirname(os.path.abspath(__file__)) #r"main\Logo\atc_logo.png"
-        parent_path = os.path.dirname(base_path)
-        logo_path = os.path.join(parent_path, "Logo", "atc_logo.png")
-        try:
-            self.logo_icon = tk.PhotoImage(file=logo_path).subsample(2, 2)
-            lbl_logo = tk.Label(header_content, image=self.logo_icon, bg=PANEL_COLOR)
-            lbl_logo.pack(side="left", padx=(0, 15))
-        except Exception as e:
-            pass
+        # # โหลดโลโก้ใน Header
+        # base_path = os.path.dirname(os.path.abspath(__file__)) #r"main\Logo\atc_logo.png"
+        # parent_path = os.path.dirname(base_path)
+        # logo_path = os.path.join(parent_path, "Logo", "atc_logo.png")
+        # try:
+        #     self.logo_icon = tk.PhotoImage(file=logo_path).subsample(2, 2)
+        #     lbl_logo = tk.Label(header_content, image=self.logo_icon, bg=PANEL_COLOR)
+        #     lbl_logo.pack(side="left", padx=(0, 15))
+        # except Exception as e:
+        #     pass
 
         # ข้อความหัวข้อระบบ
-        header_text_frame = tk.Frame(header_content, bg=PANEL_COLOR)
-        header_text_frame.pack(side="left")
+        # header_text_frame = tk.Frame(header_content, bg=PANEL_COLOR)
+        # header_text_frame.pack(side="left")
 
-        self.lbh = tk.Label(
-            header_text_frame, 
-            text="AOYAMA DETECTION SYSTEM", 
-            font=("Segoe UI", 10, "bold"), 
-            fg=TITLE_BLUE, 
-            bg=PANEL_COLOR
-        )
-        self.lbh.pack(anchor="w")
+        # self.lbh = tk.Label(
+        #     header_text_frame, 
+        #     text="AOYAMA DETECTION SYSTEM", 
+        #     font=("Segoe UI", 10, "bold"), 
+        #     fg=TITLE_BLUE, 
+        #     bg=PANEL_COLOR
+        # )
+        # self.lbh.pack(anchor="w")
 
-        sub_title = tk.Label(
-            header_text_frame, 
-            text="Real-time AI Video Processing & Monitoring", 
-            font=("Segoe UI", 9), 
-            fg=TEXT_MUTED, 
-            bg=PANEL_COLOR
-        )
-        sub_title.pack(anchor="w")
+        # sub_title = tk.Label(
+        #     header_text_frame, 
+        #     text="Real-time AI Video Processing & Monitoring", 
+        #     font=("Segoe UI", 9), 
+        #     fg=TEXT_MUTED, 
+        #     bg=PANEL_COLOR
+        # )
+        # sub_title.pack(anchor="w")
 
 
         # --- 3. MAIN CONTENT CONTAINER (พื้นที่แสดงผลหลัก) ---
@@ -105,7 +105,7 @@ class DisplayGui:
 
         # แบ่งพื้นที่แสดงผลเป็นวิดีโอ 80% และรูปตัวอย่าง 20%
         main_container.grid_columnconfigure(0, weight=4, uniform="group1")
-        main_container.grid_columnconfigure(1, weight=1, uniform="group1")
+        # main_container.grid_columnconfigure(1, weight=1, uniform="group1")
         main_container.grid_rowconfigure(0, weight=1)
 
         # --- 4. LEFT CARD: Live Camera Video Stream ---
@@ -121,23 +121,25 @@ class DisplayGui:
         left_title_frame = tk.Frame(card_left, bg=PANEL_COLOR, padx=5, pady=5)
         left_title_frame.pack(fill="x")
 
+        # ชิดซ้าย
         lbl_card_left_title = tk.Label(
             left_title_frame, 
-            text="📹 Live Camera Stream", 
-            font=("Segoe UI", 12, "bold"), 
+            text="Key Esc: Exit",
+            font=("Segoe UI", 8, "bold"), 
             fg=TEXT_MAIN, 
             bg=PANEL_COLOR
         )
-        lbl_card_left_title.pack(anchor="nw")
+        lbl_card_left_title.pack(side="left", anchor="w")
 
+        # ชิดขวา
         lb_fps_card = tk.Label(
-            left_title_frame, 
+            left_title_frame,
             textvariable=self.fps_text_var,
-            font=("Segoe UI", 12, "bold"), 
+            font=("Segoe UI", 8, "bold"), 
             fg=TEXT_MAIN, 
             bg=PANEL_COLOR
         )
-        lb_fps_card.pack(anchor="ne")
+        lb_fps_card.pack(side="right", anchor="e")
 
         ttk.Separator(card_left, orient="horizontal").pack(fill="x")
 
@@ -152,42 +154,42 @@ class DisplayGui:
         self.lbs.pack(fill="both", expand=True, padx=5, pady=5)
         self.lbs.bind("<Configure>", self._refresh_video_size)
 
-        # --- 5. RIGHT CARD: Example Pose / Reference Image ---
-        card_right = tk.Frame(
-            main_container, 
-            bg=PANEL_COLOR, 
-            highlightbackground=BORDER_COLOR, 
-            highlightthickness=1, 
-            bd=0,
-            height=0
-        )
-        card_right.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        # # --- 5. RIGHT CARD: Example Pose / Reference Image ---
+        # card_right = tk.Frame(
+        #     main_container, 
+        #     bg=PANEL_COLOR, 
+        #     highlightbackground=BORDER_COLOR, 
+        #     highlightthickness=1, 
+        #     bd=0,
+        #     height=0
+        # )
+        # card_right.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
-        right_title_frame = tk.Frame(card_right, bg=PANEL_COLOR, padx=15, pady=12)
-        right_title_frame.pack(fill="x")
+        # right_title_frame = tk.Frame(card_right, bg=PANEL_COLOR, padx=15, pady=12)
+        # right_title_frame.pack(fill="x")
 
-        lbl_card_right_title = tk.Label(
-            right_title_frame, 
-            text="📌 Standard Reference Image", 
-            font=("Segoe UI", 12, "bold"), 
-            fg=TEXT_MAIN, 
-            bg=PANEL_COLOR
-        )
-        lbl_card_right_title.pack(anchor="w")
+        # lbl_card_right_title = tk.Label(
+        #     right_title_frame, 
+        #     text="📌 Standard Reference Image", 
+        #     font=("Segoe UI", 12, "bold"), 
+        #     fg=TEXT_MAIN, 
+        #     bg=PANEL_COLOR
+        # )
+        # lbl_card_right_title.pack(anchor="w")
 
-        ttk.Separator(card_right, orient="horizontal").pack(fill="x")
+        # ttk.Separator(card_right, orient="horizontal").pack(fill="x")
 
-        # Label สำหรับวางภาพตัวอย่าง (lb_examle)
-        self.lb_examle = tk.Label(
-            card_right, 
-            bg="#F1F5F9", 
-            text="No Reference Image Loaded", 
-            fg="#94A3B8",
-            font=("Segoe UI", 11)
-        )
-        self.lb_examle.pack(fill="both", expand=True, padx=15, pady=15)
-        self.lb_examle.bind("<Configure>", self._refresh_example_size)
-        self.imageExample()
+        # # Label สำหรับวางภาพตัวอย่าง (lb_examle)
+        # self.lb_examle = tk.Label(
+        #     card_right, 
+        #     bg="#F1F5F9", 
+        #     text="No Reference Image Loaded", 
+        #     fg="#94A3B8",
+        #     font=("Segoe UI", 11)
+        # )
+        # self.lb_examle.pack(fill="both", expand=True, padx=15, pady=15)
+        # self.lb_examle.bind("<Configure>", self._refresh_example_size)
+        # self.imageExample()
         
         self.root.bind("<KeyPress>", self._handle_key)
         self.lbs.bind("<Button-1>", self._handle_mouse)

@@ -8,25 +8,25 @@ cameras:
     Type: LIVE_STREAM
     enabled: true
     mark_points:
-    - - 583
-      - 683
-    - - 1168
-      - 689
-    - - 1199
-      - 792
-    - - 597
-      - 809
-    - - 612
-      - 782
-    - - 570
-      - 778
+    - - 582
+      - 681
+    - - 1148
+      - 699
+    - - 1197
+      - 799
+    - - 607
+      - 805
+    - - 609
+      - 786
+    - - 579
+      - 770
     person_limit: 5
     point_zoom: null
     record_video: true
     reverse_point:
-    - 1006
-    - 967
-    save_data: false
+    - 956
+    - 1034
+    save_data: true
     save_ng: false
     save_ok: false
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
@@ -214,7 +214,7 @@ cameras:
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: pose_dataset_label.csv
-  default_camera_id: Camera_6
+  default_camera_id: Camera_1
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full

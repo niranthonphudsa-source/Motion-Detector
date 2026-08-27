@@ -222,8 +222,7 @@ class UserStateManager:
                     
                     def safe_insert_data(cfg, *d_args):
                         try:
-                            save_data = df.save_data_flag
-                            TableViewerWindow.insert_data(cfg, *d_args, save_data)
+                            TableViewerWindow.insert_data(cfg, *d_args)
                         except Exception as e:
                             print(
                                 f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
