@@ -401,6 +401,23 @@ class SSTableViewerGUI:
             fg=self.TEXT_MUTED,
         ).pack(anchor="w")
 
+        dashboard_filter = tk.Frame(dash_header_frame, bg=self.BG_COLOR)
+        dashboard_filter.pack(side="right", padx=(10, 0), pady=5)
+        tk.Label(
+            dashboard_filter,
+            text="📷 กล้อง:",
+            font=("Segoe UI", 9, "bold"),
+            bg=self.BG_COLOR,
+            fg=self.PRIMARY_DARK,
+        ).pack(side="left", padx=(0, 5))
+        self.cmb_dashboard_camera = ttk.Combobox(
+            dashboard_filter, state="readonly", width=12, font=("Segoe UI", 9)
+        )
+        self.cmb_dashboard_camera.pack(side="left")
+        self.cmb_dashboard_camera.bind(
+            "<<ComboboxSelected>>", lambda e: self._load_dashboard()
+        )
+
         btn_refresh_dash = ttk.Button(
             dash_header_frame,
             text="🔄  อัปเดตสถิติ",
@@ -437,9 +454,14 @@ class SSTableViewerGUI:
             cams.insert(0, "ทั้งหมด")
             self.cmb_camera["values"] = cams
             self.cmb_camera.current(0)
+            self.cmb_dashboard_camera["values"] = cams
+            self.cmb_dashboard_camera.current(0)
+            self._load_dashboard()
         except Exception:
             self.cmb_camera["values"] = ["ทั้งหมด"]
             self.cmb_camera.current(0)
+            self.cmb_dashboard_camera["values"] = ["ทั้งหมด"]
+            self.cmb_dashboard_camera.current(0)
 
     def _fetch_table_data(self):
         selected_table = quote_table_name(self.table_name)
@@ -573,17 +595,32 @@ class SSTableViewerGUI:
             cursor = conn.cursor()
 
             table_name = quote_table_name(self.table_name)
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            selected_camera = self.cmb_dashboard_camera.get()
+            camera_filter = ""
+            camera_params = []
+            if selected_camera and selected_camera != "ทั้งหมด":
+                camera_filter = " WHERE camera_id = ?"
+                camera_params.append(selected_camera)
+
+            cursor.execute(
+                f"SELECT COUNT(*) FROM {table_name}{camera_filter}", camera_params
+            )
             total_checks = cursor.fetchone()[0] or 0
 
             cursor.execute(
-                f"SELECT COUNT(*) FROM {table_name} WHERE status_pose = 'OK'"
+                f"SELECT COUNT(*) FROM {table_name}"
+                f" WHERE status_pose = 'OK'"
+                + (" AND camera_id = ?" if camera_filter else ""),
+                camera_params,
             )
             row_ok = cursor.fetchone()
             total_ok = row_ok[0] if row_ok else 0
 
             cursor.execute(
-                f"SELECT COUNT(*) FROM {table_name} WHERE status_pose = 'NG'"
+                f"SELECT COUNT(*) FROM {table_name}"
+                f" WHERE status_pose = 'NG'"
+                + (" AND camera_id = ?" if camera_filter else ""),
+                camera_params,
             )
             row_ng = cursor.fetchone()
             total_ng = row_ng[0] if row_ng else 0
@@ -640,32 +677,20 @@ class SSTableViewerGUI:
 
             tk.Label(
                 detail_inner,
-                text="📈 สรุปสัดส่วนผลการตรวจสอบ (Status Distribution)",
+                text=f"📈 ผลการตรวจสอบ: {selected_camera or 'ทั้งหมด'}",
                 font=("Segoe UI", 11, "bold"),
                 bg=self.PANEL_COLOR,
                 fg=self.TEXT_MAIN,
             ).pack(anchor="w", pady=(0, 15))
 
-            progress_bg = tk.Frame(
-                detail_inner, bg=self.BORDER_COLOR, height=20
+            chart = tk.Canvas(
+                detail_inner,
+                height=245,
+                bg=self.PANEL_COLOR,
+                highlightthickness=0,
             )
-            progress_bg.pack(fill="x", pady=5)
-            progress_bg.pack_propagate(False)
-
-            if total_checks > 0:
-                ok_width_ratio = total_ok / total_checks
-                ok_bar = tk.Frame(progress_bg, bg=self.COLOR_OK)
-                ok_bar.place(
-                    relx=0, rely=0, relwidth=ok_width_ratio, relheight=1.0
-                )
-
-                ng_bar = tk.Frame(progress_bg, bg=self.COLOR_NG)
-                ng_bar.place(
-                    relx=ok_width_ratio,
-                    rely=0,
-                    relwidth=(1 - ok_width_ratio),
-                    relheight=1.0,
-                )
+            chart.pack(fill="x", pady=(0, 5))
+            self._draw_status_chart(chart, total_ok, total_ng)
 
             legend_frame = tk.Frame(detail_inner, bg=self.PANEL_COLOR)
             legend_frame.pack(fill="x", pady=10)
@@ -701,6 +726,39 @@ class SSTableViewerGUI:
                 font=("Segoe UI", 10),
             )
             lbl_err.pack(pady=20)
+
+    def _draw_status_chart(self, canvas, total_ok, total_ng):
+        canvas.delete("all")
+        chart_width = max(canvas.winfo_width(), 620)
+        chart_height = 245
+        canvas.configure(width=chart_width)
+
+        left = 70
+        bottom = 205
+        top = 25
+        bar_width = 130
+        gap = 95
+        values = [("OK", total_ok, self.COLOR_OK), ("NG", total_ng, self.COLOR_NG)]
+        maximum = max(total_ok, total_ng, 1)
+
+        canvas.create_line(left, top, left, bottom, fill=self.BORDER_COLOR, width=1)
+        canvas.create_line(left, bottom, chart_width - 35, bottom, fill=self.BORDER_COLOR, width=1)
+
+        for index, (label, value, color) in enumerate(values):
+            x = left + 80 + index * (bar_width + gap)
+            bar_height = int((value / maximum) * (bottom - top - 10))
+            y = bottom - bar_height
+            canvas.create_rectangle(
+                x, y, x + bar_width, bottom, fill=color, outline=""
+            )
+            canvas.create_text(
+                x + bar_width / 2, y - 12, text=f"{value:,}",
+                fill=self.TEXT_MAIN, font=("Segoe UI", 10, "bold")
+            )
+            canvas.create_text(
+                x + bar_width / 2, bottom + 18, text=label,
+                fill=self.TEXT_MUTED, font=("Segoe UI", 10, "bold")
+            )
 
 
 # ==========================================
