@@ -6,7 +6,6 @@ class RTSPVideoGrabber:
     def __init__(self, target_fps, src=0):
         self.src = src
         self.target_fps = target_fps
-        # คำนวณช่วงเวลาห่างระหว่างเฟรม (เช่น 15 FPS = 0.066 วินาที/เฟรม)
         self.frame_interval = 1.0 / target_fps if target_fps > 0 else 0
         self.cap = cv2.VideoCapture(src)
         # ตั้งค่า Buffer Size ให้เล็กที่สุดเพื่อลด Latency
@@ -17,6 +16,7 @@ class RTSPVideoGrabber:
         self.running = True
         self.lock = threading.Lock() # ป้องกัน Race Condition
         self.last_read_time = 0
+        self.last_capture_time = time.monotonic()
         
         # เริ่ม Thread อ่านกล้องเบื้องหลัง
         self.thread = threading.Thread(target=self._update, daemon=True)
@@ -28,13 +28,16 @@ class RTSPVideoGrabber:
             if self.cap.isOpened():
                 ret, frame = self.cap.read()
                 if ret:
-                    with self.lock:
-                        self.ret = ret
-                        self.frame = frame
+                    now = time.monotonic()
+                    if self.frame_interval == 0 or now - self.last_capture_time >= self.frame_interval:
+                        with self.lock:
+                            self.ret = ret
+                            self.frame = frame
+                        self.last_capture_time = now
                 else:
                     break
-            # ให้ CPU ได้พักเล็กน้อย ไม่ให้รัน 100%
-            time.sleep(0.001)
+            # Avoid busy-spinning and keep capture work aligned with processing FPS.
+            time.sleep(min(self.frame_interval or 0.01, 0.01))
 
     def read(self):
         """Main Thread: ดึงเฟรมไป Detect โดยคุมความเร็ว FPS ตาม target_fps"""

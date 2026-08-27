@@ -43,6 +43,12 @@ from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 
+# Keep CPU workloads bounded on mini PCs and avoid thread oversubscription.
+CPU_THREADS = max(1, min(4, (os.cpu_count() or 2) - 1))
+os.environ.setdefault("OMP_NUM_THREADS", str(CPU_THREADS))
+torch.set_num_threads(CPU_THREADS)
+cv2.setNumThreads(1)
+
 HEARTBEAT_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "heartbeat.txt")
 SELECTED_CAMERA_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "selected_camera.txt")
 
@@ -216,7 +222,7 @@ if len(roi.mark_points) > 0:
                                             )
 model = YOLO(os.path.join(PROJECT_ROOT, 'yolo26n-pose_openvino_model'), task='pose')
 
-s = ShowPredict(df.SKIP_FRAMES, model)
+s = ShowPredict(df.SKIP_FRAMES, model, imgsz=640)
 
 
 cap = RTSPVideoGrabber(df.fps, source)
@@ -299,9 +305,6 @@ while not display_stop_event.is_set():
         zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
         frame = zoomed_frame
 
-    s.searchKeypoint(frame)
-    s.current_frame_poses = [] 
-    s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
 
     
@@ -323,8 +326,7 @@ while not display_stop_event.is_set():
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
 
-    # search_key = s.searchKeypoint()
-    s.current_frame_poses, s.current_frame_ids =  s.searchKeypoint(frame)
+    s.current_frame_poses, s.current_frame_ids = s.searchKeypoint(frame)
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
     # ใช้ set ของ ID แทน boolean ทั่วทั้งเฟรม เพื่อรองรับหลายคนที่อยู่ใน ROI พร้อมกัน

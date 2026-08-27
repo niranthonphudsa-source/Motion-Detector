@@ -29,6 +29,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
+try:
+    from LIB.train_gui import TrainGUI
+except ModuleNotFoundError:
+    from train_gui import TrainGUI
 # ─── 📁 คลาสหน้าต่างสำหรับจัดการวิดีโอ (Video Manager Window) ───
 class VideoFolderManagerWindow:
     def __init__(self, parent, folder_path, title_name):
@@ -291,7 +295,7 @@ class ConfigGUI:
             unique_models = ["pose_classifier_1.pkl"]
         return sorted(unique_models)
 
-    def open_train_studio(self, selected_model_file):
+    def _legacy_open_train_studio(self, selected_model_file):
         BG_COLOR = "#F8FAFC"
         PANEL_COLOR = "#FFFFFF"
         BORDER_COLOR = "#E2E8F0"
@@ -433,6 +437,19 @@ class ConfigGUI:
             cursor="hand2"
         )
         btn_train.pack(pady=15)
+
+    def open_train_studio(self, selected_model_file=None):
+        """เปิดหน้าเทรนโมเดลหลักจาก LIB/train_gui.py"""
+        train_win = tk.Toplevel(self.root)
+        train_win.transient(self.root)
+        try:
+            TrainGUI(
+                train_win,
+                config_path=os.path.join(PROJECT_ROOT, "setting", "config.yml"),
+            )
+        except Exception:
+            train_win.destroy()
+            raise
 
     def connect_data_base(self):
         pass

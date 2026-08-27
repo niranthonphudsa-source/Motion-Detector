@@ -1,12 +1,12 @@
 import numpy as np
 import torch
-from sklearn.linear_model import LinearRegression
 
 class ShowPredict():
-    def __init__(self, SKIP_FRAMES, model):
+    def __init__(self, SKIP_FRAMES, model, imgsz=640):
         self.frame = None
         self.model = model
-        self.skip_frame = SKIP_FRAMES
+        self.skip_frame = max(1, int(SKIP_FRAMES))
+        self.imgsz = imgsz
         self.pose_history = {}
         self.frame_count = 0
         self.p_id = 0
@@ -43,21 +43,22 @@ class ShowPredict():
         for self.p_id in active_ids:
             history = pose_history[self.p_id]
             if len(history) >= 2 and (frame_count - history[-1][0]) < (skip_frames * 2):
-                X_train = np.array([item[0] for item in history]).reshape(-1, 1)
-                predicted_kp = np.zeros((17, 2))
+                previous_frame, previous_points = history[-2]
+                latest_frame, latest_points = history[-1]
+                frame_delta = latest_frame - previous_frame
+                predicted_kp = latest_points.copy()
 
-                for kp_idx in range(17):
-                    y_train_x = np.array([item[1][kp_idx][0] for item in history])
-                    y_train_y = np.array([item[1][kp_idx][1] for item in history])
-
-                    if np.any(y_train_x > 0):
-                        reg_x = LinearRegression().fit(X_train, y_train_x)
-                        pred_x = reg_x.predict(np.array([[frame_count]]))[0]
-
-                        reg_y = LinearRegression().fit(X_train, y_train_y)
-                        pred_y = reg_y.predict(np.array([[frame_count]]))[0]
-
-                        predicted_kp[kp_idx] = [pred_x, pred_y]
+                if frame_delta > 0:
+                    extrapolation = (frame_count - latest_frame) / frame_delta
+                    valid_points = np.any(
+                        np.asarray([previous_points, latest_points]) > 0,
+                        axis=0,
+                    )
+                    predicted_kp[valid_points] = (
+                        latest_points[valid_points]
+                        + (latest_points[valid_points] - previous_points[valid_points])
+                        * extrapolation
+                    )
 
                 self.predicted_people_kp.append(predicted_kp)
                 self.predicted_people_ids.append(self.p_id)
@@ -83,7 +84,8 @@ class ShowPredict():
                 verbose=False,
                 device='cpu',
                 iou=0.6,           
-                tracker="bytetrack.yaml"
+                tracker="bytetrack.yaml",
+                imgsz=self.imgsz
             )
             self.update_pose_history(predict_frame)   
 

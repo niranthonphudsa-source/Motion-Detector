@@ -2,6 +2,7 @@ import numpy as np
 import time
 import cv2
 import run_start.default_config_var as df
+import videoWrite
 
 
 # ============================================================
@@ -676,13 +677,11 @@ class RecordVedioDetect:
                 f"{current_time_str}.mp4"
             )
 
-            self.state_writer = (
-                cv2.VideoWriter(
-                    self.state_videoFrame,
-                    self.fourcc,
-                    df.save_video_per_frame,
-                    (self.w, self.h)
-                )
+            self.state_writer = videoWrite.AsyncVideoWriter(
+                self.state_videoFrame,
+                self.fourcc,
+                df.save_video_per_frame,
+                (self.w, self.h),
             )
 
             print(
