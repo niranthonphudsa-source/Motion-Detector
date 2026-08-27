@@ -165,8 +165,8 @@ cameras:
     - 961
     - 1019
     save_data: true
-    save_ng: false
-    save_ok: false
+    save_ng: true
+    save_ok: true
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 876
@@ -214,7 +214,7 @@ cameras:
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: pose_dataset_label.csv
-  default_camera_id: Camera_1
+  default_camera_id: Camera_6
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full

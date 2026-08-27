@@ -464,6 +464,7 @@ while not display_stop_event.is_set():
         current_frame_active_ids, 
         save_ok=save_ok_flag, 
         save_ng=save_ng_flag,
+        save_data=save_data_flag,
         # stats_db=stats_db,                # 👈 ส่งตัวบันทึกข้อมูลลง DB
         camera_id=active_camera_id        # 👈 ระบุ ID กล้อง
     )
