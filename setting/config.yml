@@ -165,8 +165,8 @@ cameras:
     - 961
     - 1019
     save_data: true
-    save_ng: true
-    save_ok: true
+    save_ng: false
+    save_ok: false
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 876
@@ -207,14 +207,32 @@ cameras:
       Size_y: 1080
     Type: Video
     enabled: false
+    mark_points:
+    - - 553
+      - 707
+    - - 1134
+      - 707
+    - - 1208
+      - 827
+    - - 602
+      - 840
+    - - 558
+      - 810
+    point_zoom: null
+    reverse_point:
+    - 918
+    - 1040
     save_data: true
     save_ng: false
     save_ok: false
     source: ../../ProjectDetection/recordings/VideoTrain_20260817_153543.mp4
+    start_point:
+    - 859
+    - 756
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: pose_dataset_label.csv
-  default_camera_id: Camera_6
+  default_camera_id: Camera_1
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full

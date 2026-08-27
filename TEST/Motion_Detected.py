@@ -29,7 +29,7 @@ while True:
 
     h, w = frame.shape[:2]
     # frame = cv2.resize(frame, (640, 540))
-    results = model.predict(source=frame, conf=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', verbose=False)
+    results = model.predict(source=frame, imgsz=320, conf=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', verbose=False)
     
     for result in results:
         if result.keypoints is not None:

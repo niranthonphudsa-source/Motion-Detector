@@ -206,7 +206,7 @@ class DisplayGui:
     def update_fps_text(self):
         """ฟังก์ชันอัปเดตข้อความลง StringVar"""
         self.fps_text_var.set(
-            f"Mode: {self.current_mode} fps_limit: {self.fps}  fps_per_sec: {self.fps_sec}"
+            f"fps_per_sec: {self.fps_sec}"
         )
 
     def showMode(self, current_mode, fps, fps_sec):
@@ -215,7 +215,7 @@ class DisplayGui:
         self.fps = fps
         self.fps_sec = fps_sec
         self.update_fps_text()
-        print(f"Mode: {self.current_mode}, Limit: {self.fps}, FPS: {self.fps_sec}")
+        print(f"FPS: {self.fps_sec}")
 
     def getSource(self, source):
         self.source = source

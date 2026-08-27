@@ -181,16 +181,14 @@ class UserStateManager:
         save_ok,
         save_ng,
         save_data,
-        stats_db=None,
         camera_id="Camera_1",
     ):
         self.save_ok = save_ok
         self.save_ng = save_ng
-        self.save_data = save_data
         current_time = time.time()
 
         for active_id, active_state in list(self.user_states.items()):
-            
+
             # ตรวจสอบคนที่อยู่ในช่วงนับถอยหลังปิดไฟล์
             if (
                 active_state["is_terminating"]
@@ -274,39 +272,18 @@ class UserStateManager:
                                     f"❌ [ERROR] ลบไฟล์ชั่วคราวไม่สำเร็จ: {e}"
                                 )
 
-                if self.save_data:
-                    elapsed_time = (
-                        current_time - active_state["termination_start_time"]
-                    )
-                    remaining = max(0.0, self.buffer_output_time - elapsed_time)
-
-                    current_sec = int(elapsed_time)
-                    if current_sec != active_state.get("last_logged_sec", -1):
-                        active_state["last_logged_sec"] = current_sec
-                        print(
-                            f"⏳ ID {active_id} กำลังนับถอยหลัง.. เหลืออีก {remaining:.1f} วินาที"
-                        )
-
-                    # 🏁 เมื่อครบเวลาบันทึกแถมพอดี -> ปิดวิดีโอ ย้ายไฟล์ และบันทึก Log
-                    if elapsed_time >= self.buffer_output_time:
-                        # 1. คืนทรัพยากร VideoWriter
-                        if active_state["writer"] is not None:
-                            active_state["writer"].release()
-                            active_state["writer"] = None
-                            print(
-                                f"🛑 นับถอยหลังครบ {self.buffer_output_time} วินาทีแล้ว  ID {active_id}"
-                            )
                     final_status = active_state["confirm"]
                     data = (active_id, camera_id, final_status)
-
+                    
                     def safe_insert_data(cfg, *d_args):
                         try:
-                            
-                            TableViewerWindow.insert_data(cfg, *d_args, self.save_data)
+                            save_data = df.save_data_flag
+                            TableViewerWindow.insert_data(cfg, *d_args, save_data)
                         except Exception as e:
                             print(
                                 f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
                             )
+
                     db_thread = threading.Thread(
                         target=safe_insert_data,
                         args=(config_data, *data),
