@@ -4,6 +4,14 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import pyodbc
 from tkcalendar import DateEntry
+import re
+
+
+def quote_table_name(table_name):
+    table_name = str(table_name or "").strip()
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+        raise ValueError("ชื่อ table ต้องประกอบด้วยตัวอักษร ตัวเลข หรือ _ เท่านั้น")
+    return f"[dbo].[{table_name}]"
 
 
 # ==========================================
@@ -66,6 +74,8 @@ class SSTableViewerGUI:
                 "ไม่พบไฟล์ db_config.json กรุณาตั้งค่าการเชื่อมต่อในหน้า Config ก่อน",
             )
             return
+
+        self.table_name = self.config_data.get("table_name", "Tb_Check_Pose")
 
         self._setup_custom_styles()
         self._build_ui()
@@ -419,7 +429,7 @@ class SSTableViewerGUI:
             conn = self._get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT DISTINCT camera_id FROM [Tb_Check_Pose] WHERE camera_id IS NOT NULL"
+                f"SELECT DISTINCT camera_id FROM {quote_table_name(self.table_name)} WHERE camera_id IS NOT NULL"
             )
             cams = [str(row[0]) for row in cursor.fetchall()]
             conn.close()
@@ -432,7 +442,7 @@ class SSTableViewerGUI:
             self.cmb_camera.current(0)
 
     def _fetch_table_data(self):
-        selected_table = "Tb_Check_Pose"
+        selected_table = quote_table_name(self.table_name)
         selected_cam = self.cmb_camera.get()
         selected_status = self.status_var.get()
         start_date, end_date = self.get_date_range()
@@ -441,7 +451,7 @@ class SSTableViewerGUI:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            query = f"SELECT TOP 500 * FROM [{selected_table}] WHERE 1=1"
+            query = f"SELECT TOP 500 * FROM {selected_table} WHERE 1=1"
             params = []
 
             if selected_cam and selected_cam != "ทั้งหมด":
@@ -562,17 +572,18 @@ class SSTableViewerGUI:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("SELECT COUNT(*) FROM [Tb_Check_Pose]")
+            table_name = quote_table_name(self.table_name)
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
             total_checks = cursor.fetchone()[0] or 0
 
             cursor.execute(
-                "SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'OK'"
+                f"SELECT COUNT(*) FROM {table_name} WHERE status_pose = 'OK'"
             )
             row_ok = cursor.fetchone()
             total_ok = row_ok[0] if row_ok else 0
 
             cursor.execute(
-                "SELECT COUNT(*) FROM [Tb_Check_Pose] WHERE status_pose = 'NG'"
+                f"SELECT COUNT(*) FROM {table_name} WHERE status_pose = 'NG'"
             )
             row_ng = cursor.fetchone()
             total_ng = row_ng[0] if row_ng else 0
@@ -723,11 +734,11 @@ class CheckLastID:
         return pyodbc.connect(conn_str, timeout=5)
 
     def get_last_id(self):
-        selected_table = "Tb_Check_Pose"
+        selected_table = quote_table_name(self.config_data.get("table_name", "Tb_Check_Pose"))
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
-            query = f"SELECT MAX(user_id) FROM [{selected_table}]"
+            query = f"SELECT MAX(user_id) FROM {selected_table}"
             cursor.execute(query)
             row = cursor.fetchone()
             conn.close()

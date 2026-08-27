@@ -424,7 +424,7 @@ while not display_stop_event.is_set():
 
         # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
         if not people_in_rectangle and state["was_inside_last_frame"] :
-            if state["writer"] is not None and not state["is_terminating"]:
+            if (state["writer"] is not None or save_data_flag) and not state["is_terminating"]:
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
                 print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")

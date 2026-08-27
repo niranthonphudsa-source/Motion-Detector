@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import pyodbc
 import sys
+import re
 
 # บังคับให้ค้นหาโฟลเดอร์ปัจจุบันก่อนลำดับแรกสุด
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +29,8 @@ class ConfigManager:
             "auth_type": "Windows Authentication",
             "username": "",
             "password": "",
-            "driver": "ODBC Driver 17 for SQL Server"
+            "driver": "ODBC Driver 17 for SQL Server",
+            "table_name": "Tb_Check_Pose"
         }
 
     def load_config(self):
@@ -164,8 +166,11 @@ class TableViewerWindow(tk.Toplevel):
             f"📥 [Inserting] User ID: {user_id} | Camera ID: {camera_id} | Status: {status_pose}"
         )
         conn = None
-        # if save_data:
         try:
+            table_name = config_data.get("table_name", "Tb_Check_Pose").strip()
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+                raise ValueError("ชื่อ table ต้องประกอบด้วยตัวอักษร ตัวเลข หรือ _ เท่านั้น")
+
             server = config_data.get("server")
             database = config_data.get("database")
             username = config_data.get("username")
@@ -188,9 +193,9 @@ class TableViewerWindow(tk.Toplevel):
 
             # ⚠️ หมายเหตุ: หากคอลัมน์ใน DB ชื่อ 'status' ให้เปลี่ยน status_pose ใน Query ด้านล่างเป็น status
             query = """
-                INSERT INTO dbo.Tb_Check_Pose (user_id, camera_id, status_pose, date_time) 
+                INSERT INTO dbo.[%s] (user_id, camera_id, status_pose, date_time) 
                 VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))
-            """
+            """ % table_name
 
             # แปลง Type อย่างปลอดภัย
             try:
@@ -209,8 +214,6 @@ class TableViewerWindow(tk.Toplevel):
         finally:
             if conn:
                 conn.close()
-        # else:
-        #     print(f"✅ [No Save Status To Database] User ID: {user_id}!")
             
     def _fetch_table_data(self):
         selected_table = self.cmb_tables.get()
@@ -251,7 +254,7 @@ class SSMSConnectGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("SSMS Database Connection Setup")
-        self.root.geometry("460x450")
+        self.root.geometry("460x495")
         self.root.resizable(False, False)
 
         self.config_mgr = ConfigManager()
@@ -296,30 +299,34 @@ class SSMSConnectGUI:
         self.ent_database = ttk.Entry(panel)
         self.ent_database.grid(row=1, column=1, sticky="ew", pady=6, padx=(10, 0))
 
+        tk.Label(panel, text="Table Name:", font=("Segoe UI", 9, "bold"), bg=self.PANEL_COLOR).grid(row=2, column=0, sticky="w", pady=6)
+        self.ent_table = ttk.Entry(panel)
+        self.ent_table.grid(row=2, column=1, sticky="ew", pady=6, padx=(10, 0))
+
         # 3. Auth
-        tk.Label(panel, text="Authentication:", font=("Segoe UI", 9, "bold"), bg=self.PANEL_COLOR).grid(row=2, column=0, sticky="w", pady=6)
+        tk.Label(panel, text="Authentication:", font=("Segoe UI", 9, "bold"), bg=self.PANEL_COLOR).grid(row=3, column=0, sticky="w", pady=6)
         self.cmb_auth = ttk.Combobox(panel, values=["Windows Authentication", "SQL Server Authentication"], state="readonly")
-        self.cmb_auth.grid(row=2, column=1, sticky="ew", pady=6, padx=(10, 0))
+        self.cmb_auth.grid(row=3, column=1, sticky="ew", pady=6, padx=(10, 0))
         self.cmb_auth.bind("<<ComboboxSelected>>", lambda e: self._toggle_auth_fields())
 
         # 4. User
-        tk.Label(panel, text="Username:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=3, column=0, sticky="w", pady=6)
+        tk.Label(panel, text="Username:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=4, column=0, sticky="w", pady=6)
         self.ent_user = ttk.Entry(panel)
-        self.ent_user.grid(row=3, column=1, sticky="ew", pady=6, padx=(10, 0))
+        self.ent_user.grid(row=4, column=1, sticky="ew", pady=6, padx=(10, 0))
 
         # 5. Pass
-        tk.Label(panel, text="Password:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=4, column=0, sticky="w", pady=6)
+        tk.Label(panel, text="Password:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=5, column=0, sticky="w", pady=6)
         self.ent_pass = ttk.Entry(panel, show="•")
-        self.ent_pass.grid(row=4, column=1, sticky="ew", pady=6, padx=(10, 0))
+        self.ent_pass.grid(row=5, column=1, sticky="ew", pady=6, padx=(10, 0))
 
         # 6. Driver
-        tk.Label(panel, text="ODBC Driver:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=5, column=0, sticky="w", pady=6)
+        tk.Label(panel, text="ODBC Driver:", font=("Segoe UI", 9), bg=self.PANEL_COLOR).grid(row=6, column=0, sticky="w", pady=6)
         self.cmb_driver = ttk.Combobox(
             panel, 
             values=["ODBC Driver 17 for SQL Server", "ODBC Driver 18 for SQL Server", "SQL Server"], 
             state="readonly"
         )
-        self.cmb_driver.grid(row=5, column=1, sticky="ew", pady=6, padx=(10, 0))
+        self.cmb_driver.grid(row=6, column=1, sticky="ew", pady=6, padx=(10, 0))
 
         # Buttons
         btn_frame = tk.Frame(self.root, bg=self.BG_COLOR)
@@ -334,6 +341,7 @@ class SSMSConnectGUI:
     def _load_values_to_ui(self):
         self.ent_server.insert(0, self.config_data.get("server", ""))
         self.ent_database.insert(0, self.config_data.get("database", ""))
+        self.ent_table.insert(0, self.config_data.get("table_name", "Tb_Check_Pose"))
         self.cmb_auth.set(self.config_data.get("auth_type", "Windows Authentication"))
         self.ent_user.insert(0, self.config_data.get("username", ""))
         self.ent_pass.insert(0, self.config_data.get("password", ""))
@@ -351,6 +359,7 @@ class SSMSConnectGUI:
         return {
             "server": self.ent_server.get().strip(),
             "database": self.ent_database.get().strip(),
+            "table_name": self.ent_table.get().strip(),
             "auth_type": self.cmb_auth.get(),
             "username": self.ent_user.get().strip(),
             "password": self.ent_pass.get().strip(),
