@@ -6,8 +6,8 @@ import cv2
 # ตั้งค่ากล้องและการบันทึก
 # ---------------------------------------------------------
 CAM_INDEX = 0  # 0 คือกล้อง Default (Webcam)
-FRAME_WIDTH = 1280  # ความกว้างภาพ (1280x720 = HD)
-FRAME_HEIGHT = 720  # ความสูงภาพ
+FRAME_WIDTH = 1920  # ความกว้างภาพ (1280x720 = HD)
+FRAME_HEIGHT = 1080  # ความสูงภาพ
 
 # สร้างโฟลเดอร์สำหรับเก็บวิดีโอหากยังไม่มี
 output_dir = r"../../ProjectDetection/recordings"

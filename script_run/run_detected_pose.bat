@@ -6,42 +6,57 @@ cd..
 
 call venv\Scripts\activate.bat
 
+echo.
+echo ===================================================
+echo [2/3] Starting Time Logger in Background...
+echo ===================================================
+:: รัน logger.py ในหน้าต่างเบื้องหลัง/แยกหน้าต่าง โดยไม่หยุดรอ
+start "Time Logger" /min python main\display_error_reset.py
+
+
+
+echo "Start Pose Detect"
 python main\main.py
+
+:: เมื่อปิด main.py ให้ปิดหน้าต่าง logger.py ตามไปด้วยอัตโนมัติ
+taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1
 
 pause
 
 
 @REM @echo off
 @REM setlocal
-@REM :: 1. เปลี่ยน Code Page ให้รองรับภาษาไทย / UTF-8
-@REM chcp 65001 > nul
+@REM chcp 65001 > nul 
 
 
-@REM cd /d "%~dp0"
-@REM :: ออกจาก Script_Run
-@REM cd ..
 @REM REM ==================================================
 @REM REM กำหนด path ของโปรเจกต์
 @REM REM ==================================================
+@REM cd /d  "%~dp0"
+@REM cd ..
 @REM set "PROJECT_DIR=%CD%"
 @REM set "SCRIPT_DIR=%PROJECT_DIR%\main"
 @REM set "SCRIPT_FILE=%SCRIPT_DIR%\main.py"
 
+
 @REM REM ==================================================
 @REM REM ใช้ Python จาก .venv1
 @REM REM ==================================================
-@REM set "PYTHON_EXE=%SCRIPT_FILE%"
+@REM set "PYTHON_EXE=%PROJECT_DIR%\venv\Scripts\python.exe"
 
 @REM REM ==================================================
 @REM REM เพิ่ม path สำหรับ import module
+@REM REM - root project
+@REM REM - โฟลเดอร์ 00_setting
 @REM REM ==================================================
-@REM set "PYTHONPATH=%PROJECT_DIR%\setting\config.yaml;%PYTHONPATH%"
+@REM set "PYTHONPATH=%PROJECT_DIR%\setting\config.yml%PYTHONPATH%"
+
 
 @REM REM ==================================================
 @REM REM ตรวจสอบไฟล์สำคัญ
 @REM REM ==================================================
 @REM if not exist "%PYTHON_EXE%" (
-@REM     echo ERROR: IS NOT Python interpreter
+@REM     echo ERROR: ไม่พบ Python interpreter
 @REM     echo %PYTHON_EXE%
 @REM     echo.
 @REM     pause
@@ -67,11 +82,15 @@ pause
 @REM echo ==========================================
 @REM echo.
 
+@REM REM ==================================================
+@REM REM เข้าโฟลเดอร์ script ก่อนรัน
+@REM REM ==================================================
+@REM cd /d "%SCRIPT_DIR%"
 
 @REM REM ==================================================
 @REM REM รันโปรแกรม
 @REM REM ==================================================
-@REM python "%PYTHON_EXE%" main\main.py
+@REM "%PYTHON_EXE%" main.py
 
 @REM REM ==================================================
 @REM REM แสดง exit code

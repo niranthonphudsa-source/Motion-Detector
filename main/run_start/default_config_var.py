@@ -18,6 +18,7 @@ camera = app_config.camera
 source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
+save_data_flag = app_config.save_data_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
 
@@ -26,9 +27,9 @@ check = CheckLastID()
 lastID = check.get_last_id()
 # print(lastID)
 check_pose = ["Right", "Left", "Front"]
-ok_display_time = 3.0
+ok_display_time = 5.0
 SKIP_FRAMES = 2
-predicted_label = "None"
+predicted_label = None
 confidence = 0.0
 any_people_inside = False
 
@@ -36,9 +37,15 @@ strat_y = 0
 start_y = 0
 reverse_point = None
 simulated_key = -1 
+<<<<<<< HEAD
 fps = 15
 frame_count = 0
 save_video_per_frame = 15.0
+=======
+fps = 30
+save_video_per_frame = float(fps)
+keypoint_conf = 0
+>>>>>>> test-checkout-comit
 # lastID = SSTableViewerGUI._getLastID()
 
 SKELETON_CONNECTIONS = [

@@ -14,10 +14,14 @@ import callback_command.callback_command as clb
 import show_mode_inDisplay as show_m
 import csv
 import datetime
+import videoWrite
+import queue
+import torch
+
 
 from app.data_viewer_gui import CheckLastID
 from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, RecordVedioDetect
-from search_keypoint import SearchKeypoint
+# from search_keypoint import SearchKeypoint
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.user_manager import UserStateManager  
@@ -39,12 +43,12 @@ camera = app_config.camera
 source = app_config.source
 save_ok_flag = app_config.save_ok_flag
 save_ng_flag = app_config.save_ng_flag
+save_data_flag = app_config.save_data_flag
 model_sklearn = app_config.model_sklearn
 type = app_config.type
-
 df.simulated_key
 def reload_config_callback(new_camera_id, updated_config=None):
-    global save_ok_flag, save_ng_flag, config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
+    global save_ok_flag, save_ng_flag, save_data_flag,config, active_camera_id, camera, cap, window_name, roi, model_sklearn, pose_classifier, type, delay
     
     if updated_config:
         config = updated_config
@@ -81,8 +85,8 @@ def reload_config_callback(new_camera_id, updated_config=None):
         print(f"cam_reverse: {cam_reverse}")
         new_source = camera["source"]
         cap = RTSPVideoGrabber(df.fps, new_source)
-        print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 
+   
         # ป้องกัน AttributeError ด้วยการเรียก stop() หรือ release() แบบปลอดภัย
         if old_cap:
             if hasattr(old_cap, 'stop'):
@@ -108,16 +112,17 @@ def reload_config_callback(new_camera_id, updated_config=None):
     cam_data = config["cameras"].get(active_camera_id, {})
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
+    save_data_flag = cam_data.get("save_data", True)
     
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Model={model_sklearn}")
-    return cam_data, save_ok_flag, save_ng_flag
+    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag},Model={model_sklearn}")
+    return cam_data, save_ok_flag, save_ng_flag, save_data_flag
 
 
 # ─── ตั้งค่าเริ่มต้นและโหลดโมดูลตรวจจับ ───
 roi = ROIHandler()
 # show_status = ShowStatusPose()
 window_name = f"Mode Control ROI - {active_camera_id}"
-s = ShowPredict()
+
 # movement = Check_direction_of_Movement()
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL) 
 cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -143,10 +148,12 @@ if len(roi.mark_points) > 0:
                                                 cam_reverse, 
                                                 point_zoom
                                             )
-model = YOLO('yolo26n-pose.pt')
+model = YOLO('yolo26n-pose_openvino_model/', task='pose')
+
+s = ShowPredict(df.SKIP_FRAMES, model)
+
 
 cap = RTSPVideoGrabber(df.fps, source)
-print(f"[RTSP] FPS ของ source: {cap.target_fps:.2f} FPS")
 zoom_tool = AdvancedZoomArea(zoom_factor=2)
 
 
@@ -172,13 +179,15 @@ type = camera.get("Type", None)
 cam_reverse = camera.get("reverse_point", (0, 0))
 reverse_y = 0
 
+
 # ─── เริ่มต้นลูปประมวลผลวิดีโอ ───
 while True:
+
     ret, frame = cap.read()
     if not ret:     
         break
         # continue
-    # frame = cv2.resize(frame, (640, 640))
+    frame = cv2.resize(frame, (2560, 1440))
     h, w = frame.shape[:2]
     # 🌟 อัปเดต Frame ล่าสุดเข้าตัวแปรแชร์ (ควร copy() เพื่อป้องกัน Thread Race Condition)
     latest_frame = frame.copy()
@@ -186,6 +195,7 @@ while True:
         zoomed_frame = zoom_tool.apply(frame, center_pt=roi.point_zoom)
         frame = zoomed_frame
 
+    s.searchKeypoint(frame)
     s.current_frame_poses = [] 
     s.current_frame_ids = [] 
     num_pts = len(roi.mark_points)
@@ -209,11 +219,12 @@ while True:
     # --- ส่วนที่ 1: หาพิกัด Keypoints ---
     # สิ่งที่ต้องส่งเข้า search_keypoint(s.frame_count, SKIP_FRAMES, model)
 
-    search_key = SearchKeypoint(df.SKIP_FRAMES, frame, model, s.frame_count)
-    s.current_frame_poses, s.current_frame_ids =  search_key.searchKeypoint()
+    # search_key = s.searchKeypoint()
+    s.current_frame_poses, s.current_frame_ids =  s.searchKeypoint(frame)
 
     # --- ส่วนที่ 2: ตรรกะประมวลผลแยกบุคคล ---
-    df.any_people_inside = False
+    # ใช้ set ของ ID แทน boolean ทั่วทั้งเฟรม เพื่อรองรับหลายคนที่อยู่ใน ROI พร้อมกัน
+    inside_roi_ids = set()
     current_frame_active_ids = set(s.current_frame_ids)
 
     for point_pose, s.p_id in zip(s.current_frame_poses, s.current_frame_ids):
@@ -259,15 +270,16 @@ while True:
         person_dir['first_touch'], person_dir['is_reverse'] = movement.checkMovement(frame)
 
         # print(len(w))
-        cv2.line(frame, (0, foot_y), (w, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
+        # cv2.line(frame, (0, foot_y), (w, foot_y), (0, 255, 255), 1, cv2.LINE_AA)
         # ถ้ายังไม่มีการระบุว่าเข้าจุดไหนก่อน ให้คำนวณระยะทางสัมผัสจุด (รัศมี 50px)
         if person_dir['is_reverse']:
             continue
 
         # ตรวจสอบคนอยู่ในกรอบที่กำหนดไว้
         checkInRoi = CheckPeopleInRoi(frame, roi.mark_points, point_pose)
-        people_in_rectangle, df.any_people_inside = checkInRoi.checkPeopleInRoi()
-
+        people_in_rectangle, _ = checkInRoi.checkPeopleInRoi()
+        if people_in_rectangle:
+            inside_roi_ids.add(s.p_id)
 
         if people_in_rectangle and (save_ok_flag != False or save_ng_flag != False): 
             recordVideo = RecordVedioDetect(
@@ -283,20 +295,20 @@ while True:
 
 
         # ─── 📍 จุดที่ 1: ตรรกะเมื่ออยู่ใน ROI (เข้าจุดเช็ก) ───
-        cw_inRectangle = Check_where_inRectangle(                            
-                                                people_in_rectangle,
-                                                state["is_terminating"], 
-                                                state["termination_start_time"], 
-                                                state["is_ok_holding"], 
-                                                state["confirm"],
-                                                state["valaus_last"], 
-                                                state["ok_start_time"],
-                                                point_pose,
-                                                s.p_id,
-                                                pose_classifier,
-                                                df.check_pose,
-                                        )
-
+        cw_inRectangle = Check_where_inRectangle(
+                                    people_in_rectangle,
+                                    state["is_terminating"],
+                                    state["termination_start_time"],
+                                    state["is_ok_holding"],
+                                    state["confirm"],
+                                    state["valaus_last"],
+                                    state["ok_start_time"],
+                                    point_pose,
+                                    s.p_id,
+                                    pose_classifier,
+                                    df.check_pose,
+                                    df.keypoint_conf
+                                    )
         (confidence, state["is_terminating"], 
             state["termination_start_time"], 
             state["is_ok_holding"], 
@@ -341,6 +353,8 @@ while True:
         if state["writer"] is not None:
             state["writer"].write(frame)
 
+    df.any_people_inside = bool(inside_roi_ids)
+
     # ─── 📍 จุดที่ 4: จัดการคนหลุดเฟรม / นับถอยหลังปิดวิดีโอ (วางไว้นอก for-loop บุคคล) ───
     manager.handle_lost_people(
         current_frame_active_ids, 
@@ -355,6 +369,11 @@ while True:
     for tid in active_ids_list:
         if tid not in current_frame_active_ids and tid not in manager.user_states:
             del direction_tracker[tid]
+
+    active_ids_list_history = list(s.pose_history.keys())
+    for tid in active_ids_list_history:
+        if tid not in current_frame_active_ids and tid not in manager.user_states:
+            del s.pose_history[tid]
 
     last_x = w
     if reverse_y is not None:
@@ -373,6 +392,7 @@ while True:
     # เรนเดอร์ภาพออกหน้าจอหลัก
     cv2.imshow(window_name, frame)
     s.frame_count += 1 
+
     # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง

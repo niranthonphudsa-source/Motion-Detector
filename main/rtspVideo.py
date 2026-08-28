@@ -1,6 +1,7 @@
 import cv2
 import time
 
+<<<<<<< HEAD
 
 class RTSPVideoGrabber:
     def __init__(self, target_fps=30, src=0):
@@ -19,6 +20,41 @@ class RTSPVideoGrabber:
         self.target_fps = float(source_fps)
         self.frame_interval = 1.0 / self.target_fps
         self.last_read_time = time.perf_counter()
+=======
+class RTSPVideoGrabber:
+    def __init__(self, target_fps, src=0):
+        self.src = src
+        self.target_fps = target_fps
+        # คำนวณช่วงเวลาห่างระหว่างเฟรม (เช่น 15 FPS = 0.066 วินาที/เฟรม)
+        self.frame_interval = 1.0 / target_fps if target_fps > 0 else 0
+        self.cap = cv2.VideoCapture(src)
+        # ตั้งค่า Buffer Size ให้เล็กที่สุดเพื่อลด Latency
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        self.ret, self.frame = self.cap.read()
+        self.frame = cv2.resize(self.frame, (2560, 1440))
+        self.running = True
+        self.lock = threading.Lock() # ป้องกัน Race Condition
+        self.last_read_time = 0
+        
+        # เริ่ม Thread อ่านกล้องเบื้องหลัง
+        self.thread = threading.Thread(target=self._update, daemon=True)
+        self.thread.start()
+
+    def _update(self):
+        """Thread เบื้องหลัง: มีหน้าที่เคลียร์ Buffer และเก็บเฟรมล่าสุดตลอดเวลา"""
+        while self.running:
+            if self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                    with self.lock:
+                        self.ret = ret
+                        self.frame = frame
+                else:
+                    break
+            # ให้ CPU ได้พักเล็กน้อย ไม่ให้รัน 100%
+            time.sleep(0.001)
+>>>>>>> test-checkout-comit
 
     def read(self):
         """อ่านเฟรมตาม FPS จริงของ source เพื่อไม่ให้เล่นเร็วเกินเวลา"""
@@ -44,8 +80,14 @@ class RTSPVideoGrabber:
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     rtsp_url = 0
     app = RTSPVideoGrabber(src=rtsp_url, target_fps=15)
+=======
+    # กำหนด target_fps=15 เพื่อจำกัดการดึงภาพไป Detect ที่ 15 FPS
+    rtsp_url = 0  # หรือใส่ "rtsp://admin:password@192.168.1.xxx:554/..."
+    app = RTSPVideoGrabber(src=rtsp_url, target_fps=60)
+>>>>>>> test-checkout-comit
 
     try:
         while True:

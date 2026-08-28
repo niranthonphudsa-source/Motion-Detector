@@ -14,7 +14,9 @@ class ConfigEditorGui:
         self.name_cam = None
         self.source_cam = None
         self.type_cam = None
-
+        self.loadCameras = None
+        self.save_config = None
+        
         with open(self.config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
