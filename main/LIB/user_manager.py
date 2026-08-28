@@ -1,11 +1,14 @@
 import os
+import re
 import shutil
 import time
 import cv2
 import numpy as np
+import pyodbc
 from app.app import TableViewerWindow, ConfigManager
 import json
 import threading
+import queue
 import run_start.default_config_var as df
 import csv
 import shutil
@@ -24,7 +27,124 @@ def load_data():
     else:
         print("File Not Found")
         return None
+
+
 config_data = load_data()
+
+
+class BatchDBWriter:
+    def __init__(self, config_data, batch_size=50, flush_interval=2.0):
+        self.config_data = config_data or {}
+        self.batch_size = batch_size
+        self.flush_interval = flush_interval
+        self.queue = queue.Queue()
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._worker, daemon=True)
+        self.thread.start()
+        self._last_event_key = {}
+
+    def update_config(self, config_data):
+        self.config_data = config_data or {}
+
+    def _get_connection(self):
+        server = self.config_data.get("server")
+        database = self.config_data.get("database")
+        driver = self.config_data.get("driver", "ODBC Driver 17 for SQL Server")
+        auth_type = self.config_data.get("auth_type")
+        username = self.config_data.get("username")
+        password = self.config_data.get("password")
+
+        if auth_type == "Windows Authentication":
+            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};Trusted_Connection=yes;"
+        else:
+            conn_str = f"DRIVER={{{driver}}};SERVER={server};DATABASE={database};UID={username};PWD={password};"
+
+        if "18" in driver:
+            conn_str += "TrustServerCertificate=yes;"
+
+        return pyodbc.connect(conn_str, timeout=10)
+
+    def enqueue(self, user_id, camera_id, status_pose):
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            return
+
+        key = (user_id, str(camera_id))
+        if self._last_event_key.get(key) == str(status_pose):
+            return
+
+        self._last_event_key[key] = str(status_pose)
+        self.queue.put((user_id, str(camera_id), str(status_pose)))
+
+    def _flush_batch(self, batch):
+        if not batch:
+            return
+
+        table_name = self.config_data.get("table_name", "Tb_Check_Pose").strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+            raise ValueError("ชื่อ table ต้องประกอบด้วยตัวอักษร ตัวเลข หรือ _ เท่านั้น")
+
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            sql = f"""
+                INSERT INTO dbo.[{table_name}] (user_id, camera_id, status_pose, date_time)
+                VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))
+            """
+            cursor.executemany(sql, batch)
+            conn.commit()
+            print(f"✅ [DB Batch Success] {len(batch)} rows inserted")
+        except Exception as e:
+            print(f"⚠️ [DB Batch Error] insert batch ล้มเหลว: {e}")
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def _worker(self):
+        batch = []
+        last_flush = time.monotonic()
+
+        while not self.stop_event.is_set():
+            try:
+                item = self.queue.get(timeout=0.5)
+                batch.append(item)
+                self.queue.task_done()
+
+                if len(batch) >= self.batch_size:
+                    self._flush_batch(batch)
+                    batch.clear()
+                    last_flush = time.monotonic()
+            except queue.Empty:
+                if batch and (time.monotonic() - last_flush) >= self.flush_interval:
+                    self._flush_batch(batch)
+                    batch.clear()
+                    last_flush = time.monotonic()
+
+        if batch:
+            self._flush_batch(batch)
+
+    def stop(self):
+        self.stop_event.set()
+        self.thread.join(timeout=5)
+
+
+_db_batch_writer = None
+
+
+def get_db_batch_writer(config_data=None):
+    global _db_batch_writer
+    if config_data is not None:
+        if _db_batch_writer is None:
+            _db_batch_writer = BatchDBWriter(config_data)
+        else:
+            _db_batch_writer.update_config(config_data)
+    elif _db_batch_writer is None:
+        _db_batch_writer = BatchDBWriter(config_data or load_data())
+    return _db_batch_writer
+
 
 class UserStateManager:
 
@@ -274,22 +394,13 @@ class UserStateManager:
 
                     final_status = active_state["confirm"]
                     data = (active_id, camera_id, final_status)
-                    
-                    def safe_insert_data(cfg, *d_args):
-                        try:
-                            save_data = df.save_data_flag
-                            TableViewerWindow.insert_data(cfg, *d_args)
-                        except Exception as e:
-                            print(
-                                f"⚠️ [DB Insert Error] ไม่สามารถเพิ่มข้อมูลลง TableViewer ได้: {e}"
-                            )
 
-                    db_thread = threading.Thread(
-                        target=safe_insert_data,
-                        args=(config_data, *data),
-                        daemon=True,
-                    )
-                    db_thread.start()
+                    try:
+                        writer = get_db_batch_writer(config_data)
+                        writer.enqueue(*data)
+                    except Exception as e:
+                        print(f"⚠️ [DB Queue Error] ไม่สามารถจัดเก็บข้อมูลเข้า queue ได้: {e}")
+
                     # 4. Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
                     active_state["video_filename"] = None
                     active_state["is_terminating"] = False
