@@ -8,22 +8,11 @@ set "PROJECT_DIR=%CD%"
 set "PYTHON_EXE=%PROJECT_DIR%\venv\Scripts\python.exe"
 set "SCRIPT_FILE=%PROJECT_DIR%\main\main.py"
 
-@REM echo.
-@REM echo ===================================================
-@REM echo [2/3] Starting Time Logger in Background...
-@REM echo ===================================================
-@REM :: รัน logger.py ในหน้าต่างเบื้องหลัง/แยกหน้าต่าง โดยไม่หยุดรอ
-@REM start "Time Logger" /min python main\display_error_reset.py
+echo "Start Pose Detect via Supervisor"
+"%PYTHON_EXE%" "%PROJECT_DIR%\main\display_error_reset.py"
 
-
-
-echo "Start Pose Detect"
-"%PYTHON_EXE%" "%SCRIPT_FILE%"
-
-:: เมื่อปิด main.py ให้ปิดหน้าต่าง logger.py ตามไปด้วยอัตโนมัติ
-@REM taskkill /FI "WINDOWTITLE eq Time Logger*" /F > nul 2>&1
-
-pause
+:: เมื่อ supervisor ปิดเองหลังจาก main.py จบตามปกติ ให้จบสคริปต์นี้ด้วย
+exit /b %ERRORLEVEL%
 
 
 @REM @echo off
