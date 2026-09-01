@@ -57,7 +57,9 @@ class ShowStatusPose():
                 cv2.putText(frame, line_text, (self.text_x + 40, current_y + 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_state3, 1, 3)
 
             elif "STATUS" in line_text:
-                cv2.putText(frame, line_text, (self.text_x + 40, current_y + 80), cv2.FONT_HERSHEY_SIMPLEX, 1, self.status_color, 2)
-            
+                # แสดงสถานะไว้เหนือหัวของคนคนนั้น โดยใช้ตำแหน่งศีรษะที่เคยคำนวณไว้
+                cv2.putText(frame, line_text, (self.text_x + 10, self.text_y_start - 10), cv2.FONT_HERSHEY_SIMPLEX, 2, self.status_color, 2)
+            elif "ID" in line_text:
+                cv2.putText(frame, line_text, (self.text_x - 50, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, 3)
             else:
                 cv2.putText(frame, line_text, (self.text_x - 50, current_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, 3)

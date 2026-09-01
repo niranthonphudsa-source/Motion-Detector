@@ -113,10 +113,18 @@ class VideoFolderManagerWindow:
             return
 
         valid_extensions = ('.avi', '.mp4', '.mkv', '.mov', '.webm')
-        files = [f for f in os.listdir(self.folder_path) if f.lower().endswith(valid_extensions)]
+        files = []
+        for f in os.listdir(self.folder_path):
+            if f.lower().endswith(valid_extensions):
+                full_path = os.path.join(self.folder_path, f)
+                try:
+                    stat = os.stat(full_path)
+                    files.append((f, full_path, stat.st_mtime))
+                except Exception:
+                    continue
 
-        for f in sorted(files, reverse=True):  # เรียงไฟล์ใหม่สุดขึ้นก่อน
-            full_path = os.path.join(self.folder_path, f)
+        # เรียงจากไฟล์ที่บันทึกล่าสุดก่อน (mtime มากสุดขึ้นก่อน)
+        for f, full_path, _ in sorted(files, key=lambda x: x[2], reverse=True):
             try:
                 stat = os.stat(full_path)
                 size_mb = f"{stat.st_size / (1024 * 1024):.2f} MB"
