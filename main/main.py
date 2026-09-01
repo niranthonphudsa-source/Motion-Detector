@@ -42,6 +42,7 @@ from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
+from esp32_ng_controller import ESP32SerialController, NGThresholdController
 
 # Keep CPU workloads bounded on mini PCs and avoid thread oversubscription.
 CPU_THREADS = max(1, min(4, (os.cpu_count() or 2) - 1))
@@ -170,8 +171,10 @@ def reload_config_callback(new_camera_id, updated_config=None):
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
     save_data_flag = cam_data.get("save_data", True)
+    ng_threshold_controller.set_threshold(int(cam_data.get("ng_trigger_count", 10)))
+    manager.ng_threshold_controller = ng_threshold_controller
     
-    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag},Model={model_sklearn}")
+    print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag}, NGTrigger={ng_threshold_controller.threshold},Model={model_sklearn}")
     return cam_data, save_ok_flag, save_ng_flag, save_data_flag
 
 
@@ -252,6 +255,19 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_time=2.0, max_distance=80, buffer_output_time=5)
 
 direction_tracker = {}
+ng_threshold_controller = NGThresholdController(threshold=app_config.ng_trigger_count)
+manager.ng_threshold_controller = ng_threshold_controller
+
+def handle_ng_threshold_trigger():
+    try:
+        esp32_controller = ESP32SerialController()
+        esp32_controller.send_command("CMD_NG")
+        print(f"🚨 [ESP32 NG Trigger] NG ครบ {ng_threshold_controller.threshold} คนแล้ว ส่งสัญญาณไป ESP32")
+    except Exception as e:
+        print(f"⚠️ [ESP32 NG Trigger Error] {e}")
+
+ng_threshold_controller.on_trigger = handle_ng_threshold_trigger
+
 model_sklearn = resolve_classifier_path(model_sklearn, config)
 if not model_sklearn:
     raise FileNotFoundError("ไม่พบ classifier model ใน config.yml หรือโฟลเดอร์ model")

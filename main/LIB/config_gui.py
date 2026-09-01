@@ -631,6 +631,7 @@ class ConfigGUI:
         self.var_ok = tk.BooleanVar()
         self.var_ng = tk.BooleanVar()
         self.save_database = tk.BooleanVar()
+        self.ng_trigger_var = tk.IntVar(value=10)
 
         self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ OK (video_ok)", variable=self.var_ok)
         self.chk_ok.pack(anchor="w", pady=2)
@@ -641,12 +642,19 @@ class ConfigGUI:
         self.chk_save_data = ttk.Checkbutton(c_save, text="บันทึกสถานะลง Database", variable=self.save_database)
         self.chk_save_data.pack(anchor="w", pady=2)
 
+        ng_trigger_frame = tk.Frame(c_save, bg=PANEL_COLOR)
+        ng_trigger_frame.pack(fill="x", pady=(4, 0))
+        tk.Label(ng_trigger_frame, text="ไฟ ESP32 ติดเมื่อ NG ครบ:", fg=TEXT_MAIN, bg=PANEL_COLOR, font=("Segoe UI", 9)).pack(side="left")
+        ttk.Entry(ng_trigger_frame, textvariable=self.ng_trigger_var, width=8).pack(side="left", padx=(6, 0))
+        tk.Label(ng_trigger_frame, text="คน", fg=TEXT_MUTED, bg=PANEL_COLOR, font=("Segoe UI", 9)).pack(side="left", padx=(4, 0))
+
         def on_camera_select(event=None):
             cam_id = self.cam_var.get()
             cam_data = self.config.get("cameras", {}).get(cam_id, {})
             self.var_ok.set(cam_data.get("save_ok", True))
             self.var_ng.set(cam_data.get("save_ng", True))
             self.save_database.set(cam_data.get("save_data", True))
+            self.ng_trigger_var.set(int(cam_data.get("ng_trigger_count", 10)))
 
         self.cb_camera.bind("<<ComboboxSelected>>", on_camera_select)
         if camera_list: 
@@ -856,6 +864,7 @@ class ConfigGUI:
                 self.config["cameras"][cam_id]["save_ok"] = self.var_ok.get()
                 self.config["cameras"][cam_id]["save_ng"] = self.var_ng.get()
                 self.config["cameras"][cam_id]["save_data"] = self.save_database.get()
+                self.config["cameras"][cam_id]["ng_trigger_count"] = max(1, int(self.ng_trigger_var.get()))
 
                 if "global" not in self.config or not isinstance(self.config["global"], dict):
                     self.config["global"] = {}

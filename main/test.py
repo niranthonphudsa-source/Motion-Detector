@@ -4,7 +4,16 @@ import numpy as np
 import yaml
 import tkinter as tk
 from PIL import Image, ImageTk
-from ..delete.multi_cam_helper import MultiCameraManager
+
+try:
+    from ..delete.multi_cam_helper import MultiCameraManager
+except ImportError:
+    import sys
+    from pathlib import Path
+    project_root = Path(__file__).resolve().parents[1]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    from delete.multi_cam_helper import MultiCameraManager
 
 # ─── 1. ตัวอย่างไฟล์การตั้งค่า (Config Mockup) ───
 config_data = {
@@ -102,8 +111,86 @@ class MultiCamApp:
         self.cam_manager.release_all()
         self.root.destroy()
 
+# ─── 🧪 ทดสอบ ESP32 Serial แบบง่าย ๆ ───
+
+def run_esp32_serial_test():
+    """ทดสอบว่า ESP32 รับข้อความจาก Serial จริงหรือไม่"""
+    try:
+        import serial
+        import serial.tools.list_ports
+    except Exception as e:
+        print("❌ ต้องติดตั้ง pyserial ก่อนทดสอบ:")
+        print("   pip install pyserial")
+        print(f"   Error: {e}")
+        return
+
+    ports = [port.device for port in serial.tools.list_ports.comports()]
+    if not ports:
+        print("⚠️ ไม่พบพอร์ต COM ที่เชื่อมต่อกับ ESP32")
+        print("   1) ตรวจว่า ESP32 ต่อเข้ากับคอมแล้ว")
+        print("   2) เปิด Arduino IDE -> Tools -> Port เพื่อดูชื่อ COM")
+        return
+
+    print("📋 พอร์ตที่พบ:")
+    for i, port in enumerate(ports, start=1):
+        print(f"   {i}. {port}")
+
+    port_choice = input(f"เลือกพอร์ต [1-{len(ports)}]: ").strip()
+    try:
+        idx = int(port_choice) - 1
+        selected_port = ports[idx]
+    except Exception:
+        selected_port = ports[0]
+        print(f"ใช้พอร์ตเริ่มต้น: {selected_port}")
+
+    print("\n🧪 เริ่มทดสอบ ESP32 Serial")
+    print("หมายเหตุ: ทุกคำสั่งต้องมี \n (newline) เพื่อ ESP32 อ่านได้")
+
+    try:
+        ser = serial.Serial(selected_port, 115200, timeout=1)
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        print(f"✅ เปิดพอร์ต {selected_port} สำเร็จ")
+    except Exception as e:
+        print(f"❌ เปิดพอร์ต {selected_port} ไม่ได้: {e}")
+        return
+
+    commands = [
+        ("CONNECT_DETECT", "connect detect success"),
+        ("CMD_OK", "ESP32 Status: OK Active"),
+        ("CMD_NG", "ESP32 Status: NG Active"),
+        ("CMD_CHECK_START", "ESP32 Status: Person Detected - Buzzer Active!"),
+        ("CMD_RESET", "ESP32 Status: Reset All Outputs"),
+    ]
+
+    for cmd, expected in commands:
+        print(f"\n➡️ ส่ง: {cmd}")
+        input("กด Enter เพื่อส่งคำสั่งต่อไป... ")
+        ser.write((cmd + "\n").encode("utf-8"))
+        ser.flush()
+
+        time.sleep(0.5)
+        try:
+            line = ser.readline().decode("utf-8", errors="ignore").strip()
+            if line:
+                print(f"📥 ESP32 ตอบกลับ: {line}")
+            else:
+                print("⚠️ ESP32 ไม่ตอบกลับภายใน 1 วินาที")
+        except Exception as e:
+            print(f"❌ อ่านผลลัพธ์ไม่ได้: {e}")
+
+    ser.close()
+    print("\n✅ เสร็จสิ้นการทดสอบ ESP32")
+
+
 # ─── 🚀 สั่งรันแอปพลิเคชัน ───
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = MultiCamApp(root, config_data)
-    root.mainloop()
+    import sys
+    import time
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--esp32-test":
+        run_esp32_serial_test()
+    else:
+        root = tk.Tk()
+        app = MultiCamApp(root, config_data)
+        root.mainloop()

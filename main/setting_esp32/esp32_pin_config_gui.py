@@ -296,6 +296,7 @@ class ESP32PinConfigGUI:
 
         # ส่งโปรโตคอลตั้งค่า Pin ทันทีเมื่อต่อพอร์ตสำเร็จ
         self.send_pin_setup_to_esp32()
+        self.send_raw("CONNECT_DETECT\n")
       except Exception as e:
         messagebox.showerror("Connection Error", f"ไม่สามารถเชื่อมต่อได้: {e}")
 

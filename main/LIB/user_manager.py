@@ -168,6 +168,7 @@ class UserStateManager:
         self.buffer_output_time = buffer_output_time
         self.save_ng = save_ng  # 🌟 รับค่าเริ่มต้นการเซฟ NG
         self.save_ok = save_ok  # 🌟 รับค่าเริ่มต้นการเซฟ OK
+        self.ng_threshold_controller = None
         self.user_id = None
         self.camera_id = None
         self.status_pose = None
@@ -393,6 +394,9 @@ class UserStateManager:
                                 )
 
                     final_status = active_state["confirm"]
+                    if final_status != "OK" and self.ng_threshold_controller is not None:
+                        self.ng_threshold_controller.register_ng()
+
                     data = (active_id, camera_id, final_status)
 
                     try:

@@ -16,6 +16,7 @@ class AppConfig:
         self.save_ok_flag = False
         self.save_ng_flag = False
         self.save_data_flag = False
+        self.ng_trigger_count = 10
         self.model_sklearn = ""
         self.type = None
         self.reverse_point = None
@@ -57,6 +58,7 @@ class AppConfig:
         self.save_ok_flag = self.camera.get("save_ok", False)
         self.save_ng_flag = self.camera.get("save_ng", False)
         self.save_data_flag = self.camera.get("save_data", False)
+        self.ng_trigger_count = int(self.camera.get("ng_trigger_count", 10))
         # โหลดโมเดล AI
         model_path = self.config.get("model", {}).get("Model_path_1", {})
         self.model_sklearn = model_path.get("source", "")

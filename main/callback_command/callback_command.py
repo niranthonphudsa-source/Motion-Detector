@@ -9,8 +9,6 @@ from rtspVideo import RTSPVideoGrabber
 from app.app import SSMSConnectGUI, TableViewerWindow
 # from app.data_viewer_gui import SSTableViewerGUI
 from LIB.help_gui import HelpGUI
-from setting_esp32.setting_esp32 import PinConfigGUI
-from setting_esp32 import esp32_pin_config_gui
 from LIB.config_loader_start import AppConfig
 from LIB.roi_handler import ROIHandler
 from LIB.stats_gui import StatsGUI, StatsManager
@@ -86,8 +84,9 @@ def apply_pin_config_to_mcu(config_data):
 # 🔴 แก้ไข: เปิด PinConfigGUI แบบ Threading ไม่ให้บล็อก OpenCV
 def open_pin_config_window():
     def run_gui():
-        app = PinConfigGUI(on_save_callback=apply_pin_config_to_mcu)
-        app.run()
+        esp_root = tk.Tk()
+        app = esp32_pin_config_gui.ESP32PinConfigGUI(esp_root)
+        esp_root.mainloop()
 
     gui_thread = threading.Thread(target=run_gui, daemon=True)
     gui_thread.start()

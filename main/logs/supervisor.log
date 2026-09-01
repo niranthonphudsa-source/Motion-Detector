@@ -604,3 +604,29 @@
 [2026-09-01 11:38:55] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
 [2026-09-01 11:44:25] main.py stopped. Exit code = 0
 [2026-09-01 11:44:25] main.py ended normally. Supervisor stopped.
+[2026-09-01 11:53:47] Supervisor started.
+[2026-09-01 11:53:47] Old heartbeat file removed.
+[2026-09-01 11:53:47] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 11:53:57] Waiting for main.py to initialize and create heartbeat...
+[2026-09-01 12:00:17] main.py stopped. Exit code = 0
+[2026-09-01 12:00:17] main.py ended normally. Supervisor stopped.
+[2026-09-01 12:39:26] Supervisor started.
+[2026-09-01 12:39:26] Old heartbeat file removed.
+[2026-09-01 12:39:26] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 12:39:36] Waiting for main.py to initialize and create heartbeat...
+[2026-09-01 12:39:46] Waiting for main.py to initialize and create heartbeat...
+[2026-09-01 12:50:16] main.py stopped. Exit code = 0
+[2026-09-01 12:50:16] main.py ended normally. Supervisor stopped.
+[2026-09-01 12:51:18] Supervisor started.
+[2026-09-01 12:51:18] Old heartbeat file removed.
+[2026-09-01 12:51:18] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 12:55:38] main.py stopped. Exit code = 0
+[2026-09-01 12:55:38] main.py ended normally. Supervisor stopped.
+[2026-09-01 12:56:17] Supervisor started.
+[2026-09-01 12:56:17] Old heartbeat file removed.
+[2026-09-01 12:56:17] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:11:37] main.py stopped. Exit code = 0
+[2026-09-01 13:11:37] main.py ended normally. Supervisor stopped.
+[2026-09-01 13:11:39] Supervisor started.
+[2026-09-01 13:11:39] Old heartbeat file removed.
+[2026-09-01 13:11:39] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
