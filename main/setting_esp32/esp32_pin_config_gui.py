@@ -23,7 +23,7 @@ class ESP32PinConfigGUI:
 
     # Serial Object
     self.ser = None
-    self.config_filename = "esp32_pin_config.json"
+    self.config_filename = os.path.join(os.path.dirname(__file__), "esp32_pin_config.json")
 
     # Default Pin Configuration (ขาสัญญาณเริ่มต้น)
     self.pins_config = {
@@ -291,8 +291,13 @@ class ESP32PinConfigGUI:
         return
       try:
         self.ser = serial.Serial(port, int(baud), timeout=1)
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         self.btn_connect.config(text="🛑 Disconnect", bg="#EF4444")
         self.log(f"✅ เชื่อมต่อสำเร็จที่ {port} (Baud: {baud})")
+
+        # บันทึกพอร์ตและ baud ลงไฟล์ config เพื่อให้โปรแกรมหลักใช้ได้
+        self.save_runtime_port_config(port, int(baud))
 
         # ส่งโปรโตคอลตั้งค่า Pin ทันทีเมื่อต่อพอร์ตสำเร็จ
         self.send_pin_setup_to_esp32()
@@ -300,13 +305,24 @@ class ESP32PinConfigGUI:
       except Exception as e:
         messagebox.showerror("Connection Error", f"ไม่สามารถเชื่อมต่อได้: {e}")
 
+  def save_runtime_port_config(self, port, baud):
+    config_data = {"PORT": port, "BAUD": baud}
+    config_data.update(self.pins_config)
+    try:
+      with open(self.config_filename, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, indent=4)
+    except Exception:
+      pass
+
   def save_pin_config(self):
     for key, entry in self.pin_entries.items():
       self.pins_config[key] = entry.get().strip()
 
     try:
-      with open(self.config_filename, "w") as f:
-        json.dump(self.pins_config, f, indent=4)
+      config_data = {"PORT": self.cb_ports.get(), "BAUD": int(self.cb_baud.get())}
+      config_data.update(self.pins_config)
+      with open(self.config_filename, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, indent=4)
       self.log("💾 บันทึกค่า Pin ลงไฟล์เรียบร้อยแล้ว")
       messagebox.showinfo("Success", "บันทึกการตั้งค่า Pin เรียบร้อยแล้ว")
 
@@ -319,9 +335,14 @@ class ESP32PinConfigGUI:
   def load_config(self):
     if os.path.exists(self.config_filename):
       try:
-        with open(self.config_filename, "r") as f:
+        with open(self.config_filename, "r", encoding="utf-8") as f:
           data = json.load(f)
-          self.pins_config.update(data)
+        if "PORT" in data:
+          self.cb_ports = None
+        for key, value in data.items():
+          if key in {"PORT", "BAUD", "port", "baud", "baudrate"}:
+            continue
+          self.pins_config[key] = str(value)
       except Exception:
         pass
 

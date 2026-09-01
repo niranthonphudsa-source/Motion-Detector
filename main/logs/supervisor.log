@@ -630,3 +630,65 @@
 [2026-09-01 13:11:39] Supervisor started.
 [2026-09-01 13:11:39] Old heartbeat file removed.
 [2026-09-01 13:11:39] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:27:41] Supervisor started.
+[2026-09-01 13:27:41] Old heartbeat file removed.
+[2026-09-01 13:27:41] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:31:11] main.py stopped. Exit code = 0
+[2026-09-01 13:31:11] main.py ended normally. Supervisor stopped.
+[2026-09-01 13:35:10] Supervisor started.
+[2026-09-01 13:35:10] Old heartbeat file removed.
+[2026-09-01 13:35:10] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:39:38] Supervisor started.
+[2026-09-01 13:39:38] Old heartbeat file removed.
+[2026-09-01 13:39:38] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:43:23] Supervisor started.
+[2026-09-01 13:43:23] Old heartbeat file removed.
+[2026-09-01 13:43:23] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:57:32] Supervisor started.
+[2026-09-01 13:57:32] Old heartbeat file removed.
+[2026-09-01 13:57:32] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 13:57:42] Waiting for main.py to initialize and create heartbeat...
+[2026-09-01 13:57:52] main.py stopped. Exit code = 1
+[2026-09-01 13:57:52] Restarting in 3 seconds...
+[2026-09-01 13:57:55] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:50:12] Supervisor started.
+[2026-09-01 14:50:12] Old heartbeat file removed.
+[2026-09-01 14:50:12] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:50:55] Supervisor started.
+[2026-09-01 14:50:55] Old heartbeat file removed.
+[2026-09-01 14:50:55] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:51:05] main.py stopped. Exit code = 1
+[2026-09-01 14:51:05] Restarting in 3 seconds...
+[2026-09-01 14:51:08] Old heartbeat file removed.
+[2026-09-01 14:51:08] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:52:03] Supervisor started.
+[2026-09-01 14:52:03] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:53:03] main.py stopped. Exit code = 0
+[2026-09-01 14:53:03] main.py ended normally. Supervisor stopped.
+[2026-09-01 14:57:13] Supervisor started.
+[2026-09-01 14:57:13] Old heartbeat file removed.
+[2026-09-01 14:57:13] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:58:07] Supervisor started.
+[2026-09-01 14:58:07] Old heartbeat file removed.
+[2026-09-01 14:58:07] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 14:58:47] main.py stopped. Exit code = 0
+[2026-09-01 14:58:47] main.py ended normally. Supervisor stopped.
+[2026-09-01 14:59:28] Supervisor started.
+[2026-09-01 14:59:28] Old heartbeat file removed.
+[2026-09-01 14:59:28] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 15:00:19] main.py stopped. Exit code = 0
+[2026-09-01 15:00:19] main.py ended normally. Supervisor stopped.
+[2026-09-01 15:00:24] Supervisor started.
+[2026-09-01 15:00:24] Old heartbeat file removed.
+[2026-09-01 15:00:24] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 15:16:47] Supervisor started.
+[2026-09-01 15:16:47] Old heartbeat file removed.
+[2026-09-01 15:16:47] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 15:19:37] main.py stopped. Exit code = 0
+[2026-09-01 15:19:37] main.py ended normally. Supervisor stopped.
+[2026-09-01 15:21:40] Supervisor started.
+[2026-09-01 15:21:40] Old heartbeat file removed.
+[2026-09-01 15:21:40] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-01 15:31:16] Supervisor started.
+[2026-09-01 15:31:16] Old heartbeat file removed.
+[2026-09-01 15:31:16] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe

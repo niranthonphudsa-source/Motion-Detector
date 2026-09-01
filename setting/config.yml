@@ -7,6 +7,8 @@ cameras:
       Size_y: 1440
     Type: LIVE_STREAM
     enabled: true
+    esp32_light_enabled: true
+    esp32_reset_after_sec: 10
     mark_points:
     - - 582
       - 681
@@ -20,7 +22,7 @@ cameras:
       - 786
     - - 579
       - 770
-    ng_trigger_count: 1
+    ng_trigger_count: 3
     person_limit: 5
     point_zoom: null
     record_video: true
@@ -146,6 +148,8 @@ cameras:
       Size_y: 1080
     Type: Video
     enabled: false
+    esp32_light_enabled: true
+    esp32_reset_after_sec: 10
     mark_points:
     - - 560
       - 686
@@ -159,7 +163,7 @@ cameras:
       - 790
     - - 553
       - 779
-    ng_trigger_count: 1
+    ng_trigger_count: 5
     person_limit: 5
     point_zoom: null
     record_video: false
@@ -220,6 +224,7 @@ cameras:
       - 840
     - - 558
       - 810
+    ng_trigger_count: 1
     point_zoom: null
     reverse_point:
     - 918

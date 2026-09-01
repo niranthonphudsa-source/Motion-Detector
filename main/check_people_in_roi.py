@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import time
 import cv2
 import run_start.default_config_var as df
@@ -10,6 +11,19 @@ import videoWrite
 # ============================================================
 
 KEYPOINT_CONF_THRESHOLD = 0.30
+POSE_FEATURE_COLUMNS = [
+    column
+    for i in range(17)
+    for column in (f"x_{i}", f"y_{i}")
+]
+
+
+def to_feature_frame(feature_vector):
+    """Convert 34-D pose features to a DataFrame with the exact training column names."""
+    arr = np.asarray(feature_vector, dtype=np.float32).reshape(1, -1)
+    if arr.shape[1] != len(POSE_FEATURE_COLUMNS):
+        return None
+    return pd.DataFrame(arr, columns=POSE_FEATURE_COLUMNS)
 
 
 # ============================================================
@@ -447,15 +461,18 @@ class Check_where_inRectangle:
         # ====================================================
 
         try:
+            feature_frame = to_feature_frame(features)
+            if feature_frame is None:
+                raise ValueError(f"Feature length mismatch: expected {len(POSE_FEATURE_COLUMNS)}, got {features.shape[1]}")
 
             predicted_label = (
                 self.pose_classifier
-                .predict(features)[0]
+                .predict(feature_frame)[0]
             )
 
             probabilities = (
                 self.pose_classifier
-                .predict_proba(features)[0]
+                .predict_proba(feature_frame)[0]
             )
 
             self.confidence = float(

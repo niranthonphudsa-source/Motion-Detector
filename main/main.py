@@ -258,11 +258,29 @@ direction_tracker = {}
 ng_threshold_controller = NGThresholdController(threshold=app_config.ng_trigger_count)
 manager.ng_threshold_controller = ng_threshold_controller
 
+esp32_controller = ESP32SerialController(
+    config_filename=os.path.join(PROJECT_ROOT, "main", "setting_esp32", "esp32_pin_config.json"),
+    ng_threshold_controller=ng_threshold_controller
+)
+esp32_controller.set_light_enabled(app_config.esp32_light_enabled)
+esp32_controller.set_reset_after_sec(app_config.esp32_reset_after_sec)
+
+try:
+    connect_reply = esp32_controller.connect_detect()
+    if connect_reply:
+        print(f"✅ [ESP32] Connected: {connect_reply}")
+    else:
+        print("⚠️ [ESP32] ไม่พบการตอบกลับจาก ESP32 หรือยังไม่ได้ต่อพอร์ต")
+except Exception as e:
+    print(f"⚠️ [ESP32] connect_detect error: {e}")
+
+
 def handle_ng_threshold_trigger():
     try:
-        esp32_controller = ESP32SerialController()
-        esp32_controller.send_command("CMD_NG")
-        print(f"🚨 [ESP32 NG Trigger] NG ครบ {ng_threshold_controller.threshold} คนแล้ว ส่งสัญญาณไป ESP32")
+        esp32_controller.set_light_enabled(app_config.esp32_light_enabled)
+        esp32_controller.set_reset_after_sec(app_config.esp32_reset_after_sec)
+        result = esp32_controller.trigger_ng(status="NG")
+        print(f"[ESP32] Trigger result: {result}")
     except Exception as e:
         print(f"⚠️ [ESP32 NG Trigger Error] {e}")
 
