@@ -1,112 +1,21 @@
 # Motion Detector
 
-Motion Detector เป็นระบบตรวจจับภาพและวิเคราะห์เหตุการณ์จากกล้องหลายตัว โดยมุ่งเน้นไปที่การตรวจจับการเคลื่อนไหว/การเข้าพื้นที่/สถานะวัตถุผ่านการประมวลผลภาพและโมเดล AI การทำงานเป็นระบบแบบเรียลไทม์ พร้อมการบันทึกสถิติและจัดการข้อมูลกล้อง/ROI/การรายงานผล
+Motion Detector เป็นระบบตรวจจับความเคลื่อนไหวและสถานะคน/วัตถุแบบเรียลไทม์ โดยใช้กล้อง RTSP, webcam หรือวิดีโอเป็น Input และประยุกต์ใช้ YOLO + Pose-based inference เพื่อคัดกรองสถานะ OK / NG ภายใน ROI (Region of Interest)
 
-## ภาพรวมของโครงการ
+โครงการนี้มีลักษณะเป็นระบบตรวจจับแบบแอปพลิเคชันเดสก์ท็อปบน Python และมี GUI สำหรับตั้งค่า ROI, กล้อง, กับดักข้อมูล, Dashboard และการจัดการอุปกรณ์ต่อ ESP32
 
-โปรเจ็กต์นี้ประกอบด้วย 4 ส่วนหลัก ได้แก่
+## ภาพรวมของระบบ
 
-- กล้องและการแสดงผลแบบ real-time
-- ROI และการกำหนดพื้นที่ตรวจจับ
-- AI model / classification / detection
-- Logging, dashboard, export data และการจัดการ config
+ระบบหลักทำงานด้วยกระบวนการต่อไปนี้:
 
-โค้ดหลักอยู่ที่
+- รับสัญญาณจากกล้องหลายตัว (RTSP / Webcam / Video File)
+- ตรวจจับคนหรือวัตถุในพื้นที่ ROI ที่กำหนดไว้
+- วิเคราะห์สถานะการเคลื่อนไหวและความสัมพันธ์ระหว่างจุดสำคัญของร่างกายผ่านโมเดล pose
+- ตรวจสอบ threshold ของ OK / NG และบันทึกเหตุการณ์เมื่อเกิดสัญญาณผิดพลาด
+- เมื่อเงื่อนไข NG เกิดขึ้นและคนออกจาก ROI จะส่งคำสั่งไปยัง ESP32 หรือบอร์ดควบคุมภายนอก
+- บันทึกวิดีโอ + ข้อมูลสถิติ และสามารถเรียกดูผ่าน GUI / export ข้อมูลได้
 
-- main/main.py
-- main/LIB/
-- setting/config.yml
-- main/app/
-
-## ฟีเจอร์หลัก
-
-- ตรวจจับภาพแบบ real-time จาก RTSP / IP Camera / Webcam / Video File
-- กำหนด ROI (Region of Interest) เพื่อจำกัดพื้นที่ที่ต้องตรวจจับ
-- รองรับการตั้งค่า camera ประเภท LIVE_STREAM และ Video
-- บันทึกภาพ/วิดีโอเมื่อมีเหตุการณ์ OK หรือ NG
-- บันทึกสถิติและผลการตรวจเข้าฐานข้อมูล
-- แสดง dashboard สถิติแบบกราฟและ KPI
-- รองรับ export data เป็น Excel
-- มีส่วนสำหรับ training โมเดล AI และ export โมเดล
-- มี GUI สำหรับการตั้งค่า camera, config และการแสดงผล
-
-## เทคโนโลยีที่ใช้
-
-- Python 3.10+
-- OpenCV
-- Ultralytics YOLO
-- PyTorch
-- Tkinter (GUI)
-- PyYAML
-- pandas
-- scikit-learn
-- joblib
-- pyodbc
-- SQLite / SQL Server (ขึ้นกับการใช้งานจริง)
-- OpenVINO
-- pyserial (สำหรับ ESP32 / Serial Communication)
-
-## ลำดับการทำงานหลักของระบบ
-
-ระบบนี้ทำงานแบบ real-time ดังนี้
-
-1. โหลดกล้อง / RTSP stream / video source
-2. ตรวจจับคนหรือวัตถุใน ROI
-3. คำนวณสถานะลำดับท่าทาง / การยืนยันผล OK / NG
-4. ถ้าคนออกจาก ROI และสถานะเป็น NG ให้ส่งสัญญาณไปยัง ESP32 ทันที
-5. เริ่มนับเวลารักษาวิดีโอแถมท้ายแบบ buffer output
-6. เมื่อครบเวลาที่กำหนดแล้ว จึงปิดวิดีโอ ย้ายไฟล์ไปยัง video_ok หรือ video_ng และบันทึกสถิติ
-
-### Flow ของ NG Trigger
-
-```text
-คนเข้าพื้นที่ -> ตรวจท่าทาง -> สถานะ OK / NG
-      |                         |
-      |                         └── ถ้าเป็น NG และออกจาก ROI
-      |                               ↓
-      └────────────── ส่งคำสั่งไป ESP32: CMD_NG ───────► เสียง/ไฟเตือน
-                                                       ↓
-                                           เริ่มนับถอยหลังบันทึกแถมท้าย
-                                                       ↓
-                               เมื่อครบเวลา -> ปิดไฟล์ / ย้ายไป video_ng / บันทึก DB
-```
-
-## ESP32 Controller / GPIO I/O
-
-โปรเจ็กต์นี้มีการเชื่อมต่อกับ ESP32 เพื่อควบคุมสัญญาณภายนอก เช่น
-
-- ไฟ OK (Green LED)
-- ไฟ NG (Red LED)
-- Buzzer / เสียงเตือน
-- Reset สถานะหลังการ Trigger
-
-### ไฟล์ที่เกี่ยวข้อง
-
-- main/setting_esp32/esp32_pin_config.json
-- main/setting_esp32/esp32_pin_config_gui.py
-- esp32/esp32_controller.py
-- esp32_ng_controller.py
-
-### คำสั่งที่ใช้กับ ESP32
-
-ตัวอย่างคำสั่งที่ส่งผ่าน Serial เช่น
-
-- `CMD_OK` → เปิดสถานะ OK
-- `CMD_NG` → เปิดสถานะ NG / Trigger Error
-- `CMD_CHECK_START` → เริ่มการตรวจสอบคนอยู่ในพื้นที่
-- `CMD_RESET` → รีเซ็ตสถานะทั้งหมด
-- `CONFIG:PIN_OK=2,PIN_NG=4,PIN_BUZZER=5` → ตั้งค่าพิน GPIO ให้ ESP32
-
-### การเชื่อมต่อ ESP32
-
-1. เปิด GUI ในส่วนการตั้งค่า ESP32 หรือเรียกใช้งาน script ที่เกี่ยวข้อง
-2. เลือก COM Port และ Baud Rate ที่ตรงกัน
-3. กด Connect
-4. ระบบจะส่ง `CONNECT_DETECT` และโหลดค่า PIN จากไฟล์ config
-
-> ค่าพินและพอร์ตจะถูกบันทึกลงไฟล์ JSON เพื่อให้ระบบหลักอ่านและใช้งานต่อได้
-
-## โครงสร้างโปรเจ็กต์
+## โครงสร้างโปรเจ็กต์ที่ใช้งานจริง
 
 ```text
 Motion-Detector/
@@ -114,114 +23,190 @@ Motion-Detector/
 ├── setting/
 │   └── config.yml
 ├── main/
-│   ├── main.py
-│   ├── app/
-│   ├── LIB/
-│   ├── display/
-│   ├── callback_command/
-│   ├── logs/
-│   ├── run_start/
-│   └── utils/
+│   ├── main.py                   # จุดเริ่มต้นโปรแกรมหลัก
+│   ├── app/                     # GUI สำหรับดูข้อมูล/ตั้งค่าข้อมูล
+│   ├── callback_command/        # callback/command ของระบบ
+│   ├── display/                 # GUI แสดงผลหลัก
+│   ├── LIB/                     # โมดูลช่วยต่าง ๆ (ROI, prediction, config, stats, user manager)
+│   ├── logs/                    # ไฟล์ heartbeat, log ต่าง ๆ
+│   ├── run_start/               # default config / runtime setup
+│   ├── setting_esp32/           # GUI และ config สำหรับ ESP32
+│   ├── utils/                   # helper functions
+│   ├── yolo26n-pose_openvino_model/
+│   ├── mark_roi_polygon.py
+│   ├── rtspVideo.py
+│   ├── videoWrite.py
+│   ├── check_people_in_roi.py
+│   ├── show_status_pose.py
+│   └── ...
 ├── model/
+├── train_model/
 ├── yolo26n-pose_openvino_model/
 ├── datasets/
-├── train_model/
 ├── output_videos/
 ├── video_ok/
 ├── video_ng/
 ├── db_config.json
 ├── db_config.txt
 ├── install_library.txt
+├── esp32_ng_controller.py
 ├── pose_dataset_label.csv
-└── pose_dataset_99.4_persent copy.csv
+├── pose_dataset_99.4_persent copy.csv
+├── TEST/
+├── delete/
+└── ...
 ```
+
+> หมายเหตุ: โฟลเดอร์ `TEST/` และ `delete/` เป็นไฟล์สำหรับทดสอบ/สคริปต์เก่า อาจไม่ใช่ส่วนสำคัญของ runtime หลัก
+
+## จุดเริ่มต้นโปรแกรม
+
+โปรแกรมหลักเริ่มจาก:
+
+- `main/main.py`
+
+เมื่อรันไฟล์นี้ โปรแกรมจะทำการ:
+
+1. โหลด config จาก `setting/config.yml`
+2. ตั้งค่า camera ที่ active อยู่
+3. โหลดโมเดล YOLO Pose หรือ model classifier ที่ใช้ในระบบ
+4. ตั้งค่า ROI และ reverse point
+5. เปิดกล้อง/RTSP stream
+6. เริ่มแสดง GUI และประมวลผลภาพแบบ real-time
+
+## ฟีเจอร์หลัก
+
+- รองรับกล้องหลายตัวและหลายชนิด input
+  - RTSP stream
+  - Webcam
+  - Video file
+- ROI-based detection เพื่อจำกัดพื้นที่ตรวจจับ
+- การตรวจจับแบบ realtime ผ่าน YOLO Pose
+- ระบบนับเหตุการณ์/threshold และจัดการ OK / NG
+- บันทึกวิดีโอและข้อมูลเมื่อ trigger เกิดขึ้น
+- GUI สำหรับดูข้อมูล / ตรวจสถิติ / ตั้งค่า config
+- รองรับการทำงานร่วมกับ ESP32 เพื่อส่งสัญญาณเตือนหรือรีเซ็ต
+- สามารถ export ข้อมูลเชิงสถิติต่าง ๆ ได้
+
+## เทคโนโลยีและไลบรารีที่ใช้
+
+- Python 3.10+
+- OpenCV
+- PyTorch
+- Ultralytics YOLO
+- NumPy
+- Pandas
+- scikit-learn
+- joblib
+- PyYAML
+- Tkinter
+- PySerial
+- PyODBC
+- OpenVINO
+- SQLite / SQL Server (ตามการใช้งานจริง)
+- Matplotlib (สำหรับ dashboard / chart)
 
 ## การติดตั้ง
 
 ### 1) ติดตั้ง Python
 
-แนะนำใช้ Python 3.10.x
+แนะนำให้ใช้ Python 3.10 หรือ 3.11
 
-### 2) สร้าง virtual environment
+### 2) สร้าง Virtual Environment
 
 ```bash
 cd "path/to/Motion-Detector"
 python -m venv venv
+```
+
+บน Windows:
+
+```bash
 venv\Scripts\activate
 ```
 
 ### 3) ติดตั้งไลบรารีที่จำเป็น
 
+สามารถติดตั้งด้วยคำสั่งต่อไปนี้:
+
 ```bash
-pip install opencv-python Pillow PyYAML pyodbc
-pip install ultralytics pandas joblib pyserial
-pip install tkcalendar
+pip install opencv-python
+pip install numpy
+pip install pandas
+pip install pyyaml
+pip install ultralytics
+pip install torch
+pip install joblib
+pip install pyserial
+pip install pyodbc
 pip install scikit-learn
-pip install openvino
 pip install openpyxl
+pip install matplotlib
+pip install pillow
 ```
 
-หากต้องการติดตั้งเพิ่มเติมจากไฟล์แนะนำใน project สามารถดูได้ที่
+สำหรับคู่มือการติดตั้งเบื้องต้นใน project ยังมีไฟล์:
 
-- install_library.txt
+- `install_library.txt`
 
-## การตั้งค่า config
+> โปรดสังเกตว่าโครงการนี้มีการใช้ไลบรารีหลายตัวตามโมดูลที่ทำงานจริง หากเครื่องใช้ Windows + SQL Server อาจต้องติดตั้ง ODBC Driver เพิ่มเติมด้วย
 
-### 1) ไฟล์ config หลัก
+## การตั้งค่าโปรแกรม
 
-สำหรับการตั้งค่าทั่วไปของโปรแกรมและกล้อง ให้แก้ไขไฟล์
+### 1) การตั้งค่า Camera และ ROI
 
-- setting/config.yml
+ไฟล์ config หลักอยู่ที่:
 
-ถ้าต้องการตั้งค่ากล้อง หรือ ROI หรือค่าเช็ก state ต่าง ๆ ให้ทำผ่าน config หรือ GUI ตามโมดูลที่มีให้ใช้งาน
+- `setting/config.yml`
 
-### 2) ไฟล์ config สำหรับ ESP32
+นี่เป็นไฟล์ที่ใช้กำหนดกล้องที่ใช้งาน, source, Type, ROI, save_ok, save_ng, save_data, point_zoom และค่าต่าง ๆ ที่เกี่ยวกับการตรวจจับ
 
-ไฟล์ที่ใช้บันทึกพอร์ต Serial และพิน GPIO ของ ESP32 อยู่ที่
-
-- main/setting_esp32/esp32_pin_config.json
-
-ตัวอย่าง
-
-```json
-{
-  "PORT": "COM3",
-  "BAUD": 115200,
-  "PIN_OK": "2",
-  "PIN_NG": "4",
-  "PIN_BUZZER": "5"
-}
-```
-
-ตัวอย่างโครงสร้าง YAML ของโปรเจ็กต์
-
-โปรเจ็กต์ใช้ไฟล์ YAML เป็น config หลักที่อยู่ที่
-
-- setting/config.yml
-
-ตัวอย่างโครงสร้างที่ Project ใช้งานจริงมีข้อมูลเช่น
+ตัวอย่าง YAML:
 
 ```yaml
 cameras:
   Camera_1:
     Type: LIVE_STREAM
     enabled: true
+    source: rtsp://username:password@ip:port/...
     save_ok: false
     save_ng: false
     save_data: true
-    source: rtsp://username:password@ip:port/...
-    Display:
-      Position_x: 0
-      Position_y: 0
-      Size_x: 1920
-      Size_y: 1080
+    mark_points:
+      - [582, 681]
+      - [1148, 699]
+    start_point:
+      - 872
+      - 758
+    reverse_point:
+      - 956
+      - 1034
+    ng_trigger_count: 1
+    person_limit: 5
 ```
 
-### 2) ตัวแปร DB สำหรับการเชื่อมต่อ
+### 2) การตั้งค่า ESP32 / Serial
 
-มีไฟล์ db_config.json ที่ใช้สำหรับการเชื่อมต่อฐานข้อมูลแบบบางส่วน เช่น SQL Server หรือการใช้งาน GUI ดูข้อมูล
+โครงการมีโมดูลการตั้งค่า ESP32 ที่อยู่ใน:
 
-ตัวอย่าง
+- `main/setting_esp32/`
+- `main/setting_esp32/setting_esp32.py`
+- `main/setting_esp32/esp32_pin_config.json`
+- `main/setting_esp32/esp32_pin_config_gui.py`
+- `esp32_ng_controller.py`
+
+บางส่วนของ project ยังมีไฟล์ JSON อื่น ๆ เช่น `main/hardware_config.json` ซึ่งเป็นไฟล์เก่าหรือใช้สำหรับการทดสอบ/การตั้งค่า hardware แบบต่าง ๆ
+
+### 3) การตั้งค่าฐานข้อมูล
+
+มีไฟล์:
+
+- `db_config.json`
+- `db_config.txt`
+
+ใช้สำหรับการเชื่อมต่อฐานข้อมูลที่โปรแกรมอาจเรียกใช้ผ่าน GUI / report / export data
+
+ตัวอย่าง:
 
 ```json
 {
@@ -234,11 +219,9 @@ cameras:
 }
 ```
 
-> โปรดสังเกตว่าโครงการนี้ใช้ config.yml เป็น config หลักสำหรับกล้องและระบบตรวจจับ ส่วน db_config.json เป็น config สำหรับการเชื่อมต่อฐานข้อมูล ซึ่งอาจใช้งานร่วมกับ GUI ดูข้อมูล/รายงานต่าง ๆ
+## การติดตั้ง ODBC สำหรับ SQL Server (ถ้าจำเป็น)
 
-## การติดตั้ง ODBC สำหรับ SQL Server
-
-ใน Windows หากใช้ SQL Server Authentication และต้องการเชื่อมต่อด้วย ODBC Driver 18 ให้รันคำสั่งต่อไปนี้ใน PowerShell
+หากใช้ SQL Server Authentication บน Windows และต้องการใช้งาน `pyodbc` ร่วมกับ Driver 18 ให้รันคำสั่งนี้ใน PowerShell:
 
 ```powershell
 Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2249006" -OutFile "msodbcsql18.msi"; Start-Process msiexec.exe -ArgumentList '/i msodbcsql18.msi /qn IACCEPTMSODBCSQLLICENSETERMS=YES' -Wait; Remove-Item "msodbcsql18.msi"
@@ -246,18 +229,70 @@ Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2249006" -OutFil
 
 ## วิธีการรันโปรเจ็กต์
 
-จาก root ของโปรเจ็กต์
+จาก root ของโปรเจ็กต์:
 
 ```bash
 python main/main.py
 ```
 
-หรือติดตั้ง Environment และรันจาก venv ที่สร้างไว้ก่อนหน้า
+หรือถ้าอยู่ใน venv แล้ว:
 
 ```bash
 venv\Scripts\activate
 python main/main.py
 ```
+
+## การทำงานของระบบในเชิงลำดับ
+
+```text
+เปิดโปรแกรม
+   ↓
+โหลด config.yml
+   ↓
+เลือก Camera ปัจจุบัน
+   ↓
+โหลดโมเดลและ ROI
+   ↓
+เปิดกล้อง/RTSP
+   ↓
+ตรวจจับคน/วัตถุในพื้นที่ ROI
+   ↓
+ประเมินสถานะ OK / NG
+   ↓
+ถ้า trigger NG และออกจาก ROI => ส่งคำสั่ง ESP32 / เตือน
+   ↓
+บันทึกวิดีโอและข้อมูลสถิติ
+   ↓
+แสดงผลบน GUI / Dashboard
+```
+
+## ข้อควรระวังเมื่อใช้งาน
+
+- ตรวจสอบว่า path ของ model ถูกต้องก่อนเปิดโปรแกรม
+- หากเปิดใช้งาน RTSP ให้ตรวจสอบ username/password และ URL ให้ถูกต้อง
+- หากมีกล้องหลายตัว ให้เลือก Camera ID ที่ถูกต้องใน config หรือ GUI
+- หากไม่มี hardware ESP32 ให้ลดส่วนที่เกี่ยวกับ serial หรือปิดการใช้งานออกได้
+- ไฟล์ใน `TEST/` และ `delete/` ไม่ใช่ส่วนหลักของระบบและใช้สำหรับการทดลองเท่านั้น
+
+## การแก้ไขหรือปรับแต่งต่อ
+
+หากต้องการปรับแต่งฟังก์ชันหลัก เช่น ROI, threshold, กล้อง, model path, หรือ logic ของ NG trigger สามารถแก้ไขได้ที่:
+
+- `setting/config.yml`
+- `main/main.py`
+- `main/LIB/config_loader_start.py`
+- `main/LIB/roi_handler.py`
+- `main/check_people_in_roi.py`
+- `main/setting_esp32/`
+
+## สรุป
+
+โครงการนี้เป็นระบบตรวจจับความเคลื่อนไหวและสถานะด้านความปลอดภัยตามบริเวณ ROI ที่กำหนดไว้ ซึ่งใช้ภาพจากกล้องจริงและโมเดล YOLO/pose เป็นข้อมูลเชิงวิเคราะห์ การทำงานมีความซับซ้อนและจำเป็นต้องกำหนด config ให้ถูกต้องก่อนใช้งานจริง
+
+ถ้าต้องการ ผมสามารถช่วยต่อได้อีก 2 แบบได้ทันที:
+
+1. ปรับ README ให้เป็นเวอร์ชันภาษาอังกฤษแบบโปรเจ็กต์สาธารณะ
+2. สร้าง `requirements.txt` ให้ตรงกับ library ที่โปรเจ็กต์นี้ใช้งานจริง
 
 หรือถ้าต้องการเปิดเฉพาะ GUI / ส่วนที่เกี่ยวกับการตั้งค่า camera สามารถเรียกใช้งานตามโมดูลใน main/LIB เช่น
 
