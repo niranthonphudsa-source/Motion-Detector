@@ -163,14 +163,14 @@ cameras:
       - 790
     - - 553
       - 779
-    ng_trigger_count: 5
+    ng_trigger_count: 3
     person_limit: 5
     point_zoom: null
     record_video: false
     reverse_point:
     - 961
     - 1019
-    save_data: true
+    save_data: false
     save_ng: false
     save_ok: false
     source: ../video_model/videoTrain3.mp4
