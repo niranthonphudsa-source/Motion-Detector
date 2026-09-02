@@ -692,3 +692,11 @@
 [2026-09-01 15:31:16] Supervisor started.
 [2026-09-01 15:31:16] Old heartbeat file removed.
 [2026-09-01 15:31:16] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-02 16:45:01] Supervisor started.
+[2026-09-02 16:45:01] Old heartbeat file removed.
+[2026-09-02 16:45:01] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
+[2026-09-02 16:45:11] Waiting for main.py to initialize and create heartbeat...
+[2026-09-02 16:45:21] Waiting for main.py to initialize and create heartbeat...
+[2026-09-02 16:47:46] Supervisor started.
+[2026-09-02 16:47:46] Old heartbeat file removed.
+[2026-09-02 16:47:46] Starting main.py with: C:\Users\Niran_t\Desktop\file_work\ProjectDetection\Motion-Detector\venv\Scripts\python.exe
