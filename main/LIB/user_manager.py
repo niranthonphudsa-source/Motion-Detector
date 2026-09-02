@@ -224,6 +224,7 @@ class UserStateManager:
                 "is_terminating": False,
                 "termination_start_time": None,
                 "last_logged_sec": -1,
+                "ng_trigger_sent": False,
             }
         return self.user_states[current_id]
 
@@ -394,7 +395,12 @@ class UserStateManager:
                                 )
 
                     final_status = active_state["confirm"]
-                    if final_status != "OK" and self.ng_threshold_controller is not None:
+                    if (
+                        final_status != "OK"
+                        and self.ng_threshold_controller is not None
+                        and not active_state.get("ng_trigger_sent", False)
+                    ):
+                        active_state["ng_trigger_sent"] = True
                         self.ng_threshold_controller.register_ng()
 
                     data = (active_id, camera_id, final_status)
@@ -410,6 +416,7 @@ class UserStateManager:
                     active_state["is_terminating"] = False
                     active_state["termination_start_time"] = None
                     active_state["last_logged_sec"] = -1
+                    active_state["ng_trigger_sent"] = False
                     if active_state["confirm"] != "OK":
                         active_state["valaus_last"] = []
 

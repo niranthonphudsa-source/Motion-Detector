@@ -457,10 +457,15 @@ while not display_stop_event.is_set():
             state["ok_start_time"]
         ) = cw_inRectangle.check_where_inRectangle(frame, w, h, manager)
 
-
-        # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (เริ่มนับถอยหลัง อัดวิดีโอแถม) ───
+        # ─── 📍 จุดที่ 2: ตรรกะเมื่อเดินออกจากจุดเช็ก (ส่งคำสั่งทันที แล้วเริ่มนับถอยหลังอัดแถม) ───
         if not people_in_rectangle and state["was_inside_last_frame"] :
             if (state["writer"] is not None or save_data_flag) and not state["is_terminating"]:
+                if state["confirm"] != "OK" and not state.get("ng_trigger_sent", False):
+                    state["ng_trigger_sent"] = True
+                    if manager.ng_threshold_controller is not None:
+                        manager.ng_threshold_controller.register_ng()
+                        print(f"🚨 [Exit ROI Trigger] ID={s.p_id} left ROI -> send NG and start countdown")
+
                 state["is_terminating"] = True
                 state["termination_start_time"] = time.time()
                 print(f"⏱️ ID {s.p_id} เดินออกจากจุดเช็ค -> เริ่มนับถอยหลังอัดแถมอีก {manager.buffer_output_time} วินาที...")
