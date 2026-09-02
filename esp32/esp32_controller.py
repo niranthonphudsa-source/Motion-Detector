@@ -1,19 +1,22 @@
 #include <Arduino.h>
 
 // ตัวแปรเก็บขา GPIO แบบ Dynamic
-int PIN_OK = 2;
-int PIN_NG = 4;
+int PIN_OK = 4;
+int PIN_NG = 2;
 int PIN_BUZZER = 5;
 
-// ตัวแปร Flag สำหรับ NG Lock Mode
-// เมื่อ NG_LOCKED = true จะไม่ยอมให้เปลี่ยนสถานะเว้นแต่ได้ CMD_RESET
-bool NG_LOCKED = false;
+// ตัวแปรควบคุมการกระพริบไฟแบบ Non-blocking (millis)
+enum DeviceState { STATE_IDLE, STATE_OK, STATE_NG, STATE_CHECKING };
+DeviceState currentState = STATE_IDLE;
+
+unsigned long lastBlinkTime = 0;
+const long blinkInterval = 300; // ความเร็วในการกระพริบไฟ (ms)
 
 void resetOutputs() {
   digitalWrite(PIN_OK, LOW);
   digitalWrite(PIN_NG, LOW);
   digitalWrite(PIN_BUZZER, LOW);
-  NG_LOCKED = false;
+  currentState = STATE_IDLE;
 }
 
 void applyPinModes() {
@@ -67,13 +70,12 @@ void setup() {
 }
 
 void loop() {
+  // --- Part 1: อ่าน Serial Command จาก Python/Mini PC ---
   if (Serial.available() > 0) {
     String input = Serial.readStringUntil('\n');
     input.trim();
 
-    if (input.length() == 0) {
-      return;
-    }
+    if (input.length() == 0) return;
 
     if (input.startsWith("CONFIG:")) {
       parsePinConfig(input);
@@ -82,38 +84,42 @@ void loop() {
       Serial.println("connect detect success");
     }
     else if (input == "CMD_OK") {
-      // ถ้า NG_LOCKED = true จะไม่ให้เปลี่ยนสถานะ
-      if (NG_LOCKED) {
-        Serial.println("ESP32 Status: NG Locked - Ignoring CMD_OK");
-      } else {
-        digitalWrite(PIN_OK, HIGH);
-        digitalWrite(PIN_NG, LOW);
-        digitalWrite(PIN_BUZZER, LOW);
-        Serial.println("ESP32 Status: OK Active");
-      }
+      resetOutputs();
+      currentState = STATE_OK; // สั่งกระพริบ PIN_OK
+      Serial.println("ESP32 Status: OK Blinking Started");
     }
     else if (input == "CMD_NG") {
-      // ตั้ง NG_LOCKED = true เพื่อให้ไฟ NG คงติดจนกว่าจะได้ CMD_RESET
-      NG_LOCKED = true;
-      digitalWrite(PIN_OK, LOW);
-      digitalWrite(PIN_NG, HIGH);
-      digitalWrite(PIN_BUZZER, LOW);
-      Serial.println("ESP32 Status: NG Active (Locked until CMD_RESET)");
+      resetOutputs();
+      currentState = STATE_NG; // สั่งกระพริบ PIN_NG
+      Serial.println("ESP32 Status: NG Blinking Started");
     }
     else if (input == "CMD_CHECK_START") {
-      // ถ้า NG_LOCKED = true จะไม่ให้เปลี่ยนสถานะ
-      if (NG_LOCKED) {
-        Serial.println("ESP32 Status: NG Locked - Ignoring CMD_CHECK_START");
-      } else {
-        digitalWrite(PIN_OK, LOW);
-        digitalWrite(PIN_NG, LOW);
-        digitalWrite(PIN_BUZZER, HIGH);
-        Serial.println("ESP32 Status: Person Detected - Buzzer Active!");
-      }
+      resetOutputs();
+      currentState = STATE_CHECKING;
+      digitalWrite(PIN_BUZZER, HIGH); // สั่ง Buzzer ดังค้างตอนเจอคน
+      Serial.println("ESP32 Status: Person Detected - Buzzer Active!");
     }
     else if (input == "CMD_RESET") {
       resetOutputs();
-      Serial.println("ESP32 Status: Reset All Outputs (NG Unlocked)");
+      Serial.println("ESP32 Status: Reset All Outputs");
+    }
+  }
+
+  // --- Part 2: จัดการการกระพริบไฟตาม State (Non-blocking Timer) ---
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - lastBlinkTime >= blinkInterval) {
+    lastBlinkTime = currentMillis;
+
+    if (currentState == STATE_OK) {
+      digitalWrite(PIN_OK, !digitalRead(PIN_OK)); // สลับไฟ OK
+      digitalWrite(PIN_NG, LOW);
+      digitalWrite(PIN_BUZZER, LOW);
+    } 
+    else if (currentState == STATE_NG) {
+      digitalWrite(PIN_OK, LOW);
+      digitalWrite(PIN_NG, !digitalRead(PIN_NG)); // สลับไฟ NG
+      digitalWrite(PIN_BUZZER, LOW);
     }
   }
 }
