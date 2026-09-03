@@ -241,7 +241,7 @@ cameras:
 global:
   active_model: model\pose_classifier_1 copy.pkl
   dataset_path: pose_dataset_label.csv
-  default_camera_id: Camera_1
+  default_camera_id: Camera_6
   default_person_limit: 3
   detection_confidence: 0.9
   model_type: full
