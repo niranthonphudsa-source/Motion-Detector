@@ -41,6 +41,7 @@ from ultralytics import YOLO
 from rtspVideo import RTSPVideoGrabber
 from LIB.zoom_arae import AdvancedZoomArea
 from show_status_pose import ShowStatusPose
+from mediam_image import median_filter
 from LIB.Check_direction_of_Movement import Check_direction_of_Movement
 from esp32_ng_controller import ESP32SerialController, NGThresholdController
 
@@ -74,6 +75,56 @@ def resolve_classifier_path(configured_path, config_data):
         if os.path.exists(candidate_path):
             return candidate_path
     return ""
+
+
+def crop_head(frame, point_pose):
+    """Return a crop from the head down through both shoulders."""
+    pose_points = np.asarray(point_pose[:7], dtype=np.float32)
+    head_points = pose_points[:5]
+    valid_head_points = head_points[(head_points[:, 0] > 0) & (head_points[:, 1] > 0)]
+    if len(valid_head_points) < 2:
+        return None
+
+    shoulder_points = pose_points[5:7]
+    valid_shoulder_points = shoulder_points[
+        (shoulder_points[:, 0] > 0) & (shoulder_points[:, 1] > 0)
+    ]
+    valid_points = np.vstack((valid_head_points, valid_shoulder_points))
+
+    min_x, min_y = valid_points.min(axis=0)
+    max_x = valid_points[:, 0].max()
+    head_top = valid_head_points[:, 1].min()
+    head_bottom = valid_head_points[:, 1].max()
+    shoulder_bottom = valid_shoulder_points[:, 1].max() if len(valid_shoulder_points) else head_bottom
+    head_height = max(1, head_bottom - head_top)
+    shoulder_width = max_x - min_x
+    padding_x = max(30, shoulder_width * 0.12)
+    padding_top = max(20, head_height * 0.5)
+    padding_bottom = max(20, (shoulder_bottom - head_bottom) * 0.15)
+
+    frame_height, frame_width = frame.shape[:2]
+    left = max(0, int(min_x - padding_x))
+    top = max(0, int(head_top - padding_top))
+    right = min(frame_width, int(max_x + padding_x))
+    bottom = min(frame_height, int(shoulder_bottom + padding_bottom))
+    if right <= left or bottom <= top:
+        return None
+    return frame[top:bottom, left:right].copy()
+
+
+def is_front_facing(point_pose):
+    """Check that the nose is centered between two visible eyes."""
+    head_points = np.asarray(point_pose[:5], dtype=np.float32)
+    if np.any(head_points[[0, 1, 2]] <= 0):
+        return False
+
+    nose_x = head_points[0, 0]
+    eye_center_x = (head_points[1, 0] + head_points[2, 0]) / 2
+    eye_width = abs(head_points[1, 0] - head_points[2, 0])
+    if eye_width <= 1:
+        return False
+
+    return abs(nose_x - eye_center_x) <= eye_width * 0.75
 
 
 def heartbeat_loop():
@@ -257,6 +308,10 @@ manager = UserStateManager(df.check_pose, fourcc, df.ok_display_time, max_lost_t
 direction_tracker = {}
 ng_threshold_controller = NGThresholdController(threshold=app_config.ng_trigger_count)
 manager.ng_threshold_controller = ng_threshold_controller
+ng_head_lock = threading.Lock()
+pending_ng_heads = []
+ng_head_overlays = []
+ng_head_overlay_until = 0.0
 
 esp32_controller = ESP32SerialController(
     config_filename=os.path.join(PROJECT_ROOT, "main", "setting_esp32", "esp32_pin_config.json"),
@@ -276,10 +331,17 @@ except Exception as e:
 
 
 def handle_ng_threshold_trigger():
+    global ng_head_overlays, ng_head_overlay_until, pending_ng_heads
+
     try:
         esp32_controller.set_light_enabled(app_config.esp32_light_enabled)
         esp32_controller.set_reset_after_sec(app_config.esp32_reset_after_sec)
         result = esp32_controller.trigger_ng(status="NG")
+        if result:
+            with ng_head_lock:
+                ng_head_overlays = pending_ng_heads[:5]
+                pending_ng_heads = []
+            ng_head_overlay_until = time.time() + 5.0
         print(f"[ESP32] Trigger result: {result}")
     except Exception as e:
         print(f"⚠️ [ESP32 NG Trigger Error] {e}")
@@ -387,6 +449,8 @@ while not display_stop_event.is_set():
         if s.p_id not in direction_tracker:
             direction_tracker[s.p_id] = {'first_touch': None, 'is_reverse': False}
 
+        head_source_frame = frame.copy()
+
         # วาดเส้นกระดูก Skeleton
         point_skel = point_pose.astype(int)
         for start_idx, end_idx in df.SKELETON_CONNECTIONS:
@@ -463,6 +527,10 @@ while not display_stop_event.is_set():
             if state["confirm"] != "OK" and not state.get("ng_trigger_sent", False):
                 state["ng_trigger_sent"] = True
                 if manager.ng_threshold_controller is not None:
+                    head_crop = crop_head(head_source_frame, point_pose)
+                    if head_crop is not None:
+                        with ng_head_lock:
+                            pending_ng_heads.append(head_crop)
                     manager.ng_threshold_controller.register_ng()
                     print(f"🚨 [Exit ROI Trigger] ID={s.p_id} left ROI -> send NG and start countdown")
 
@@ -533,6 +601,39 @@ while not display_stop_event.is_set():
         cv2.line(frame, (0, reverse_y), (last_x, reverse_y), (0, 255, 0), 2, cv2.LINE_AA)
     else:
         pass
+
+    # แสดงภาพหัว NG หลังจากส่ง CMD_NG ไป ESP32 สำเร็จ
+    with ng_head_lock:
+        head_overlays = [head.copy() for head in ng_head_overlays]
+    if head_overlays and time.time() < ng_head_overlay_until:
+        overlay_width = 360
+        overlay_x, overlay_y = 20, 20
+        for overlay_index, head_overlay in enumerate(head_overlays[:5]):
+            head_overlay = median_filter(head_overlay, kernel_size=5)
+            overlay_height = max(1, int(head_overlay.shape[0] * overlay_width / head_overlay.shape[1]))
+            head_overlay = cv2.resize(head_overlay, (overlay_width, overlay_height))
+            current_x = overlay_x + overlay_index * (overlay_width + 15)
+            if current_x + overlay_width > w:
+                break
+            frame[overlay_y:overlay_y + overlay_height, current_x:current_x + overlay_width] = head_overlay
+            cv2.rectangle(
+                frame,
+                (current_x, overlay_y),
+                (current_x + overlay_width, overlay_y + overlay_height),
+                (0, 0, 255),
+                3,
+            )
+            cv2.putText(
+                frame,
+                f"NG HEAD {overlay_index + 1}",
+                (current_x, overlay_y + overlay_height + 25),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2,
+                cv2.LINE_AA,
+            )
+
     # show fps
     new_frame_time = time.time()
     fps_per_sec = 1 / (new_frame_time - prev_frame_time)

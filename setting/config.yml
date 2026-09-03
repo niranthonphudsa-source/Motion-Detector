@@ -163,7 +163,7 @@ cameras:
       - 790
     - - 553
       - 779
-    ng_trigger_count: 3
+    ng_trigger_count: 1
     person_limit: 5
     point_zoom: null
     record_video: false
