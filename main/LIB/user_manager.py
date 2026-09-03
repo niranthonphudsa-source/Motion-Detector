@@ -403,13 +403,14 @@ class UserStateManager:
                         active_state["ng_trigger_sent"] = True
                         self.ng_threshold_controller.register_ng()
 
-                    data = (active_id, camera_id, final_status)
+                    if save_data:
+                        data = (active_id, camera_id, final_status)
 
-                    try:
-                        writer = get_db_batch_writer(config_data)
-                        writer.enqueue(*data)
-                    except Exception as e:
-                        print(f"⚠️ [DB Queue Error] ไม่สามารถจัดเก็บข้อมูลเข้า queue ได้: {e}")
+                        try:
+                            writer = get_db_batch_writer(config_data)
+                            writer.enqueue(*data)
+                        except Exception as e:
+                            print(f"⚠️ [DB Queue Error] ไม่สามารถจัดเก็บข้อมูลเข้า queue ได้: {e}")
 
                     # 4. Reset ค่าเพื่อเตรียมรับการทำงานรอบใหม่
                     active_state["video_filename"] = None
