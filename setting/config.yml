@@ -7,7 +7,7 @@ cameras:
       Size_y: 1440
     Type: LIVE_STREAM
     enabled: true
-    esp32_light_enabled: true
+    esp32_light_enabled: false
     esp32_reset_after_sec: 10
     mark_points:
     - - 582
@@ -32,6 +32,7 @@ cameras:
     save_data: false
     save_ng: false
     save_ok: false
+    show_ng_head_overlay: true
     source: rtsp://admin:Aoyama456@10.17.7.246:554/cam/realmonitor?channel=1&subtype=0
     start_point:
     - 872
@@ -148,7 +149,7 @@ cameras:
       Size_y: 1080
     Type: Video
     enabled: false
-    esp32_light_enabled: true
+    esp32_light_enabled: false
     esp32_reset_after_sec: 10
     mark_points:
     - - 560
@@ -173,6 +174,7 @@ cameras:
     save_data: false
     save_ng: false
     save_ok: false
+    show_ng_head_overlay: true
     source: ../video_model/videoTrain3.mp4
     start_point:
     - 876

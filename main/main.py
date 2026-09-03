@@ -219,11 +219,18 @@ def reload_config_callback(new_camera_id, updated_config=None):
 
 
     cam_data = config["cameras"].get(active_camera_id, {})
+    app_config.esp32_light_enabled = bool(cam_data.get("esp32_light_enabled", True))
+    app_config.esp32_reset_after_sec = int(cam_data.get("esp32_reset_after_sec", 10))
+    app_config.show_ng_head_overlay = bool(cam_data.get("show_ng_head_overlay", True))
     save_ok_flag = cam_data.get("save_ok", True)
     save_ng_flag = cam_data.get("save_ng", True)
     save_data_flag = cam_data.get("save_data", True)
     ng_threshold_controller.set_threshold(int(cam_data.get("ng_trigger_count", 10)))
     manager.ng_threshold_controller = ng_threshold_controller
+
+    if "esp32_controller" in globals():
+        esp32_controller.set_light_enabled(app_config.esp32_light_enabled)
+        esp32_controller.set_reset_after_sec(app_config.esp32_reset_after_sec)
     
     print(f"⚙️ สเตตัสปัจจุบัน: Save OK={save_ok_flag}, Save NG={save_ng_flag}, Save_Data={save_data_flag}, NGTrigger={ng_threshold_controller.threshold},Model={model_sklearn}")
     return cam_data, save_ok_flag, save_ng_flag, save_data_flag
@@ -337,10 +344,11 @@ def handle_ng_threshold_trigger():
         esp32_controller.set_light_enabled(app_config.esp32_light_enabled)
         esp32_controller.set_reset_after_sec(app_config.esp32_reset_after_sec)
         result = esp32_controller.trigger_ng(status="NG")
-        if result:
-            with ng_head_lock:
+        with ng_head_lock:
+            if app_config.show_ng_head_overlay:
                 ng_head_overlays = pending_ng_heads[:5]
-                pending_ng_heads = []
+            pending_ng_heads = []
+        if app_config.show_ng_head_overlay and ng_head_overlays:
             ng_head_overlay_until = time.time() + 5.0
         print(f"[ESP32] Trigger result: {result}")
     except Exception as e:
@@ -531,6 +539,9 @@ while not display_stop_event.is_set():
                     if head_crop is not None:
                         with ng_head_lock:
                             pending_ng_heads.append(head_crop)
+                            if app_config.show_ng_head_overlay:
+                                ng_head_overlays = (ng_head_overlays + [head_crop])[-5:]
+                                ng_head_overlay_until = time.time() + 5.0
                     manager.ng_threshold_controller.register_ng()
                     print(f"🚨 [Exit ROI Trigger] ID={s.p_id} left ROI -> send NG and start countdown")
 
@@ -605,7 +616,7 @@ while not display_stop_event.is_set():
     # แสดงภาพหัว NG หลังจากส่ง CMD_NG ไป ESP32 สำเร็จ
     with ng_head_lock:
         head_overlays = [head.copy() for head in ng_head_overlays]
-    if head_overlays and time.time() < ng_head_overlay_until:
+    if app_config.show_ng_head_overlay and head_overlays and time.time() < ng_head_overlay_until:
         overlay_width = 360
         overlay_x, overlay_y = 20, 20
         for overlay_index, head_overlay in enumerate(head_overlays[:5]):

@@ -634,6 +634,7 @@ class ConfigGUI:
         self.ng_trigger_var = tk.IntVar(value=10)
         self.esp32_reset_after_var = tk.IntVar(value=10)
         self.esp32_light_enabled_var = tk.BooleanVar(value=True)
+        self.show_ng_head_overlay_var = tk.BooleanVar(value=True)
 
         self.chk_ok = ttk.Checkbutton(c_save, text="บันทึกวิดีโอ OK (video_ok)", variable=self.var_ok)
         self.chk_ok.pack(anchor="w", pady=2)
@@ -658,7 +659,8 @@ class ConfigGUI:
 
         undon_frame = tk.Frame(c_save, bg=PANEL_COLOR)
         undon_frame.pack(fill="x", pady=(6, 0))
-        ttk.Checkbutton(undon_frame, text="Undon (เปิดไฟ ESP32 / เปิดใช้งาน)", variable=self.esp32_light_enabled_var).pack(anchor="w")
+        ttk.Checkbutton(undon_frame, text="เปิดไฟ ESP32 (ON-OFF)", variable=self.esp32_light_enabled_var).pack(anchor="w")
+        ttk.Checkbutton(undon_frame, text="แสดงภาพครอปใบหน้าเมื่อ NG", variable=self.show_ng_head_overlay_var).pack(anchor="w")
 
         def on_camera_select(event=None):
             cam_id = self.cam_var.get()
@@ -669,6 +671,7 @@ class ConfigGUI:
             self.ng_trigger_var.set(int(cam_data.get("ng_trigger_count", 10)))
             self.esp32_reset_after_var.set(int(cam_data.get("esp32_reset_after_sec", 10)))
             self.esp32_light_enabled_var.set(bool(cam_data.get("esp32_light_enabled", True)))
+            self.show_ng_head_overlay_var.set(bool(cam_data.get("show_ng_head_overlay", True)))
 
         self.cb_camera.bind("<<ComboboxSelected>>", on_camera_select)
         if camera_list: 
@@ -881,6 +884,7 @@ class ConfigGUI:
                 self.config["cameras"][cam_id]["ng_trigger_count"] = max(1, int(self.ng_trigger_var.get()))
                 self.config["cameras"][cam_id]["esp32_reset_after_sec"] = max(1, int(self.esp32_reset_after_var.get()))
                 self.config["cameras"][cam_id]["esp32_light_enabled"] = bool(self.esp32_light_enabled_var.get())
+                self.config["cameras"][cam_id]["show_ng_head_overlay"] = bool(self.show_ng_head_overlay_var.get())
 
                 if "global" not in self.config or not isinstance(self.config["global"], dict):
                     self.config["global"] = {}

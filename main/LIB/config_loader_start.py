@@ -19,6 +19,7 @@ class AppConfig:
         self.ng_trigger_count = 10
         self.esp32_reset_after_sec = 10
         self.esp32_light_enabled = True
+        self.show_ng_head_overlay = True
         self.model_sklearn = ""
         self.type = None
         self.reverse_point = None
@@ -63,6 +64,7 @@ class AppConfig:
         self.ng_trigger_count = int(self.camera.get("ng_trigger_count", 10))
         self.esp32_reset_after_sec = int(self.camera.get("esp32_reset_after_sec", 10))
         self.esp32_light_enabled = bool(self.camera.get("esp32_light_enabled", True))
+        self.show_ng_head_overlay = bool(self.camera.get("show_ng_head_overlay", True))
         # โหลดโมเดล AI
         model_path = self.config.get("model", {}).get("Model_path_1", {})
         self.model_sklearn = model_path.get("source", "")
