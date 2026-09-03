@@ -149,7 +149,7 @@ cameras:
       Size_y: 1080
     Type: Video
     enabled: false
-    esp32_light_enabled: false
+    esp32_light_enabled: true
     esp32_reset_after_sec: 10
     mark_points:
     - - 560

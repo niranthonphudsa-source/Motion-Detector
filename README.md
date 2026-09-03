@@ -368,6 +368,46 @@ python main/main.py
 - ตรวจสอบโฟลเดอร์ video_ok / video_ng / temp_video ว่ามีสิทธิ์เขียนไฟล์หรือไม่
 - ตรวจสอบว่า buffer_output_time ไม่ใช่ค่า 0 หรือติดลบ
 
+## การตั้งค่า NG และภาพครอปใบหน้า
+
+สามารถตั้งค่าได้จาก GUI ตั้งค่ากล้อง หรือแก้ไขใน `setting/config.yml` ภายใต้กล้องที่ต้องการ:
+
+```yaml
+cameras:
+   Camera_1:
+      ng_trigger_count: 1
+      esp32_light_enabled: false
+      show_ng_head_overlay: true
+      esp32_reset_after_sec: 10
+```
+
+ความหมายของค่า:
+
+- `ng_trigger_count`: จำนวนเหตุการณ์ NG ที่ต้องสะสมก่อนสั่งงาน ESP32
+- `esp32_light_enabled`: ถ้าเป็น `true` ระบบจึงจะส่ง `CMD_NG` ไป ESP32; ถ้าเป็น `false` จะไม่ส่งคำสั่งไฟ
+- `show_ng_head_overlay`: ถ้าเป็น `true` จะแสดงภาพครอปใบหน้าของคนที่เป็น NG บนภาพหลัก; ถ้าเป็น `false` จะไม่แสดง
+- `esp32_reset_after_sec`: เวลาหน่วงก่อนส่ง `CMD_RESET` กลับไปยัง ESP32
+
+การแสดงภาพครอปไม่ขึ้นกับการเปิดไฟ ESP32 สามารถเปิด `show_ng_head_overlay` ได้แม้ตั้ง `esp32_light_enabled: false` ภาพจะแสดงเมื่อคน NG เดินออกจาก ROI และระบบครอปศีรษะได้ โดยแสดงภาพล่าสุดได้สูงสุด 5 คน
+
+> ค่า `true/false` ใน YAML เทียบเท่ากับเปิด/ปิด หรือ `1/0` ตามลำดับ ควรใช้ `true` และ `false` เพื่อให้อ่านค่าได้ชัดเจน
+
+## การเปิดใช้งานระบบบน Windows
+
+รันจากโฟลเดอร์ root ของโปรเจ็กต์:
+
+```powershell
+python main\main.py
+```
+
+หรือใช้ supervisor ซึ่งจะตรวจสอบ heartbeat และเริ่มระบบใหม่เมื่อโปรแกรมหลักหยุดทำงาน:
+
+```text
+script_run\run_detected_pose.bat
+```
+
+ไฟล์ heartbeat อยู่ที่ `main/logs/heartbeat.txt` และระบบจะสร้างโฟลเดอร์ `main/logs` ให้อัตโนมัติ หากไม่สามารถเขียน heartbeat ได้ ระบบจะแจ้งเตือนและพยายามทำงานต่อ แต่ supervisor อาจมองว่าโปรแกรมไม่ตอบสนองเมื่อ heartbeat ไม่ถูกอัปเดต
+
 ## ประเด็นที่น่าสังเกต
 
 โปรเจ็กต์นี้ไม่ได้เป็นแค่ระบบ CRUD ธรรมดา แต่เป็นระบบ AI Vision + Monitoring + Monitoring Dashboard + Logging ที่มีการบันทึกและรายงานข้อมูลเพิ่มเติม โดยมีความเหมาะสมกับการใช้งานในด้าน

@@ -56,9 +56,13 @@ SELECTED_CAMERA_FILE = os.path.join(PROJECT_ROOT, "main", "logs", "selected_came
 
 
 def update_heartbeat():
-    os.makedirs(os.path.dirname(HEARTBEAT_FILE), exist_ok=True)
-    with open(HEARTBEAT_FILE, "a", encoding="utf-8"):
-        os.utime(HEARTBEAT_FILE, None)
+    try:
+        heartbeat_dir = os.path.dirname(HEARTBEAT_FILE)
+        os.makedirs(heartbeat_dir, exist_ok=True)
+        with open(HEARTBEAT_FILE, "a", encoding="utf-8"):
+            os.utime(HEARTBEAT_FILE, None)
+    except OSError as error:
+        print(f"⚠️ [Heartbeat] ไม่สามารถอัปเดตไฟล์ {HEARTBEAT_FILE}: {error}")
 
 
 def resolve_classifier_path(configured_path, config_data):
