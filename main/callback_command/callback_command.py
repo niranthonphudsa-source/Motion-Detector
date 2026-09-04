@@ -27,7 +27,7 @@ model_sklearn = app_config.model_sklearn
 type = app_config.type
 
 roi = ROIHandler()
-stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
+stats_manager = StatsManager(db_path=r"db_config.json")
 
 check_pose = df.check_pose
 ok_display_time = df.ok_display_time

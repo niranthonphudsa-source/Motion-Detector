@@ -69,6 +69,10 @@ class HelpGUI:
 
     def _trigger_key(self, char_val):
         """ส่งรหัสอักขระไปยัง main.py (ถ้ามี)"""
+        if self.root and self.root.winfo_exists():
+            self.root.attributes("-topmost", False)
+            self.root.lower()
+
         if self.key_callback:
             self.key_callback(char_val)
             print(f"👉 [Help GUI] Triggered Key: '{char_val}'")

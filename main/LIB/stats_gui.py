@@ -1,56 +1,76 @@
-import sqlite3
+import json
 import pandas as pd
 from datetime import datetime, timedelta
 import tkinter as tk
 from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from LIB.export_data.export_data_to_exel import InspectionExporter
-# from main.app.run_app_combined import ConfigManager, SSMSConnectGUI
+from export_data import InspectionExporter
+import pyodbc
+import re
 
 class StatsGUI:
     def __init__(self, db_path=r"db_config.json"):
-        self.db_path = db_path
-        self.init_db()
+        self.config_path = db_path
 
-    def init_db(self):
-        """สร้างตาราง SQLite สำหรับเก็บสถิติถ้ายังไม่มี"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS inspection_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                camera_id TEXT,
-                status TEXT,
-                user_id INTEGER
-            )
-        ''')
-        conn.commit()
-        conn.close()
+    def _get_connection(self):
+        with open(self.config_path, "r", encoding="utf-8") as config_file:
+            config = json.load(config_file)
+        driver = config.get("driver", "ODBC Driver 17 for SQL Server")
+        if config.get("auth_type") == "Windows Authentication":
+            connection_string = f"DRIVER={{{driver}}};SERVER={config.get('server')};DATABASE={config.get('database')};Trusted_Connection=yes;"
+        else:
+            connection_string = f"DRIVER={{{driver}}};SERVER={config.get('server')};DATABASE={config.get('database')};UID={config.get('username')};PWD={config.get('password')};"
+        if "18" in driver:
+            connection_string += "TrustServerCertificate=yes;"
+        return config, pyodbc.connect(connection_string, timeout=10)
 
     def log_event(self, camera_id, status, user_id):
-        """ฟังก์ชันสำหรับ call จาก Main Loop เพื่อบันทึกผล"""
-        conn = sqlite3.connect(self.db_path)
+        """บันทึกผลตรวจลงตาราง SQL Server ที่กำหนดใน config"""
+        config, conn = self._get_connection()
         cursor = conn.cursor()
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute('''
-            INSERT INTO inspection_logs (timestamp, camera_id, status, user_id)
-            VALUES (?, ?, ?, ?)
-        ''', (now_str, camera_id, status, user_id))
+        table_name = str(config.get("table_name", "Tb_Check_Pose")).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+            conn.close()
+            raise ValueError("ชื่อ table ไม่ถูกต้อง")
+        cursor.execute(
+            f"INSERT INTO dbo.[{table_name}] "
+            "(user_id, camera_id, status_pose, date_time) "
+            "VALUES (?, ?, ?, CAST(GETDATE() AS DATETIME2(0)))",
+            (int(user_id), str(camera_id), str(status)),
+        )
         conn.commit()
         conn.close()
 
 
 class StatsManager:
-    def __init__(self, db_path=r"setting\inspection_stats.db"):
-        self.db_path = db_path
+    def __init__(self, db_path=r"db_config.json"):
+        self.config_path = db_path
         self.root = None
         self.fig = None 
 
+    def _load_config(self):
+        with open(self.config_path, "r", encoding="utf-8") as config_file:
+            config = json.load(config_file)
+        table_name = str(config.get("table_name", "Tb_Check_Pose")).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+            raise ValueError("ชื่อ table ไม่ถูกต้อง")
+        config["table_name"] = table_name
+        return config
+
+    def _get_connection(self, config):
+        driver = config.get("driver", "ODBC Driver 17 for SQL Server")
+        if config.get("auth_type") == "Windows Authentication":
+            connection_string = f"DRIVER={{{driver}}};SERVER={config.get('server')};DATABASE={config.get('database')};Trusted_Connection=yes;"
+        else:
+            connection_string = f"DRIVER={{{driver}}};SERVER={config.get('server')};DATABASE={config.get('database')};UID={config.get('username')};PWD={config.get('password')};"
+        if "18" in driver:
+            connection_string += "TrustServerCertificate=yes;"
+        return pyodbc.connect(connection_string, timeout=10)
+
     def handle_export_excel(self):
         """ฟังก์ชันจัดการเมื่อผู้ใช้กดปุ่ม Export"""
-        exporter = InspectionExporter(db_path=self.db_path)
+        exporter = InspectionExporter(db_path=self.config_path)
         success, message = exporter.export_to_excel(auto_open=True)
         
         if success:
@@ -248,18 +268,23 @@ class StatsManager:
         else:
             start_date = "1970-01-01 00:00:00"
 
+        conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
-            query = f"SELECT timestamp, camera_id, status FROM inspection_logs WHERE timestamp >= '{start_date}'"
-            df = pd.read_sql_query(query, conn)
-            conn.close()
+            config = self._load_config()
+            conn = self._get_connection(config)
+            table_name = f"[dbo].[{config['table_name']}]"
+            query = f"SELECT date_time, camera_id, status_pose FROM {table_name} WHERE date_time >= ?"
+            df = pd.read_sql_query(query, conn, params=[start_date])
         except Exception as e:
             print(f"❌ Error Reading DB: {e}")
-            df = pd.DataFrame(columns=['timestamp', 'camera_id', 'status'])
+            df = pd.DataFrame(columns=['date_time', 'camera_id', 'status_pose'])
+        finally:
+            if conn:
+                conn.close()
 
         total = len(df)
-        ok_count = len(df[df['status'] == 'OK'])
-        ng_count = len(df[df['status'] == 'NG'])
+        ok_count = len(df[df['status_pose'] == 'OK'])
+        ng_count = len(df[df['status_pose'] == 'NG'])
         yield_rate = (ok_count / total * 100) if total > 0 else 0.0
 
         lbl_total.config(text=f"{total:,}")
@@ -317,7 +342,7 @@ class StatsManager:
         ax1.set_facecolor('#FFFFFF')
 
         # 📊 2. Bar Chart (Camera Breakdown)
-        cam_stats = df.groupby(['camera_id', 'status']).size().unstack(fill_value=0)
+        cam_stats = df.groupby(['camera_id', 'status_pose']).size().unstack(fill_value=0)
         
         for st in ['OK', 'NG']:
             if st not in cam_stats.columns:

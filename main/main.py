@@ -367,8 +367,7 @@ pose_classifier = joblib.load(model_sklearn)
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
-# stats_db = StatsGUI(db_path=r"setting\inspection_stats.db")
-stats_manager = StatsManager(db_path=r"setting\inspection_stats.db")
+stats_manager = StatsManager(db_path=r"db_config.json")
 config_process = None
 
 # config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
