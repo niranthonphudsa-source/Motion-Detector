@@ -35,7 +35,6 @@ from check_people_in_roi import CheckPeopleInRoi, Check_where_inRectangle, Recor
 from LIB.roi_handler import ROIHandler
 from LIB.predict_frame_pose import ShowPredict
 from LIB.user_manager import UserStateManager  
-from LIB.stats_gui import StatsGUI, StatsManager
 from LIB.config_loader_start import AppConfig
 from ultralytics import YOLO
 from rtspVideo import RTSPVideoGrabber
@@ -367,7 +366,6 @@ pose_classifier = joblib.load(model_sklearn)
 
 
 # cam_data, save_ok_flag, save_ng_flag = clb.reload_config_callback(active_camera_id, updated_config=None)#new_camera_id=None, updated_config=None
-stats_manager = StatsManager(db_path=r"db_config.json")
 config_process = None
 
 # config_manager.open_settings(current_cam_id=active_camera_id, on_close_callback=reload_config_callback)  
@@ -674,7 +672,6 @@ while not display_stop_event.is_set():
     # time.sleep(0.01)
 
     # 2. 🌟 อัปเดต GUI ของ Dashboard (ถ้าหน้าต่างเปิดอยู่) ไม่ให้ค้าง
-    stats_manager.update_window()
 
     # รับคำสั่งแป้นคีย์บอร์ด (Keyboard Actions)
     key_input = 255
@@ -740,12 +737,6 @@ while not display_stop_event.is_set():
                 cwd=PROJECT_ROOT,
                 env={**os.environ, "PYTHONPATH": PROJECT_ROOT}
             )
-    # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
-    # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
-    # elif key == 'd':
-    #     print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
-    #     stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
- 
     elif key == 'o':
         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
         clb.open_ssms_gui()

@@ -11,7 +11,6 @@ from app.app import SSMSConnectGUI, TableViewerWindow
 from LIB.help_gui import HelpGUI
 from LIB.config_loader_start import AppConfig
 from LIB.roi_handler import ROIHandler
-from LIB.stats_gui import StatsGUI, StatsManager
 # ─── โหลดและจัดการ CONFIG ───
 app_config = AppConfig(r"setting\config.yml")
 
@@ -27,7 +26,6 @@ model_sklearn = app_config.model_sklearn
 type = app_config.type
 
 roi = ROIHandler()
-stats_manager = StatsManager(db_path=r"db_config.json")
 
 check_pose = df.check_pose
 ok_display_time = df.ok_display_time
@@ -150,12 +148,6 @@ def open_pin_config_window():
 #             daemon=True
 #         )
 #         gui_thread.start()
-
-#     # 4. เพิ่มปุ่มลัด 'D' บน Keyboard เพื่อเปิดหน้า Dashboard
-#     # ⭕ เปลี่ยนเป็นชื่อฟังก์ชันจริงในคลาส StatsGUI เช่น:
-#     elif key == 'd':
-#         print("📊 กำลังเปิดหน้าต่างสถิติ Dashboard...")
-#         stats_manager.open_dashboard() # เปิด UI ขึ้นมาโดยไม่บล็อก Main Loop  
 
 #     elif key == 'o':
 #         print("📊 กำลังเปิดหน้าต่าง Connect Database...")
